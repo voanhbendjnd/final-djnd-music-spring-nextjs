@@ -1,0 +1,9 @@
+http://localhost:8080/login/oauth2/code/github
+
+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
+
+<iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A258930021&color=%23a04446&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true"></iframe><div style="font-size: 10px; color: #cccccc;line-break: anywhere;word-break: normal;overflow: hidden;white-space: nowrap;text-overflow: ellipsis; font-family: Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif;font-weight: 100;"><a href="https://soundcloud.com/06051994" title="Albrecht" target="_blank" style="color: #cccccc; text-decoration: none;">Albrecht</a> · <a href="https://soundcloud.com/06051994/petit-rabbits-no-poi-nenpulse-bootleg-remix
+
+https://res.cloudinary.com/dddppjhly/video/upload/v1776708815/audio-tracks/1776708812835-Good%20Parts%20%28when%20the%20quality%20is%20bad%20but%20I%20am%29.mp3.mp3
+https://res.cloudinary.com/dddppjhly/video/upload/v1776708815/audio-tracks/1776708812835-Good Parts (when the quality is bad but I am).mp3.mp3
+https://res.cloudinary.com/dddppjhly/image/upload/v1776708836/img-tracks/1776708835269-lesserafim.jpg.jpg', 'Good Parts (when the quality is bad but I am)', 'audio-tracks/1776708812835-Good Parts (when the quality is bad but I am).mp3', 'https://res.cloudinary.com/dddppjhly/video/upload/v1776708815/audio-tracks/1776708812835-Good%20Parts%20%28when%20the%20quality%20is%20bad%20but%20I%20am%29.mp3.mp3', '2026-04-21 01:14:00.948170', '2', '2'

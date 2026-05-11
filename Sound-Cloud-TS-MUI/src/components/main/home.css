@@ -1,0 +1,29 @@
+.track{
+    h4{
+        color:#ffffff;
+    }
+    h5, h6{
+        color:darkgray;
+    }
+}
+
+.track-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== spacing giữa các item slider ===== */
+.slick-slide {
+    padding: 0 12px;
+    box-sizing: border-box;
+}
+
+.slick-list {
+    margin: 0 -12px;
+}
+
+/* fix layout flex */
+.slick-track {
+    display: flex;
+}

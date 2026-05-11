@@ -1,0 +1,102 @@
+.wave-form-container {
+    cursor: pointer;
+    position: relative;
+    &:hover{
+        .hover-wave{
+            opacity:1
+        }
+    }
+
+}
+.hover-wave {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 10;
+    pointer-events: none;
+    height: 100%;
+    width: 0;
+    mix-blend-mode: overlay;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+#waveform:hover #hover {
+    opacity: 1;
+}
+.time,
+.duration {
+    position: absolute;
+    z-index: 11;
+    top: 50%;
+    margin-top: -1px;
+    transform: translateY(-50%);
+    font-size: 11px;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 2px;
+    color: #ddd;
+}
+.time {
+    left: 0;
+}
+.duration {
+    right: 0;
+}
+
+.wave-background{
+    display: flex;
+    gap: 15px;
+    padding: 20px;
+    height: 400px;
+    .left {
+        width: 75%;
+        height: calc(100% - 10px);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+
+    }
+}
+
+.wave-button{
+    border-radius: 50%;
+    background: #f50;
+    height: 50px;
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer
+}
+
+
+
+.comments{
+    position: relative;
+    .avatar-user{
+        height:24px;
+        width:24px;
+        position: absolute;
+        top: 75px;
+        z-index: 20;
+    }
+}
+
+/* Nếu bạn dùng Tailwind hoặc CSS Module */
+.track-image-container {
+    position: relative;
+    cursor: pointer;
+}
+
+.track-image-container::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.2) 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.track-image-container:hover::after {
+    opacity: 1;
+}

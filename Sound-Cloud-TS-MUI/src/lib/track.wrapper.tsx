@@ -5,7 +5,39 @@ import HistoryTrackingProvider from "@/lib/history.tracking.provider";
 import axiosInstance from "@/utils/axios-instance";
 import { audioEngine } from "@/lib/audio-engine";
 
-const TrackContext = createContext<ITrackContext | null>(null);
+export interface ITrackContext {
+    currentTrack: IShareTrack;
+    setCurrentTrack: (track: IShareTrack) => void;
+    audioRef: React.MutableRefObject<HTMLAudioElement | null>;
+    savedTimes: React.MutableRefObject<Record<string, number>>;
+    currentPlaylist: IPlaylist | null;
+    setCurrentPlaylist: (p: IPlaylist | null) => void;
+    playlistTracks: any[];
+    setPlaylistTracks: (tracks: any[]) => void;
+    currentTrackIndex: number;
+    setCurrentTrackIndex: (index: number) => void;
+    playNextTrack: () => void;
+    playPreviousTrack: () => void;
+    viewedTracks: Set<string>;
+    markTrackAsViewed: (trackId: string) => void;
+    isShuffle: boolean;
+    setIsShuffle: (v: boolean) => void;
+    repeatMode: 'none' | 'all' | 'one';
+    setRepeatMode: (v: 'none' | 'all' | 'one') => void;
+    playMode: 'queue' | 'dynamic';
+    setPlayMode: (v: 'queue' | 'dynamic') => void;
+    queueType: any;
+    setQueueType: (v: any) => void;
+    shuffledIndexes: number[];
+    playedTrackIds: Set<string>;
+    addToPlayedTracks: (trackId: string) => void;
+    isRoomMode: boolean;
+    setIsRoomMode: (v: boolean) => void;
+    isHost: boolean;
+    setIsHost: (v: boolean) => void;
+}
+
+export const TrackContext = createContext<ITrackContext | null>(null);
 
 // ─── Safe track mapper ─────────────────────────────────────────────────────────
 // FIX #1 — Centralise the raw→IShareTrack mapping so every caller
@@ -64,6 +96,8 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
     const [queueType, setQueueType] = useState<any>(null);
     const [shuffledIndexes, setShuffledIndexes] = useState<number[]>([]);
     const [playedTrackIds, setPlayedTrackIds] = useState<Set<string>>(new Set());
+    const [isRoomMode, setIsRoomMode] = useState(false);
+    const [isHost, setIsHost] = useState(false);
 
     const addToPlayedTracks = useCallback((trackId: string) => {
         //@ts-ignore
@@ -233,6 +267,10 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
             shuffledIndexes,
             playedTrackIds,
             addToPlayedTracks,
+            isRoomMode,
+            setIsRoomMode,
+            isHost,
+            setIsHost,
         }}>
             <HistoryTrackingProvider>
                 {children}

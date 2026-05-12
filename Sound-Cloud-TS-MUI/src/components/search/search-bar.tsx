@@ -6,9 +6,14 @@ import { Search as SearchIcon, Close as CloseIcon } from '@mui/icons-material';
 import { TextField, Box, Paper, IconButton, InputAdornment, CircularProgress } from '@mui/material';
 import { useSearchSuggestions } from '@/hooks/use-search';
 import Image from 'next/image';
-import { useTrackContext } from '@/lib/track.wrapper';
+import { ITrackContext, useTrackContext } from '@/lib/track.wrapper';
 
-const SearchBar = () => {
+interface IProps {
+    onSelect?: (suggestion: any) => void;
+}
+
+const SearchBar = (props: IProps) => {
+    const { onSelect } = props;
     const router = useRouter();
     const [keyword, setKeyword] = useState('');
     const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -123,6 +128,13 @@ const SearchBar = () => {
     }, [highlightIndex]);
 
     const handleSuggestionClick = (suggestion: any) => {
+        if (onSelect) {
+            onSelect(suggestion);
+            setShowSuggestions(false);
+            setKeyword('');
+            return;
+        }
+
         if (searchType === 'youtube') {
             setCurrentTrack({
                 id: suggestion.videoId,
@@ -138,6 +150,7 @@ const SearchBar = () => {
                     name: suggestion.channel,
                     avatar: suggestion.thumbnail
                 },
+                waveform_url:"",
                 createdAt: "",
                 updatedAt: "",
                 peaks: "",
@@ -361,9 +374,9 @@ const SearchBar = () => {
                                     alignItems: 'center',
                                     gap: 2,
                                     cursor: 'pointer',
-                                    bgcolor: index === highlightIndex ? '#444' : 'transparent',
+                                    bgcolor: index === highlightIndex ? '#2f2f2f' : 'transparent',
                                     '&:hover': {
-                                        bgcolor: '#444',
+                                        bgcolor: '#2f2f2f',
                                     },
                                 }}
                                 onMouseEnter={() => setHighlightIndex(index)}

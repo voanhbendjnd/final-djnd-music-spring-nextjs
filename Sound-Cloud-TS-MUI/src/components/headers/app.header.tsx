@@ -17,7 +17,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import { Avatar, Container, useMediaQuery, useTheme } from '@mui/material';
+import GroupsIcon from '@mui/icons-material/Groups';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import AddIcon from '@mui/icons-material/Add';
+import { Avatar, Container, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
@@ -77,8 +80,6 @@ const AppHeader = () => {
 
     // ── Nav ────────────────────────────────────────────────────────────────────
     const pages = [
-        { title: 'Playlists', path: '/playlist' },
-        { title: "Like",      path: '/like' },
         { title: 'Upload',    path: "/track/upload" },
     ];
 
@@ -89,14 +90,21 @@ const AppHeader = () => {
 
     // ── Menu state ─────────────────────────────────────────────────────────────
     const [anchorEl,           setAnchorEl]           = React.useState<null | HTMLElement>(null);
+    const [libraryAnchorEl,    setLibraryAnchorEl]    = React.useState<null | HTMLElement>(null);
     const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState<null | HTMLElement>(null);
 
     const isMenuOpen       = Boolean(anchorEl);
+    const isLibraryMenuOpen = Boolean(libraryAnchorEl);
     const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
 
     const handleProfileMenuOpen  = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+    const handleLibraryMenuOpen  = (e: React.MouseEvent<HTMLElement>) => setLibraryAnchorEl(e.currentTarget);
     const handleMobileMenuClose  = () => setMobileMoreAnchorEl(null);
-    const handleMenuClose        = () => { setAnchorEl(null); handleMobileMenuClose(); };
+    const handleMenuClose        = () => { 
+        setAnchorEl(null); 
+        setLibraryAnchorEl(null);
+        handleMobileMenuClose(); 
+    };
     const handleMobileMenuOpen   = (e: React.MouseEvent<HTMLElement>) => setMobileMoreAnchorEl(e.currentTarget);
 
     // ── Menus ──────────────────────────────────────────────────────────────────
@@ -146,6 +154,46 @@ const AppHeader = () => {
     );
 
     const mobileMenuId = 'primary-search-account-menu-mobile';
+    const renderLibraryMenu = (
+        <Menu
+            anchorEl={libraryAnchorEl}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            id="library-popup-menu"
+            keepMounted
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            open={isLibraryMenuOpen}
+            onClose={handleMenuClose}
+            sx={{
+                '& .MuiPaper-root': {
+                    backgroundColor: '#121212',
+                    color: '#fff',
+                    border: '1px solid #333',
+                    minWidth: '200px',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.5)'
+                },
+                '& .MuiMenuItem-root': {
+                    color: '#fff',
+                    gap: '12px',
+                    py: 1.5,
+                    '&:hover': { backgroundColor: '#1f1f1f' }
+                }
+            }}
+        >
+            <MenuItem onClick={() => { handleProtectedNavigation('/playlist'); handleMenuClose(); }}>
+                <LibraryMusicIcon sx={{ color: '#f50' }} />
+                Liked Playlists
+            </MenuItem>
+            <MenuItem onClick={() => { handleProtectedNavigation('/like'); handleMenuClose(); }}>
+                <FavoriteIcon sx={{ color: '#f50' }} />
+                Liked Tracks
+            </MenuItem>
+            <MenuItem onClick={() => { handleProtectedNavigation('/rooms'); handleMenuClose(); }}>
+                <GroupsIcon sx={{ color: '#f50' }} />
+                Listening Room
+            </MenuItem>
+        </Menu>
+    );
+
     const renderMobileMenu = (
         <Menu
             anchorEl={mobileMoreAnchorEl}
@@ -242,6 +290,26 @@ const AppHeader = () => {
                                     </Typography>
                                 ))}
 
+                                <Tooltip title="Library & Rooms">
+                                    <Typography
+                                        onClick={handleLibraryMenuOpen}
+                                        sx={{
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            '&:hover': { color: '#f50' },
+                                            transition: 'color 0.2s',
+                                            fontWeight: isLibraryMenuOpen ? 700 : 400,
+                                            color: isLibraryMenuOpen ? '#f50' : 'inherit'
+                                        }}
+                                    >
+                                        Library
+                                    </Typography>
+                                </Tooltip>
+
                                 {session?.user?.role === 'SUPER_ADMIN' && (
                                     <Typography
                                         onClick={() => handleProtectedNavigation('/dashboard/user')}
@@ -313,6 +381,7 @@ const AppHeader = () => {
 
                 {renderMobileMenu}
                 {renderMenu}
+                {renderLibraryMenu}
 
                 {/* ── Mobile Bottom Navigation ───────────────────────────── */}
                 {isMobile && (

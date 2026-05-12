@@ -1,7 +1,7 @@
 'use client'
 import { useHasMounted } from "@/utils/customHook";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { TrackContextProvider, useTrackContext } from "@/lib/track.wrapper";
+import { ITrackContext, useTrackContext } from "@/lib/track.wrapper";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -37,8 +37,18 @@ const AppFooter = () => {
         currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed,
         playNextTrack, playPreviousTrack,
         isShuffle, setIsShuffle,
-        repeatMode, setRepeatMode
+        repeatMode, setRepeatMode,
+        isRoomMode, isHost
     } = useTrackContext() as ITrackContext;
+    
+    const isControlDisabled = isRoomMode && !isHost;
+    
+    // Debugging room mode and host status
+    useEffect(() => {
+        if (isRoomMode) {
+            console.log(`🏠 Footer Room Mode: ON | Is Host: ${isHost}`);
+        }
+    }, [isRoomMode, isHost]);
     const hasMounted = useHasMounted();
 
     const mutation = useLikeTrackMutation();
@@ -153,6 +163,7 @@ const AppFooter = () => {
 
     // Handle track ended
     useEffect(() => {
+        if (isControlDisabled) return;
         const handleEnded = () => {
             playNextTrack();
         };
@@ -162,7 +173,7 @@ const AppFooter = () => {
         return () => {
             audioEngine.off('ended', handleEnded);
         };
-    }, [playNextTrack]);
+    }, [playNextTrack, isControlDisabled]);
 
     if (!hasMounted) return (<></>)
 
@@ -172,7 +183,7 @@ const AppFooter = () => {
 
 
     return (
-        <div style={{ marginTop: 50 }}>
+        <div style={{ marginTop: 50, display: 'block' }}>
             <Box
                 position="fixed"
                 bottom={isMobile ? 70 : 10}
@@ -214,13 +225,15 @@ const AppFooter = () => {
                                 {/* Main Controls */}
                                 <IconButton
                                     onClick={() => playPreviousTrack()}
-                                    sx={{ color: 'white', fontSize: '28px' }}
+                                    sx={{ color: 'white', fontSize: '28px', opacity: isControlDisabled ? 0.3 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
+                                    disabled={isControlDisabled}
                                 >
                                     <SkipPreviousIcon sx={{ fontSize: 28 }} />
                                 </IconButton>
 
                                 <IconButton
                                     onClick={() => {
+                                        if (isControlDisabled) return;
                                         if (currentTrack.isPlaying) {
                                             audioEngine.pause();
                                             setCurrentTrack({ ...currentTrack, isPlaying: false });
@@ -229,6 +242,7 @@ const AppFooter = () => {
                                             setCurrentTrack({ ...currentTrack, isPlaying: true });
                                         }
                                     }}
+                                    disabled={isControlDisabled}
                                     sx={{
                                         color: 'white',
                                         borderRadius: '50%',
@@ -237,6 +251,8 @@ const AppFooter = () => {
                                         display: 'flex',
                                         justifyContent: 'center',
                                         alignItems: 'center',
+                                        opacity: isControlDisabled ? 0.3 : 1,
+                                        pointerEvents: isControlDisabled ? 'none' : 'auto',
                                         '& svg': {
                                             fontSize: '28px'
                                         }
@@ -247,7 +263,8 @@ const AppFooter = () => {
 
                                 <IconButton
                                     onClick={() => playNextTrack()}
-                                    sx={{ color: 'white', fontSize: '28px' }}
+                                    sx={{ color: 'white', fontSize: '28px', opacity: isControlDisabled ? 0.3 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
+                                    disabled={isControlDisabled}
                                 >
                                     <SkipNextIcon sx={{ fontSize: 28 }} />
                                 </IconButton>
@@ -255,9 +272,15 @@ const AppFooter = () => {
                                 {/* Shuffle Button */}
                                 <IconButton
                                     size="small"
-                                    onClick={() => setIsShuffle(!isShuffle)}
+                                    onClick={() => {
+                                        if (isControlDisabled) return;
+                                        setIsShuffle(!isShuffle);
+                                    }}
+                                    disabled={isControlDisabled}
                                     sx={{
                                         color: isShuffle ? '#f50' : '#ccc',
+                                        opacity: isControlDisabled ? 0.4 : 1,
+                                        pointerEvents: isControlDisabled ? 'none' : 'auto',
                                         transition: 'all 0.2s',
                                         '&:hover': { color: 'white' }
                                     }}
@@ -269,12 +292,16 @@ const AppFooter = () => {
                                 <IconButton
                                     size="small"
                                     onClick={() => {
+                                        if (isControlDisabled) return;
                                         if (repeatMode === 'none') setRepeatMode('all');
                                         else if (repeatMode === 'all') setRepeatMode('one');
                                         else setRepeatMode('none');
                                     }}
+                                    disabled={isControlDisabled}
                                     sx={{
                                         color: repeatMode !== 'none' ? '#f50' : '#ccc',
+                                        opacity: isControlDisabled ? 0.4 : 1,
+                                        pointerEvents: isControlDisabled ? 'none' : 'auto',
                                         transition: 'all 0.2s',
                                         '&:hover': { color: 'white' }
                                     }}
@@ -294,7 +321,9 @@ const AppFooter = () => {
                                     backgroundColor: '#555',
                                     borderRadius: '2px',
                                     position: 'relative',
-                                    cursor: 'pointer'
+                                    cursor: isControlDisabled ? 'default' : 'pointer',
+                                    opacity: isControlDisabled ? 0.6 : 1,
+                                    pointerEvents: isControlDisabled ? 'none' : 'auto'
                                 }}>
                                     <Box
                                         sx={{
@@ -319,6 +348,7 @@ const AppFooter = () => {
                                     />
                                     <Box
                                         onClick={(e) => {
+                                            if (isControlDisabled) return;
                                             const rect = e.currentTarget.getBoundingClientRect();
                                             const x = e.clientX - rect.left;
                                             const percentage = x / rect.width;
@@ -474,6 +504,7 @@ const AppFooter = () => {
                             {/* Play/Pause Button */}
                             <IconButton
                                 onClick={() => {
+                                    if (isControlDisabled) return;
                                     if (currentTrack.isPlaying) {
                                         audioEngine.pause();
                                         setCurrentTrack({ ...currentTrack, isPlaying: false });
@@ -485,8 +516,11 @@ const AppFooter = () => {
                                 sx={{
                                     color: '#fff',
                                     bgcolor: 'rgba(255,255,255,0.1)',
+                                    opacity: isControlDisabled ? 0.35 : 1,
+                                    pointerEvents: isControlDisabled ? 'none' : 'auto',
                                     '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
                                 }}
+                                disabled={isControlDisabled}
                             >
                                 {currentTrack.isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
                             </IconButton>
@@ -755,11 +789,19 @@ const AppFooter = () => {
 
                     {/* Controls */}
                     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, mb: 3 }}>
-                        <IconButton sx={{ color: '#fff' }}>
+                        <IconButton
+                            sx={{ color: '#fff', opacity: isControlDisabled ? 0.35 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
+                            disabled={isControlDisabled}
+                            onClick={() => {
+                                if (isControlDisabled) return;
+                                playPreviousTrack();
+                            }}
+                        >
                             <SkipPreviousIcon fontSize="large" />
                         </IconButton>
                         <IconButton
                             onClick={() => {
+                                if (isControlDisabled) return;
                                 if (currentTrack.isPlaying) {
                                     audioEngine.pause();
                                     setCurrentTrack({ ...currentTrack, isPlaying: false });
@@ -768,17 +810,27 @@ const AppFooter = () => {
                                     setCurrentTrack({ ...currentTrack, isPlaying: true });
                                 }
                             }}
+                            disabled={isControlDisabled}
                             sx={{
                                 color: '#fff',
                                 bgcolor: '#f50',
                                 width: 56,
                                 height: 56,
+                                opacity: isControlDisabled ? 0.35 : 1,
+                                pointerEvents: isControlDisabled ? 'none' : 'auto',
                                 '&:hover': { bgcolor: '#e64000' }
                             }}
                         >
                             {currentTrack.isPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
                         </IconButton>
-                        <IconButton sx={{ color: '#fff' }}>
+                        <IconButton
+                            sx={{ color: '#fff', opacity: isControlDisabled ? 0.35 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
+                            disabled={isControlDisabled}
+                            onClick={() => {
+                                if (isControlDisabled) return;
+                                playNextTrack();
+                            }}
+                        >
                             <SkipNextIcon fontSize="large" />
                         </IconButton>
                     </Box>

@@ -21,11 +21,12 @@ interface IProps {
     comments: IComment[];
     isLiked?: boolean;
     track: ITrack;
+    readOnly?: boolean;
 }
 
 const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
-    const { comments, isLiked, track } = props;
+    const { comments, isLiked, track, readOnly = false } = props;
     const router = useRouter();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -237,7 +238,9 @@ const WaveTrack = (props: IProps) => {
             }
         };
 
-        waveform.addEventListener('pointermove', handlePointerMove);
+        if (!readOnly) {
+            waveform.addEventListener('pointermove', handlePointerMove);
+        }
 
         // Handle waveform click for comment positioning
         const handleWaveformMouseDown = (e: MouseEvent) => {
@@ -271,7 +274,9 @@ const WaveTrack = (props: IProps) => {
             }
         };
 
-        waveform.addEventListener('mousedown', handleWaveformMouseDown);
+        if (!readOnly) {
+            waveform.addEventListener('mousedown', handleWaveformMouseDown);
+        }
 
         // Also add double-click for comment
         const handleWaveformDoubleClick = (e: MouseEvent) => {
@@ -300,7 +305,9 @@ const WaveTrack = (props: IProps) => {
             });
         };
 
-        waveform.addEventListener('dblclick', handleWaveformDoubleClick);
+        if (!readOnly) {
+            waveform.addEventListener('dblclick', handleWaveformDoubleClick);
+        }
 
         const subscriptions = [
             wavesurfer.on('decode', (d) => {
@@ -683,27 +690,30 @@ const WaveTrack = (props: IProps) => {
                 >
                     {/* HEADER */}
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <Box
-                            onClick={onPlayClick}
-                            sx={{
-                                width: 50,
-                                height: 50,
-                                minWidth: 50, // 🔥 chặn flex co lại
-                                minHeight: 50,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '50%',
-                                flexShrink: 0, // 🔥 QUAN TRỌNG
-                                bgcolor: '#ff5500',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {isWaveformPlaying ? (
-                                <PauseIcon sx={{ fontSize: 28 }} />
-                            ) : (
-                                <PlayArrowIcon sx={{ fontSize: 28 }} />
-                            )}                        </Box>
+                        {!readOnly && (
+                            <Box
+                                onClick={onPlayClick}
+                                sx={{
+                                    width: 50,
+                                    height: 50,
+                                    minWidth: 50, // 🔥 chặn flex co lại
+                                    minHeight: 50,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%',
+                                    flexShrink: 0, // 🔥 QUAN TRỌNG
+                                    bgcolor: '#ff5500',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {isWaveformPlaying ? (
+                                    <PauseIcon sx={{ fontSize: 28 }} />
+                                ) : (
+                                    <PlayArrowIcon sx={{ fontSize: 28 }} />
+                                )}
+                            </Box>
+                        )}
 
                         <Box sx={{ ml: 2, overflow: 'hidden' }}>
                             <Typography

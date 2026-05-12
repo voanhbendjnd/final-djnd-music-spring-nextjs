@@ -97,7 +97,7 @@ public class GlobalException {
 
     @ExceptionHandler(value = { HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class })
-    public ResponseEntity<RestResponse<Object>> handleJsonParsingException(HttpMessageNotReadableException ex) {
+    public ResponseEntity<RestResponse<Object>> handleJsonParsingException(Exception ex) {
         var status = HttpStatus.BAD_REQUEST.value();
         var res = new RestResponse<>();
         res.setStatusCode(status);

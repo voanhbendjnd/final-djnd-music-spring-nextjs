@@ -43,6 +43,7 @@ dependencies {
     implementation("org.apache.poi:poi:5.2.5")
     implementation("org.apache.poi:poi-ooxml:5.2.5")
     implementation("org.apache.commons:commons-text:1.12.0")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
 }
 
 tasks.withType<Test> {

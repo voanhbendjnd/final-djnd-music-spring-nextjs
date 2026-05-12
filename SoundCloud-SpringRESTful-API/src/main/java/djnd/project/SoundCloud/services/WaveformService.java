@@ -104,6 +104,7 @@ public class WaveformService {
         return result;
     }
 
+    @SuppressWarnings("unused")
     private List<Double> parse(String json) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(json);
@@ -115,6 +116,7 @@ public class WaveformService {
         return result;
     }
 
+    @SuppressWarnings("unused")
     private String convert(List<Double> peaks) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < peaks.size(); i++) {

@@ -1,0 +1,153 @@
+package djnd.project.SoundCloud.services;
+
+import djnd.project.SoundCloud.domain.entity.ListeningRoom;
+import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
+import djnd.project.SoundCloud.domain.request.RoomDTO;
+import djnd.project.SoundCloud.domain.response.ResRoom;
+import djnd.project.SoundCloud.repositories.RoomRepository;
+import djnd.project.SoundCloud.repositories.UserRepository;
+import djnd.project.SoundCloud.services.realtime.RoomStateManager;
+import djnd.project.SoundCloud.utils.SecurityUtils;
+import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class RoomService {
+
+    private final RoomRepository roomRepository;
+    private final UserRepository userRepository;
+    private final RoomStateManager roomStateManager;
+    private final PasswordEncoder passwordEncoder;
+
+    @Transactional
+    public ResRoom createRoom(RoomDTO dto) {
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        var user = this.userRepository.getReferenceById(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException("User ID", userId);
+        }
+
+        var room = ListeningRoom.builder()
+                .name(dto.name())
+                .code(dto.code())
+                .host(user)
+                .isActive(dto.isActive())
+                .isPublic(dto.isPublic())
+                .password(this.passwordEncoder.encode(dto.password()))
+                .maxListeners(50)
+                .build();
+        var savedRoom = roomRepository.save(room);
+
+        // Initialize realtime state in memory
+        roomStateManager.getOrCreateState(savedRoom.getId(), userId);
+        return this.toRes(savedRoom);
+    }
+
+    public ResRoom toRes(ListeningRoom room) {
+        var res = new ResRoom();
+        res.setId(room.getId());
+        res.setCreatedAt(room.getCreatedAt());
+        res.setHostUserId(room.getHost().getId());
+        res.setHostUserName(room.getHost().getName());
+        res.setIsPublic(room.getIsPublic());
+        res.setName(room.getName());
+        res.setCode(room.getCode());
+        return res;
+    }
+
+    public Optional<ListeningRoom> findById(Long id) {
+        return roomRepository.findByIdAndIsActiveTrue(id);
+    }
+
+    public List<ListeningRoom> findActivePublicRooms() {
+        return roomRepository.findByIsActiveTrueAndIsPublicTrue();
+    }
+
+    public List<ListeningRoom> fetchAll() {
+        return this.roomRepository.findAll();
+    }
+
+    public List<ListeningRoom> findUserRooms(Long userId) {
+        return roomRepository.findByHostIdAndIsActiveTrue(userId);
+    }
+
+    @Transactional
+    public ListeningRoom updateRoom(Long roomId, String name, String description, Boolean isPublic,
+            Long requestUserId) {
+        var room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: ", roomId));
+
+        // Verify ownership
+        if (!room.getHost().getId().equals(requestUserId)) {
+            throw new ResourceNotFoundException("You are not the host of this room", requestUserId);
+        }
+
+        if (name != null)
+            room.setName(name);
+
+        if (isPublic != null)
+            room.setIsPublic(isPublic);
+
+        return roomRepository.save(room);
+    }
+
+    @Transactional
+    public void deleteRoom(Long roomId, Long requestUserId) {
+        var room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: ", roomId));
+
+        // Verify ownership
+        if (!room.getHost().getId().equals(requestUserId)) {
+            throw new ResourceNotFoundException("Room not found with id: ", requestUserId);
+        }
+
+        room.setIsActive(false);
+        roomRepository.save(room);
+
+        log.info("Deactivated room: {} by user: {}", roomId, requestUserId);
+    }
+
+    public ListeningRoom getRoomWithRealtimeState(Long roomId) {
+        var room = roomRepository.findByIdAndIsActiveTrue(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: ", roomId));
+
+        // Ensure realtime state exists
+        RoomRealtimeState state = roomStateManager.getRoomState(roomId);
+        if (state == null) {
+            roomStateManager.getOrCreateState(roomId, room.getHost().getId());
+        }
+
+        return room;
+    }
+
+    public boolean verifyPassword(Long roomId, String password) {
+        return roomRepository.findById(roomId)
+                .map(room -> {
+                    // Public rooms don't need password
+                    if (room.getIsPublic()) {
+                        return true;
+                    }
+
+                    // Private rooms need password match
+                    return room.getPassword() != null &&
+                            this.passwordEncoder.matches(password, room.getPassword());
+                })
+                .orElse(false);
+    }
+
+    public void deleteRoom(Long id) {
+        if (this.roomRepository.existsById(id)) {
+            this.roomRepository.deleteById(id);
+        }
+    }
+}

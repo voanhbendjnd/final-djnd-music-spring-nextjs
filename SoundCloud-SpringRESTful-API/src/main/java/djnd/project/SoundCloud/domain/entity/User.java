@@ -67,6 +67,12 @@ public class User extends BaseEntity {
     List<Playlist> playlists;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     List<HistoryTrack> historyTracks;
+    @OneToMany(mappedBy = "addedBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<RoomQueue> roomQueues;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<RoomParticipant> roomParticipants;
+    @OneToMany(mappedBy = "host", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<ListeningRoom> listeningRooms;
 
     public boolean isOTPRequired() {
         if (this.getOneTimePassword() == null) {

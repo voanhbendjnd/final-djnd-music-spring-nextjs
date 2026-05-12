@@ -83,7 +83,6 @@ public class RoomStateManager {
         RoomRealtimeState state = localRoomStates.get(roomId);
         if (state != null) {
             state.getConnectedUserIds().add(userId);
-
             RoomEvent event = RoomEvent.builder()
                     .type(RoomEvent.Type.USER_JOIN)
                     .roomId(roomId)
@@ -107,7 +106,6 @@ public class RoomStateManager {
 
             // If host leaves, delete the room and notify everyone
             if (userId.equals(state.getHostUserId())) {
-
                 // 1. Mark room as inactive in Database
                 // roomRepository.findById(roomId).ifPresent(room -> {
                 // room.setIsActive(false);

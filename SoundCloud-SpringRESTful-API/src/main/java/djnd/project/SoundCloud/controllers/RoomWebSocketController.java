@@ -5,6 +5,8 @@ import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
 import djnd.project.SoundCloud.services.realtime.RoomStateManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.boot.actuate.web.exchanges.HttpExchange.Principal;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;

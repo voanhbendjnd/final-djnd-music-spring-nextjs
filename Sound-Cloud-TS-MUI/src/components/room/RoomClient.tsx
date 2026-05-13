@@ -110,27 +110,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         };
     }, [shouldConnect, isHost, setIsRoomMode, setIsHost]);
 
-    // Bỏ toàn bộ leaveRoomRef, hasConnectedRef, useEffect phức tạp
-// Thay bằng cái này — đơn giản và đúng:
 
-    // const hasConnectedRef = useRef(false);
-    // useEffect(() => {
-    //     if (isConnected) hasConnectedRef.current = true;
-    // }, [isConnected]);
-    //
-    // const leaveRoomRef = useRef(leaveRoom);
-    //
-    // useEffect(() => {
-    //     leaveRoomRef.current = leaveRoom;
-    // }, [leaveRoom]);
-    //
-    // useEffect(() => {
-    //     return () => {
-    //         if (hasConnectedRef.current) {
-    //             leaveRoomRef.current?.();
-    //         }
-    //     };
-    // }, []);
 
     // Fetch active track metadata when it changes in room state
     useEffect(() => {
@@ -352,7 +332,10 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                                 startIcon={<LogoutIcon />}
                                 onClick={() => {
                                     leaveRoom();
-                                    router.push('/rooms');
+
+                                    setTimeout(() => {
+                                        router.push('/rooms');
+                                    }, 300);
                                 }}
                                 sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
 

@@ -143,10 +143,14 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
         sendAction('queue/clear');
     }, [guardHostOnly, sendAction]);
 
-    // ✅ leaveRoom stable — không thay đổi reference
     const leaveRoom = useCallback(() => {
-        sendAction('leave');
-    }, [sendAction]);
+        if (!stompClientRef.current?.connected) return;
+
+        stompClientRef.current.publish({
+            destination: `/app/room/${roomId}/leave`,
+            body: '',
+        });
+    }, [roomId]);
 
     return { roomState, isConnected, play, pause, seek, addToQueue, removeFromQueue, clearQueue, leaveRoom };
 };

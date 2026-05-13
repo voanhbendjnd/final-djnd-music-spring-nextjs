@@ -7,7 +7,6 @@ import djnd.project.SoundCloud.repositories.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.MessageHeaders;
@@ -34,14 +33,15 @@ public class RoomStateManager {
     // Topic for Redis Pub/Sub
     private static final String REDIS_ROOM_TOPIC = "room_events";
 
-    @EventListener
-    public void handlePresenceEvent(RoomPresenceEvent event) {
-        if (event.getType() == RoomPresenceEvent.Type.JOIN) {
-            addUser(event.getRoomId(), event.getUserId());
-        } else {
-            removeUser(event.getRoomId(), event.getUserId(), true);
-        }
-    }
+    // @EventListener
+    // public void handlePresenceEvent(RoomPresenceEvent event) {
+    // if (event.getType() == RoomPresenceEvent.Type.JOIN) {
+    // addUser(event.getRoomId(), event.getUserId());
+    // } else {
+    // removeUser(event.getRoomId(), event.getUserId(), false);
+
+    // }
+    // }
 
     /**
      * Get room state

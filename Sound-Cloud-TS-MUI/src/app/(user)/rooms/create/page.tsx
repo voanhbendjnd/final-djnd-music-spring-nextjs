@@ -138,13 +138,13 @@ export default function CreateRoomPage() {
                 password: isPublic ? '' : password,
             });
             const roomId = res.data.id;
-            toast.dark('Room created successfully!');
+            toast.dark('Room created! Launching your session...');
             router.push(`/rooms/${roomId}`);
+            // ✅ Không setLoading(false) ở đây — giữ loading state cho đến khi navigate xong
         } catch (error: any) {
             console.error(error);
             toast.error(error.response?.data?.message || 'Failed to create room');
-        } finally {
-            setLoading(false);
+            setLoading(false); // ✅ Chỉ reset khi lỗi để user có thể thử lại
         }
     };
 
@@ -429,7 +429,12 @@ export default function CreateRoomPage() {
                         }}
                     >
                         {loading
-                            ? <CircularProgress size={22} sx={{ color: '#888' }} />
+                            ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <CircularProgress size={18} sx={{ color: '#888' }} />
+                                    <span>Launching Room...</span>
+                                </Box>
+                            )
                             : 'Create & Launch Room'}
                     </Button>
                 </Box>

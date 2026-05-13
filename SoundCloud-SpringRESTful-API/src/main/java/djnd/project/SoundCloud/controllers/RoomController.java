@@ -30,7 +30,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getRoom(@PathVariable Long id) {
+    public ResponseEntity<?> getRoom(@PathVariable("id") Long id) {
         try {
             var room = roomService.getRoomWithRealtimeState(id);
             RoomRealtimeState state = roomStateManager.getRoomState(id);
@@ -56,7 +56,7 @@ public class RoomController {
     }
 
     @GetMapping
-    public ResponseEntity<?> listRooms(@RequestParam(required = false) String filter) {
+    public ResponseEntity<?> listRooms(@RequestParam(value = "filter", required = false) String filter) {
         Long currentUserId = SecurityUtils.getCurrentUserIdOrNull();
 
         List<ListeningRoom> rooms;
@@ -86,7 +86,7 @@ public class RoomController {
     }
 
     @PostMapping("/{id}/verify")
-    public ResponseEntity<?> verifyPassword(@PathVariable Long id, @RequestBody Map<String, String> request) {
+    public ResponseEntity<?> verifyPassword(@PathVariable("id") Long id, @RequestBody Map<String, String> request) {
         String password = request.get("password");
         boolean isValid = roomService.verifyPassword(id, password);
         return ResponseEntity.ok(Map.of("valid", isValid));
@@ -94,7 +94,7 @@ public class RoomController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateRoom(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody Map<String, Object> request) {
         Long currentUserId = SecurityUtils.getCurrentUserIdOrNull();
 
@@ -121,7 +121,7 @@ public class RoomController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRoom(@PathVariable Long id) {
+    public ResponseEntity<?> deleteRoom(@PathVariable("id") Long id) {
         Long currentUserId = SecurityUtils.getCurrentUserIdOrNull();
 
         if (currentUserId == null) {

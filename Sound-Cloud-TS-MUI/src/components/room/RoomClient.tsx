@@ -71,9 +71,13 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         shouldConnect ? token : '',
         {
             onRoomDeleted: () => {
-                toast.dark("The host has left the room. The room is now closed.")
-                // alert("The host has left the room. The room is now closed.");
-                router.push('/');
+                console.log('ROOM_DELETED received');
+
+                toast.dark("Room closed");
+
+                setTimeout(() => {
+                    router.replace('/rooms');
+                }, 1500);
             }
         }
     );
@@ -106,25 +110,27 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         };
     }, [shouldConnect, isHost, setIsRoomMode, setIsHost]);
 
-    // Thêm ref này vào component
-    const hasMountedRef = useRef(false);
+    // Bỏ toàn bộ leaveRoomRef, hasConnectedRef, useEffect phức tạp
+// Thay bằng cái này — đơn giản và đúng:
 
-// Thay effect cũ bằng cái này
-    useEffect(() => {
-        // Đánh dấu là đã mount ổn định
-        const timer = setTimeout(() => {
-            hasMountedRef.current = true;
-        }, 500); // 500ms đủ để socket connect và stabilize
-
-        return () => {
-            clearTimeout(timer);
-            // Chỉ gọi leaveRoom nếu đã mount thật sự
-            if (hasMountedRef.current) {
-                console.log('🚪 Component unmounting, leaving room...');
-                leaveRoom();
-            }
-        };
-    }, []); // ← empty deps, không phụ thuộc leaveRoom ref
+    // const hasConnectedRef = useRef(false);
+    // useEffect(() => {
+    //     if (isConnected) hasConnectedRef.current = true;
+    // }, [isConnected]);
+    //
+    // const leaveRoomRef = useRef(leaveRoom);
+    //
+    // useEffect(() => {
+    //     leaveRoomRef.current = leaveRoom;
+    // }, [leaveRoom]);
+    //
+    // useEffect(() => {
+    //     return () => {
+    //         if (hasConnectedRef.current) {
+    //             leaveRoomRef.current?.();
+    //         }
+    //     };
+    // }, []);
 
     // Fetch active track metadata when it changes in room state
     useEffect(() => {
@@ -280,6 +286,19 @@ export default function RoomClient({ roomId, initialData }: IProps) {
     if (status === 'loading') {
         return <Box sx={{ minHeight: '100vh', bgcolor: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: '#f50' }} /></Box>;
     }
+    if (!initialData) {
+        return (
+            <Box sx={{ minHeight: '100vh', bgcolor: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+                <Typography color="gray">Room not found or no longer available.</Typography>
+                <Button variant="outlined" onClick={() => {
+                    leaveRoom();
+                    router.push('/rooms');
+                }} sx={{ color: '#f50', borderColor: '#f50' }}>
+                    Back to Rooms
+                </Button>
+            </Box>
+        );
+    }
 
     if (showPasswordModal) {
         return (
@@ -320,14 +339,24 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                                 <Avatar key={id} sx={{ bgcolor: id === roomState.hostUserId ? '#f50' : '#333' }}>{id}</Avatar>
                             ))}
                         </AvatarGroup>
-                        
-                        <Button 
-                            variant="outlined" 
-                            color="error" 
-                            startIcon={<LogoutIcon />}
-                            onClick={() => router.push('/')}
-                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-                        >
+
+                        {/*<Button */}
+                        {/*    variant="outlined" */}
+                        {/*    color="error" */}
+                        {/*    startIcon={<LogoutIcon />}*/}
+                        {/*    onClick={() => router.push('/')}*/}
+                        {/*>*/}
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                startIcon={<LogoutIcon />}
+                                onClick={() => {
+                                    leaveRoom();
+                                    router.push('/rooms');
+                                }}
+                                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+
+                            >
                             Leave Room
                         </Button>
                     </Box>
@@ -390,12 +419,12 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                                     <Typography variant="h6" sx={{ color: '#f50', fontWeight: 500, mb: 3 }}>
                                         {activeTrackData.uploader.name}
                                     </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <CircularProgress size={20} sx={{ color: '#f50' }} />
-                                        <Typography variant="body2" color="gray">
-                                            Synchronized with host playback...
-                                        </Typography>
-                                    </Box>
+                                    {/*<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>*/}
+                                    {/*    <CircularProgress size={20} sx={{ color: '#f50' }} />*/}
+                                    {/*    <Typography variant="body2" color="gray">*/}
+                                    {/*        Synchronized with host playback...*/}
+                                    {/*    </Typography>*/}
+                                    {/*</Box>*/}
                                 </Box>
                             </Paper>
                         )}

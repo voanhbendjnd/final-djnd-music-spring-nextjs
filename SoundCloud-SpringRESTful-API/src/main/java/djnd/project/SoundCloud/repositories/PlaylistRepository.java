@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import djnd.project.SoundCloud.domain.entity.Playlist;
 import djnd.project.SoundCloud.domain.it.PlaylistFindAll;
 import djnd.project.SoundCloud.domain.it.PlaylistTrackInterface;
-import io.lettuce.core.dynamic.annotation.Param;
+import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface PlaylistRepository extends JpaRepository<Playlist, Long>, JpaSpecificationExecutor<Playlist> {
@@ -25,7 +25,7 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long>, JpaSp
 
     @EntityGraph(attributePaths = { "user", "playlistTracks", "playlistTracks.track", "playlistTracks.track.user" })
     @Query("SELECT p FROM Playlist p WHERE p.id = :id")
-    Optional<Playlist> findWithDetailsById(Long id);
+    Optional<Playlist> findWithDetailsById(@Param("id") Long id);
 
     /**
      * Modify for spring know this method write data instead of read data

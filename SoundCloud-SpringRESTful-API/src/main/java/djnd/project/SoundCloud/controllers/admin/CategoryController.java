@@ -34,13 +34,13 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@PathVariable("id") Long id) {
         this.categoryService.delete(id);
         return ResponseEntity.ok("Delete category success");
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> fetchById(@PathVariable Long id) {
+    public ResponseEntity<?> fetchById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(this.categoryService.fetchById(id));
     }
 

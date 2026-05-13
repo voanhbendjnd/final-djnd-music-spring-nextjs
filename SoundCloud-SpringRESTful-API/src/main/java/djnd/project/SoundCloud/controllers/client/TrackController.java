@@ -82,7 +82,7 @@ public class TrackController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) throws IOException {
+    public ResponseEntity<?> delete(@PathVariable("id") Long id) throws IOException {
         this.trackService.delete(id);
         return ResponseEntity.ok("Delete track success");
     }

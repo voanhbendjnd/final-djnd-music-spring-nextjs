@@ -19,148 +19,134 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
     const [isConnected, setIsConnected] = useState(false);
     const stompClientRef = useRef<Client | null>(null);
 
+    // ✅ Stabilize callback để không gây re-render khi options object thay đổi
+    const onRoomDeletedRef = useRef(options?.onRoomDeleted);
+    useEffect(() => {
+        onRoomDeletedRef.current = options?.onRoomDeleted;
+    }, [options?.onRoomDeleted]);
+
     useEffect(() => {
         if (!token || token === 'undefined' || !roomId || roomId <= 0 || !userId || userId <= 0) {
-            console.warn('❌ Skipping WebSocket - invalid params');
             return;
         }
-
         if (stompClientRef.current?.connected) {
-            console.log('✅ Already connected, skipping reconnect');
             return;
         }
-
-        console.log('🔌 Connecting to room:', roomId);
 
         const client = new Client({
             webSocketFactory: () => new SockJS(`${process.env.NEXT_PUBLIC_BE_URL || 'http://localhost:8080'}/ws`),
-            connectHeaders: {
-                Authorization: `Bearer ${token}`
-            },
-            debug: (str) => {
-                // console.log('STOMP:', str);
-            },
+            connectHeaders: { Authorization: `Bearer ${token}` },
             reconnectDelay: 5000,
             heartbeatIncoming: 10000,
             heartbeatOutgoing: 10000,
         });
 
         client.onConnect = () => {
-            console.log('✅ Connected to room', roomId);
             setIsConnected(true);
-
-            // Automatically request current room state upon joining
-            client.publish({
-                destination: `/app/room/${roomId}/snapshot`
-            });
-
-            // Subscribe to room state updates
-            client.subscribe(`/topic/room/${roomId}`, (message: IMessage) => {
-                console.log('📨 Received message:', message.body);
+// Subscribe personal queue để nhận snapshot riêng
+            client.subscribe(`/user/queue/room-snapshot`, (message: IMessage) => {
                 try {
                     const event = JSON.parse(message.body);
-
-                    if (event.type === 'STATE_UPDATE' || event.type === 'FULL_SNAPSHOT') {
-                        console.log('📡 Updating room state:', event.payload);
+                    if (event.type === 'FULL_SNAPSHOT') {
                         setRoomState(event.payload);
-                    } else if (event.type === 'USER_JOIN') {
-                        console.log('👤 User joined:', event.payload);
-                    } else if (event.type === 'USER_LEAVE') {
-                        console.log('👋 User left:', event.payload);
-                    } else if (event.type === 'ROOM_DELETED') {
-                        console.warn('⚠️ Room deleted by host');
-                        if (options?.onRoomDeleted) options.onRoomDeleted();
                     }
                 } catch (error) {
                     console.error('❌ Parse error:', error);
                 }
             });
 
-            // Request initial state
-            console.log('📸 Requesting initial snapshot...');
+            // ✅ Subscribe TRƯỚC
+            client.subscribe(`/topic/room/${roomId}`, (message: IMessage) => {
+                try {
+                    const event = JSON.parse(message.body);
+                    if (event.type === 'STATE_UPDATE' || event.type === 'FULL_SNAPSHOT') {
+                        setRoomState(event.payload);
+                    } else if (event.type === 'ROOM_DELETED') {
+                        onRoomDeletedRef.current?.();
+                    }
+                } catch (error) {
+                    console.error('❌ Parse error:', error);
+                }
+            });
+
+            // Request snapshot sau khi subscribe cả 2
             client.publish({
                 destination: `/app/room/${roomId}/snapshot`,
                 body: JSON.stringify({})
             });
         };
 
-        client.onDisconnect = () => {
-            console.log('🔌 Disconnected');
-            setIsConnected(false);
-        };
-
-        client.onStompError = (frame) => {
-            console.error('❌ STOMP error:', frame.headers['message']);
-        };
-
+        client.onDisconnect = () => setIsConnected(false);
+        client.onStompError = (frame) => console.error('❌ STOMP error:', frame.headers['message']);
         client.activate();
         stompClientRef.current = client;
 
         return () => {
-            console.log('🔌 Cleaning up WebSocket');
-            if (stompClientRef.current) {
-                stompClientRef.current.deactivate();
-                stompClientRef.current = null;
-            }
+            stompClientRef.current?.deactivate();
+            stompClientRef.current = null;
         };
-    }, [roomId, token, userId]);
+    }, [roomId, token, userId]); // ✅ options không còn trong deps
 
     const sendAction = useCallback((action: string, payload?: any) => {
-        if (!stompClientRef.current?.connected) {
-            console.warn('❌ WebSocket not connected');
-            return;
-        }
-
-        const destination = `/app/room/${roomId}/${action}`;
-        console.log('📤 Sending:', { destination, payload });
-
+        if (!stompClientRef.current?.connected) return;
         stompClientRef.current.publish({
-            destination,
-            body: JSON.stringify(payload || {}),
+            destination: `/app/room/${roomId}/${action}`,
+            body: JSON.stringify(payload ?? {}),
         });
     }, [roomId]);
 
-    const isHost = roomState?.hostUserId === userId;
-    const canControl = isHost;
-
     const guardHostOnly = useCallback((action: string) => {
-        if (!canControl) {
-            console.warn(`🚫 Host-only action blocked for user ${userId}:`, action);
+        const state = roomState; // read từ closure hiện tại
+        if (state?.hostUserId !== userId) {
+            console.warn(`🚫 Host-only action blocked:`, action);
             return false;
         }
         return true;
-    }, [canControl, userId]);
+    }, [roomState, userId]);
 
-    return {
-        roomState,
-        isConnected,
-        play: (trackId: number, time: number) => {
-            if (!guardHostOnly('play')) return;
-            sendAction('play', { currentTrackId: trackId, currentTime: time });
-        },
-        pause: () => {
-            if (!guardHostOnly('pause')) return;
-            sendAction('pause');
-        },
-        seek: (time: number) => {
-            if (!guardHostOnly('seek')) return;
-            sendAction('seek', time);
-        },
-        addToQueue: (trackId: number) => {
-            console.log('➕ Client: Requesting to add track to queue:', trackId);
-            sendAction('queue/add', trackId);
-        },
-        removeFromQueue: (index: number) => {
-            if (!guardHostOnly('queue/remove')) return;
-            sendAction('queue/remove', index);
-        },
-        clearQueue: () => {
-            if (!guardHostOnly('queue/clear')) return;
-            sendAction('queue/clear');
-        },
-        leaveRoom: () => {
-            console.log('👋 Client: Requesting to leave room');
-            sendAction('leave');
-        }
-    };
+    // ✅ Tất cả actions đều stable với useCallback
+    const play = useCallback((trackId: number, time: number) => {
+        if (!guardHostOnly('play')) return;
+        sendAction('play', { currentTrackId: trackId, currentTime: time });
+    }, [guardHostOnly, sendAction]);
+
+    const pause = useCallback(() => {
+        if (!guardHostOnly('pause')) return;
+        sendAction('pause');
+    }, [guardHostOnly, sendAction]);
+
+    const seek = useCallback((time: number) => {
+        if (!guardHostOnly('seek')) return;
+        sendAction('seek', time);
+    }, [guardHostOnly, sendAction]);
+
+    const addToQueue = useCallback((trackId: number) => {
+        // Gửi raw number, KHÔNG dùng sendAction vì sendAction có fallback về {}
+        if (!stompClientRef.current?.connected) return;
+        stompClientRef.current.publish({
+            destination: `/app/room/${roomId}/queue/add`,
+            body: String(trackId), // ← raw string của số, Jackson parse được thành Long
+        });
+    }, [roomId]);
+
+    const removeFromQueue = useCallback((index: number) => {
+        if (!guardHostOnly('queue/remove')) return;
+        if (!stompClientRef.current?.connected) return;
+        stompClientRef.current.publish({
+            destination: `/app/room/${roomId}/queue/remove`,
+            body: String(index), // ← raw "0", "1", etc.
+        });
+    }, [guardHostOnly, roomId]);
+
+    const clearQueue = useCallback(() => {
+        if (!guardHostOnly('queue/clear')) return;
+        sendAction('queue/clear');
+    }, [guardHostOnly, sendAction]);
+
+    // ✅ leaveRoom stable — không thay đổi reference
+    const leaveRoom = useCallback(() => {
+        sendAction('leave');
+    }, [sendAction]);
+
+    return { roomState, isConnected, play, pause, seek, addToQueue, removeFromQueue, clearQueue, leaveRoom };
 };

@@ -25,7 +25,7 @@ export const usePlaylists = () => {
 // Create new playlist
 export const useCreatePlaylist = () => {
     const queryClient = useQueryClient();
-    
+
     return useMutation({
         mutationFn: async (data: ICreatePlaylistDTO) => {
             const response = await axiosInstance.post<IBackendRes<IPlaylist>>(
@@ -43,17 +43,17 @@ export const useCreatePlaylist = () => {
 // Add/remove track to playlist
 export const useToggleTrackInPlaylist = () => {
     const queryClient = useQueryClient();
-    
+
     return useMutation({
-        mutationFn: async ({ playlistId, trackId, isAdded }: { 
-            playlistId: number; 
-            trackId: number; 
-            isAdded: boolean 
+        mutationFn: async ({ playlistId, trackId, isAdded }: {
+            playlistId: number;
+            trackId: number;
+            isAdded: boolean
         }) => {
-            const response = await axiosInstance.patch<IBackendRes<{ 
-                id: number; 
-                isAdded: boolean; 
-                totalTracks: number 
+            const response = await axiosInstance.patch<IBackendRes<{
+                id: number;
+                isAdded: boolean;
+                totalTracks: number
             }>>(
                 `/api/v1/playlists?trackId=${trackId}`,
                 {
@@ -73,10 +73,10 @@ export const useToggleTrackInPlaylist = () => {
 };
 
 // Fetch playlists with pagination and filter
-export const usePlaylistsPaginated = (params: { 
-    title?: string; 
-    page: number; 
-    size: number 
+export const usePlaylistsPaginated = (params: {
+    title?: string;
+    page: number;
+    size: number
 }) => {
     return useQuery({
         queryKey: ['playlists-paginated', params],
@@ -121,7 +121,9 @@ export const useUpdatePlaylist = () => {
         },
         onSuccess: (res) => {
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
+            //@ts-ignore
             if (res?.data?.id) {
+                //@ts-ignore
                 queryClient.invalidateQueries({ queryKey: ['playlist', res.data.id] });
             }
         },

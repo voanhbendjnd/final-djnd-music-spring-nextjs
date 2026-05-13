@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,15 +21,15 @@ public class RoomRealtimeState {
     Double currentTime;
     Boolean isPlaying;
     Long hostUserId;
-    
+
     @Builder.Default
     Long version = 0L;
-    
+
     @Builder.Default
     Long updatedAt = System.currentTimeMillis();
-    
+
     @Builder.Default
-    java.util.List<Long> queue = new java.util.ArrayList<>();
+    List<Long> queue = new ArrayList<>();
 
     @Builder.Default
     Boolean locked = false;

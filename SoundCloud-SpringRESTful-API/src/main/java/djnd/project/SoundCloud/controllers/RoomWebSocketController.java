@@ -21,25 +21,47 @@ public class RoomWebSocketController {
     private final RoomStateManager roomStateManager;
 
     @MessageMapping("/room/{roomId}/snapshot")
-    public void requestSnapshot(@DestinationVariable Long roomId, SimpMessageHeaderAccessor headerAccessor) {
-        log.info("📸 Snapshot requested for room: {}", roomId);
-        RoomRealtimeState state = roomStateManager.getRoomState(roomId);
+    public void requestSnapshot(
+            @DestinationVariable("roomId") Long roomId,
+            SimpMessageHeaderAccessor headerAccessor) {
 
-        if (state != null) {
-            updateCurrentTimeBeforeBroadcast(state);
+        String sessionId = headerAccessor.getSessionId();
+        Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+
+        log.info("📸 Snapshot requested for room: {} by user: {}", roomId, userId);
+
+        RoomRealtimeState state = roomStateManager.getRoomState(roomId);
+        if (state == null) {
+            log.warn("⚠️ Room state not found for room: {}", roomId);
+            return;
+        }
+
+        // ✅ Add user vào connectedUserIds khi họ request snapshot (tức là đã join)
+        if (userId != null && !state.getConnectedUserIds().contains(userId)) {
+            state.getConnectedUserIds().add(userId);
+            state.incrementVersion();
+            // Broadcast USER_JOIN cho mọi người
             roomStateManager.broadcast(RoomEvent.builder()
-                    .type(RoomEvent.Type.FULL_SNAPSHOT)
+                    .type(RoomEvent.Type.USER_JOIN)
                     .roomId(roomId)
-                    .payload(state)
+                    .payload(state) // gửi full state để update connectedUserIds
                     .sentAt(System.currentTimeMillis())
                     .build());
-        } else {
-            log.warn("⚠️ Room state not found for room: {}", roomId);
         }
+
+        updateCurrentTimeBeforeBroadcast(state);
+
+        // ✅ Gửi riêng cho session vừa join, không broadcast
+        roomStateManager.sendToSession(sessionId, RoomEvent.builder()
+                .type(RoomEvent.Type.FULL_SNAPSHOT)
+                .roomId(roomId)
+                .payload(state)
+                .sentAt(System.currentTimeMillis())
+                .build());
     }
 
     @MessageMapping("/room/{roomId}/play")
-    public void handlePlay(@DestinationVariable Long roomId, @Payload Map<String, Object> payload,
+    public void handlePlay(@DestinationVariable("roomId") Long roomId, @Payload Map<String, Object> payload,
             SimpMessageHeaderAccessor headerAccessor) {
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
         String sessionId = headerAccessor.getSessionId();
@@ -69,15 +91,17 @@ public class RoomWebSocketController {
     }
 
     @MessageMapping("/room/{roomId}/pause")
-    public void handlePause(@DestinationVariable Long roomId, SimpMessageHeaderAccessor headerAccessor) {
+    public void handlePause(@DestinationVariable(("roomId")) Long roomId, SimpMessageHeaderAccessor headerAccessor) {
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
         String sessionId = headerAccessor.getSessionId();
 
         RoomRealtimeState state = roomStateManager.getRoomState(roomId);
-        if (state == null) return;
-        
+        if (state == null)
+            return;
+
         if (!state.getHostUserId().equals(userId)) {
-            log.warn("🚫 Unauthorized Pause: User {} is NOT the host ({}) of room {}", userId, state.getHostUserId(), roomId);
+            log.warn("🚫 Unauthorized Pause: User {} is NOT the host ({}) of room {}", userId, state.getHostUserId(),
+                    roomId);
             return;
         }
 
@@ -91,7 +115,7 @@ public class RoomWebSocketController {
     }
 
     @MessageMapping("/room/{roomId}/seek")
-    public void handleSeek(@DestinationVariable Long roomId, @Payload Double time,
+    public void handleSeek(@DestinationVariable(("roomId")) Long roomId, @Payload Double time,
             SimpMessageHeaderAccessor headerAccessor) {
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
         String sessionId = headerAccessor.getSessionId();
@@ -110,7 +134,7 @@ public class RoomWebSocketController {
     }
 
     @MessageMapping("/room/{roomId}/queue/add")
-    public void handleQueueAdd(@DestinationVariable Long roomId, @Payload Long trackId,
+    public void handleQueueAdd(@DestinationVariable("roomId") Long roomId, @Payload Long trackId,
             SimpMessageHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
@@ -141,7 +165,7 @@ public class RoomWebSocketController {
     }
 
     @MessageMapping("/room/{roomId}/queue/remove")
-    public void handleQueueRemove(@DestinationVariable Long roomId, @Payload Integer index,
+    public void handleQueueRemove(@DestinationVariable("roomId") Long roomId, @Payload Integer index,
             SimpMessageHeaderAccessor headerAccessor) {
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
         String sessionId = headerAccessor.getSessionId();
@@ -162,7 +186,7 @@ public class RoomWebSocketController {
     }
 
     @MessageMapping("/room/{roomId}/queue/clear")
-    public void handleQueueClear(@DestinationVariable Long roomId, SimpMessageHeaderAccessor headerAccessor) {
+    public void handleQueueClear(@DestinationVariable("roomId") Long roomId, SimpMessageHeaderAccessor headerAccessor) {
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
         String sessionId = headerAccessor.getSessionId();
         RoomRealtimeState state = roomStateManager.getRoomState(roomId);
@@ -179,10 +203,9 @@ public class RoomWebSocketController {
     }
 
     @MessageMapping("/room/{roomId}/leave")
-    public void handleLeave(@DestinationVariable Long roomId, SimpMessageHeaderAccessor headerAccessor) {
+    public void handleLeave(@DestinationVariable("roomId") Long roomId, SimpMessageHeaderAccessor headerAccessor) {
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
-        log.info("👋 User {} explicitly leaving room {}", userId, roomId);
-        roomStateManager.removeUser(roomId, userId);
+        roomStateManager.removeUser(roomId, userId, true);
     }
 
     private void updateCurrentTimeBeforeBroadcast(RoomRealtimeState state) {

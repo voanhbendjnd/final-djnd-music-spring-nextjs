@@ -40,7 +40,7 @@ public interface TrackLikeRepository extends JpaRepository<TrackLike, Long> {
     Page<Track> getMyLikeTrack(@Param("userId") Long userId, Pageable pageable);
 
     @Query(value = "SELECT t.* FROM tracks t WHERE EXISTS (SELECT 1 FROM track_likes tl WHERE tl.track_id = t.id AND tl.user_id = :userId) ORDER BY t.created_at DESC", countQuery = "SELECT COUNT(*) FROM tracks t WHERE EXISTS (SELECT 1 FROM track_likes tl WHERE tl.track_id = t.id AND tl.user_id = :userId)", nativeQuery = true)
-    Page<Track> getMyLikeTrackNative(Long userId, Pageable pageable);
+    Page<Track> getMyLikeTrackNative(@Param("userId") Long userId, Pageable pageable);
 
     @Query("SELECT tl.track.id FROM TrackLike tl WHERE tl.user.id = :userId AND tl.track.id IN :trackIds")
     List<Long> findLikedTrackIds(@Param("userId") Long userId, @Param("trackIds") List<Long> trackIds);

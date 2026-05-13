@@ -4,11 +4,15 @@ import djnd.project.SoundCloud.domain.realtime.RoomEvent;
 import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
 import djnd.project.SoundCloud.domain.realtime.RoomPresenceEvent;
 import djnd.project.SoundCloud.repositories.RoomRepository;
-import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -35,7 +39,7 @@ public class RoomStateManager {
         if (event.getType() == RoomPresenceEvent.Type.JOIN) {
             addUser(event.getRoomId(), event.getUserId());
         } else {
-            removeUser(event.getRoomId(), event.getUserId());
+            removeUser(event.getRoomId(), event.getUserId(), true);
         }
     }
 
@@ -96,45 +100,67 @@ public class RoomStateManager {
     /**
      * Handle user leaving and potential host transfer
      */
-    public void removeUser(Long roomId, Long userId) {
-        if (!this.roomRepository.existsById(roomId)) {
-            throw new ResourceNotFoundException("Room ID", roomId);
-        }
+    public void removeUser(Long roomId, Long userId, boolean explicitLeave) {
+
         RoomRealtimeState state = localRoomStates.get(roomId);
-        if (state != null) {
-            state.getConnectedUserIds().remove(userId);
 
-            // If host leaves, delete the room and notify everyone
-            if (userId.equals(state.getHostUserId())) {
-                // 1. Mark room as inactive in Database
-                // roomRepository.findById(roomId).ifPresent(room -> {
-                // room.setIsActive(false);
-                // roomRepository.save(room);
-                // });
+        if (state == null) {
+            return;
+        }
 
-                this.roomRepository.deleteById(roomId);
-                // 2. Remove from memory
+        state.getConnectedUserIds().remove(userId);
+
+        // HOST
+        if (userId.equals(state.getHostUserId())) {
+
+            // ONLY delete room if host explicitly clicked "Leave Room"
+            if (explicitLeave) {
+
+                // delete from DB
+                roomRepository.deleteById(roomId);
+
+                // remove memory state
                 localRoomStates.remove(roomId);
 
-                // 3. Notify everyone
+                // notify everyone
                 RoomEvent deleteEvent = RoomEvent.builder()
                         .type(RoomEvent.Type.ROOM_DELETED)
                         .roomId(roomId)
                         .payload("Host has left the room")
                         .sentAt(System.currentTimeMillis())
                         .build();
+
                 broadcast(deleteEvent);
-                return; // Room is gone
+
+                log.info("Room {} deleted by host {}", roomId, userId);
+
+                return;
             }
 
-            RoomEvent leaveEvent = RoomEvent.builder()
+            // websocket disconnect / refresh / reconnect
+            log.info("Host {} disconnected temporarily from room {}", userId, roomId);
+
+            RoomEvent disconnectEvent = RoomEvent.builder()
                     .type(RoomEvent.Type.USER_LEAVE)
                     .roomId(roomId)
                     .payload(userId)
                     .sentAt(System.currentTimeMillis())
                     .build();
-            broadcast(leaveEvent);
+
+            broadcast(disconnectEvent);
+
+            return;
         }
+
+        // NORMAL USER LEAVE
+        RoomEvent leaveEvent = RoomEvent.builder()
+                .type(RoomEvent.Type.USER_LEAVE)
+                .roomId(roomId)
+                .payload(userId)
+                .sentAt(System.currentTimeMillis())
+                .build();
+
+        broadcast(leaveEvent);
     }
 
     /**
@@ -181,5 +207,20 @@ public class RoomStateManager {
             // Remove if no users and inactive for > 1 hour
             return state.getConnectedUserIds().isEmpty() && (now - state.getUpdatedAt() > 3600000);
         });
+    }
+
+    public void sendToSession(String sessionId, RoomEvent event) {
+        messagingTemplate.convertAndSendToUser(
+                sessionId,
+                "/queue/room-snapshot", // private queue
+                event,
+                createHeaders(sessionId));
+    }
+
+    private MessageHeaders createHeaders(String sessionId) {
+        SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
+        accessor.setSessionId(sessionId);
+        accessor.setLeaveMutable(true);
+        return accessor.getMessageHeaders();
     }
 }

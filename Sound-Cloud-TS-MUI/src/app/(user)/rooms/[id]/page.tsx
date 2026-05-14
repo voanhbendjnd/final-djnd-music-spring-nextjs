@@ -31,7 +31,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    let initialData: RoomMeta | null = null;
+    let initialData: IRoomMeta | null = null;
     let fetchError: 'not_found' | 'server_error' | null = null;
 
     try {
@@ -74,13 +74,3 @@ export default async function Page({ params }: { params: { id: string } }) {
 // ─── Kiểu dữ liệu trả về từ backend ResRoom ─────────────────────────────────
 // Khớp với các field trong ListeningRoom entity + RoomRealtimeState
 
-interface RoomMeta {
-    id: number;
-    name: string;
-    code: string;           // ← mã phòng 6 ký tự, dùng để tìm kiếm / share
-    isPublic: boolean;
-    isActive: boolean;
-    hostUserId: number;
-    maxListeners: number;
-    createdAt: string;
-}

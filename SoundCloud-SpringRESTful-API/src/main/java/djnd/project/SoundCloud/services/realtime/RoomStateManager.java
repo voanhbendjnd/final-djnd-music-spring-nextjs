@@ -2,12 +2,10 @@ package djnd.project.SoundCloud.services.realtime;
 
 import djnd.project.SoundCloud.domain.realtime.RoomEvent;
 import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
-import djnd.project.SoundCloud.domain.realtime.RoomPresenceEvent;
 import djnd.project.SoundCloud.repositories.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -16,7 +14,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -54,13 +54,18 @@ public class RoomStateManager {
      * Get or initialize room state with a specific host
      */
     public RoomRealtimeState getOrCreateState(Long roomId, Long initialHostId) {
-        return localRoomStates.computeIfAbsent(roomId, id -> RoomRealtimeState.builder()
-                .roomId(id)
-                .hostUserId(initialHostId)
-                .isPlaying(false)
-                .currentTime(0.0)
-                .updatedAt(System.currentTimeMillis())
-                .build());
+        return localRoomStates.computeIfAbsent(roomId, id -> {
+            Set<Long> initialUsers = new HashSet<>();
+            initialUsers.add(initialHostId);
+            return RoomRealtimeState.builder()
+                    .roomId(id)
+                    .hostUserId(initialHostId)
+                    .isPlaying(false)
+                    .currentTime(0.0)
+                    .updatedAt(System.currentTimeMillis())
+                    .connectedUserIds(initialUsers)
+                    .build();
+        });
     }
 
     /**
@@ -156,7 +161,7 @@ public class RoomStateManager {
         RoomEvent leaveEvent = RoomEvent.builder()
                 .type(RoomEvent.Type.USER_LEAVE)
                 .roomId(roomId)
-                .payload(userId)
+                .payload(state)
                 .sentAt(System.currentTimeMillis())
                 .build();
 

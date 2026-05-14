@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.domain.response;
 
 import java.time.LocalDateTime;
 
+import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,4 +19,6 @@ public class ResRoom {
     Boolean isPublic;
     LocalDateTime createdAt;
     String code;
+    Integer listenerCount;
+    RoomRealtimeState realtimeState;
 }

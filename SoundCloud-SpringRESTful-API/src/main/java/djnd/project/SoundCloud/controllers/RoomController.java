@@ -1,8 +1,8 @@
 package djnd.project.SoundCloud.controllers;
 
-import djnd.project.SoundCloud.domain.entity.ListeningRoom;
 import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
 import djnd.project.SoundCloud.domain.request.RoomDTO;
+import djnd.project.SoundCloud.domain.response.ResRoom;
 import djnd.project.SoundCloud.services.RoomService;
 import djnd.project.SoundCloud.services.realtime.RoomStateManager;
 import djnd.project.SoundCloud.utils.SecurityUtils;
@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/rooms")
@@ -34,22 +33,12 @@ public class RoomController {
         try {
             var room = roomService.getRoomWithRealtimeState(id);
             RoomRealtimeState state = roomStateManager.getRoomState(id);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("id", room.getId());
-            response.put("name", room.getName());
-            response.put("hostUserId", room.getHost().getId());
-            response.put("hostUserName", room.getHost().getName());
-            response.put("isPublic", room.getIsPublic());
-            response.put("isActive", room.getIsActive());
-            response.put("createdAt", room.getCreatedAt());
-
             // Add realtime state if available
             if (state != null) {
-                response.put("realtimeState", state);
+                room.setRealtimeState(state);
             }
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(room);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
@@ -58,31 +47,13 @@ public class RoomController {
     @GetMapping
     public ResponseEntity<?> listRooms(@RequestParam(value = "filter", required = false) String filter) {
         Long currentUserId = SecurityUtils.getCurrentUserIdOrNull();
-
-        List<ListeningRoom> rooms;
+        List<ResRoom> rooms;
         if ("my".equals(filter) && currentUserId != null) {
             rooms = roomService.findUserRooms(currentUserId);
         } else {
             rooms = roomService.fetchAll();
         }
-
-        List<Map<String, Object>> response = rooms.stream().map(room -> {
-            Map<String, Object> roomData = new HashMap<>();
-            roomData.put("id", room.getId());
-            roomData.put("name", room.getName());
-            roomData.put("hostUserId", room.getHost().getId());
-            roomData.put("hostUserName", room.getHost().getName());
-            roomData.put("isPublic", room.getIsPublic());
-            roomData.put("createdAt", room.getCreatedAt());
-
-            // Add listener count from realtime state
-            RoomRealtimeState state = roomStateManager.getRoomState(room.getId());
-            roomData.put("listenerCount", state != null ? state.getConnectedUserIds().size() : 0);
-
-            return roomData;
-        }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(rooms);
     }
 
     @PostMapping("/{id}/verify")

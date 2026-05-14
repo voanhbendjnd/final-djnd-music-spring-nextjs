@@ -59,7 +59,11 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
             client.subscribe(`/topic/room/${roomId}`, (message: IMessage) => {
                 try {
                     const event = JSON.parse(message.body);
-                    if (event.type === 'STATE_UPDATE' || event.type === 'FULL_SNAPSHOT') {
+                    if (event.type === 'STATE_UPDATE'
+                        || event.type === 'FULL_SNAPSHOT'
+                        ||  event.type === 'USER_JOIN'
+                        || event.type === 'USER_LEAVE'
+                    ) {
                         setRoomState(event.payload);
                     } else if (event.type === 'ROOM_DELETED') {
                         onRoomDeletedRef.current?.();

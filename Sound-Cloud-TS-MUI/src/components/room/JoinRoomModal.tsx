@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import {useRef, useState} from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     TextField, Button, Typography, Box, InputAdornment, IconButton
@@ -32,7 +32,7 @@ export default function JoinRoomModal({ open, onClose, roomId, onSuccess }: IPro
             const res: any = await axiosInstance.post(`/api/v1/rooms/${roomId}/verify`, { password });
 
             if (res.data.valid) {
-                toast.success("Access granted!");
+                toast.dark("Access granted!");
                 onSuccess();
             } else {
                 toast.error("Incorrect password");
@@ -44,11 +44,20 @@ export default function JoinRoomModal({ open, onClose, roomId, onSuccess }: IPro
             setLoading(false);
         }
     };
+    const inputRef = useRef<HTMLInputElement>(null);
 
     return (
         <Dialog
             open={open}
             onClose={onClose}
+            TransitionProps={{
+                onEntered: () => {
+                    // Focus sau khi animation xong, không phải ngay lúc mount
+                    inputRef.current?.focus();
+                }
+            }}
+            // Chặn keydown không bubble ra ngoài dialog
+            onKeyDown={(e) => e.stopPropagation()}
             PaperProps={{
                 sx: {
                     bgcolor: '#1a1a1a',

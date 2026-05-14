@@ -29,7 +29,7 @@ import {toast} from "react-toastify";
 
 interface IProps {
     roomId: number;
-    initialData: any;
+    initialData: IRoomMeta;
 }
 
 export default function RoomClient({ roomId, initialData }: IProps) {
@@ -204,46 +204,90 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         if (!roomState || !audioRef.current || !activeTrackData) return;
 
         const footer = audioRef.current;
-        
-        const performSync = () => {
-            // Set syncing flag to prevent event loop
+        const capturedState = { ...roomState }; // snapshot để dùng trong closures
+        let aborted = false;
+
+        /**
+         * Tính targetTime tại thời điểm GỌI HÀM (lazy).
+         * Mỗi lần gọi lại đều ra kết quả mới và chính xác hơn.
+         */
+        const calcTargetTime = (): number => {
+            let t = capturedState.currentTime;
+            if (capturedState.isPlaying && capturedState.updatedAt) {
+                t += (Date.now() - capturedState.updatedAt) / 1000;
+            }
+            return Math.max(0, t);
+        };
+
+        /**
+         * Sync play/pause trước — không cần audio ready.
+         * Sync seek chỉ sau khi audio có thể seek (readyState >= 2).
+         */
+        const performSync = async () => {
+            if (aborted) return;
+
             isSyncingRef.current = true;
 
-            let targetTime = roomState.currentTime;
-            if (roomState.isPlaying && roomState.updatedAt) {
-                const timePassed = (Date.now() - roomState.updatedAt) / 1000;
-                targetTime += timePassed;
+            // ── 1. Sync play/pause ───────────────────────────────────────────────
+            try {
+                if (capturedState.isPlaying && footer.paused) {
+                    await footer.play();           // chờ promise để biết khi nào xong
+                } else if (!capturedState.isPlaying && !footer.paused) {
+                    footer.pause();
+                }
+            } catch {
+                // play() bị abort (e.g. user tương tác chặn autoplay) — bỏ qua
             }
 
+            if (aborted) { isSyncingRef.current = false; return; }
+
+            // ── 2. Sync seek — chỉ khi audio đã có thể seek ─────────────────────
+            const targetTime = calcTargetTime(); // tính NGAY trước khi seek
             const drift = Math.abs(footer.currentTime - targetTime);
 
-            // Sync playing status
-            if (roomState.isPlaying && footer.paused) {
-                console.log('🔄 Syncing: Play');
-                footer.play().catch(() => {});
-            } else if (!roomState.isPlaying && !footer.paused) {
-                console.log('🔄 Syncing: Pause');
-                footer.pause();
-            }
-
-            // Sync time
             if (drift > 1.5) {
-                console.log(`🔄 Syncing: Seek to ${targetTime}`);
+                console.log(`🔄 Seek: ${footer.currentTime.toFixed(1)}s → ${targetTime.toFixed(1)}s (drift ${drift.toFixed(1)}s)`);
                 footer.currentTime = targetTime;
             }
 
-            // Reset syncing flag after a short delay to allow browser events to fire and be ignored
-            setTimeout(() => {
-                isSyncingRef.current = false;
-            }, 100);
+            // Reset flag sau khi tất cả operations xong
+            isSyncingRef.current = false;
         };
 
-        performSync();
-        footer.addEventListener('loadedmetadata', performSync);
-        return () => footer.removeEventListener('loadedmetadata', performSync);
-    }, [roomState, activeTrackData, audioRef]);
+        /**
+         * Chờ audio sẵn sàng seek rồi mới performSync.
+         * readyState >= 2 (HAVE_CURRENT_DATA) = có thể set currentTime an toàn.
+         */
+        const waitForReadyThenSync = () => {
+            if (aborted) return;
 
-    // Auto-play next track in queue when current ends (Host only)
+            if (footer.readyState >= 2) {
+                // Audio đã ready → sync ngay
+                performSync();
+            } else {
+                // Chưa ready → đợi canplay (đảm bảo có đủ data để seek)
+                const onCanPlay = () => {
+                    footer.removeEventListener('canplay', onCanPlay);
+                    if (!aborted) performSync();
+                };
+                footer.addEventListener('canplay', onCanPlay);
+            }
+        };
+
+        // ── Chạy lần đầu ─────────────────────────────────────────────────────────
+        waitForReadyThenSync();
+
+        // ── Chạy lại khi track mới load (đổi src) ────────────────────────────────
+        // loadedmetadata: biết track mới đã load xong metadata → bắt đầu chờ canplay
+        const onLoadedMetadata = () => { waitForReadyThenSync(); };
+        footer.addEventListener('loadedmetadata', onLoadedMetadata);
+
+        return () => {
+            aborted = true;                                      // huỷ mọi async flow đang chờ
+            isSyncingRef.current = false;
+            footer.removeEventListener('loadedmetadata', onLoadedMetadata);
+        };
+    }, [roomState, activeTrackData, audioRef]);    // Auto-play next track in queue when current ends (Host only)
     useEffect(() => {
         const footer = audioRef.current;
         if (!footer || !isHost || !activeTrackData) return;

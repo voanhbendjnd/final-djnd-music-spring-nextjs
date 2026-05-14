@@ -269,4 +269,16 @@ declare global{
         trackIds?: number[];
         imgUrl?: string;
     }
+
+    interface IRoomMeta {
+        id: number;
+        name: string;
+        code: string;           // ← mã phòng 6 ký tự, dùng để tìm kiếm / share
+        isPublic: boolean;
+        isActive: boolean;
+        hostUserId: number;
+        maxListeners: number;
+        createdAt: string;
+        listenerCount:number;
+    }
 }

@@ -50,7 +50,9 @@ public class RoomService {
 
         // Initialize realtime state in memory
         roomStateManager.getOrCreateState(savedRoom.getId(), userId);
-        return this.toRes(savedRoom);
+
+        return this.toRes(this.roomRepository.findWithIdDetail(savedRoom.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room ID", savedRoom.getId())));
     }
 
     public ResRoom toRes(ListeningRoom room) {
@@ -62,6 +64,8 @@ public class RoomService {
         res.setIsPublic(room.getIsPublic());
         res.setName(room.getName());
         res.setCode(room.getCode());
+        RoomRealtimeState state = this.roomStateManager.getRoomState(room.getId());
+        res.setListenerCount(state != null ? state.getConnectedUserIds().size() : 0);
         return res;
     }
 
@@ -73,12 +77,13 @@ public class RoomService {
         return roomRepository.findByIsActiveTrueAndIsPublicTrue();
     }
 
-    public List<ListeningRoom> fetchAll() {
-        return this.roomRepository.findAll();
+    public List<ResRoom> fetchAll() {
+        return this.roomRepository.findAll().stream().map(this::toRes).toList();
     }
 
-    public List<ListeningRoom> findUserRooms(Long userId) {
-        return roomRepository.findByHostIdAndIsActiveTrue(userId);
+    public List<ResRoom> findUserRooms(Long userId) {
+        var rooms = this.roomRepository.findByHostIdAndIsActiveTrue(userId);
+        return rooms.stream().map(this::toRes).toList();
     }
 
     @Transactional
@@ -117,7 +122,7 @@ public class RoomService {
         log.info("Deactivated room: {} by user: {}", roomId, requestUserId);
     }
 
-    public ListeningRoom getRoomWithRealtimeState(Long roomId) {
+    public ResRoom getRoomWithRealtimeState(Long roomId) {
         var room = roomRepository.findByIdAndIsActiveTrue(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: ", roomId));
 
@@ -127,7 +132,7 @@ public class RoomService {
             roomStateManager.getOrCreateState(roomId, room.getHost().getId());
         }
 
-        return room;
+        return this.toRes(room);
     }
 
     public boolean verifyPassword(Long roomId, String password) {

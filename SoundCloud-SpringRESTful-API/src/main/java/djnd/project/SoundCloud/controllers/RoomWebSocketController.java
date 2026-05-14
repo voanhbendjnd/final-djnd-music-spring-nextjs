@@ -6,7 +6,6 @@ import djnd.project.SoundCloud.services.realtime.RoomStateManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.boot.actuate.web.exchanges.HttpExchange.Principal;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -53,7 +52,6 @@ public class RoomWebSocketController {
 
         updateCurrentTimeBeforeBroadcast(state);
 
-        // ✅ Gửi riêng cho session vừa join, không broadcast
         roomStateManager.sendToSession(sessionId, RoomEvent.builder()
                 .type(RoomEvent.Type.FULL_SNAPSHOT)
                 .roomId(roomId)

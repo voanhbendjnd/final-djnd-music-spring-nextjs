@@ -24,3 +24,5 @@ export const generatePlaylistUrl = (title:string, id:string)=>{
 
 export const generateTrackUrlUp = (id: number, title:string) =>
     `/track/${id}-${slugify(title || "track", slugOptions)}`;
+export const generateRoomUrl = (id:string, name:string) =>
+    `/track/${id}-${slugify(name || "room", slugOptions)}`;

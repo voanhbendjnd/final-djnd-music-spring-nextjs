@@ -14,6 +14,6 @@ import djnd.project.SoundCloud.domain.entity.Comment;
 public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpecificationExecutor<Comment> {
     @Override
     @EntityGraph(attributePaths = { "track", "user" })
-    Page<Comment> findAll(Specification spec, Pageable pageable);
+    Page<Comment> findAll(Specification<Comment> spec, Pageable pageable);
 
 }

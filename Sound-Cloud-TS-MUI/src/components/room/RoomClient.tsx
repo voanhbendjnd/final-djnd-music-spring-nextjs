@@ -186,7 +186,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         {
             onRoomDeleted: () => {
                 toast.dark('Room closed');
-                setTimeout(() => router.replace('/rooms'), 1500);
+                setTimeout(() => router.replace('/room'), 1500);
             }
         }
     );
@@ -345,7 +345,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         return (
             <Box sx={{ minHeight: '100vh', bgcolor: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
                 <Typography color="rgba(255,255,255,0.4)">Room not found or no longer available.</Typography>
-                <Button variant="outlined" onClick={() => { leaveRoom(); router.push('/rooms'); }}
+                <Button variant="outlined" onClick={() => { leaveRoom(); router.push('/room'); }}
                         sx={{ color: '#ff5500', borderColor: '#ff5500', borderRadius: 2, textTransform: 'none' }}>
                     Back to Rooms
                 </Button>
@@ -633,7 +633,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
 
             <JoinRoomModal
                 open={showPasswordModal}
-                onClose={() => router.push('/rooms')}
+                onClose={() => router.push('/room')}
                 roomId={roomId}
                 onSuccess={() => setPasswordVerified(true)}
             />

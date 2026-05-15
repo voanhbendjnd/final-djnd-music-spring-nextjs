@@ -277,6 +277,7 @@ declare global{
         isPublic: boolean;
         isActive: boolean;
         hostUserId: number;
+        hostUserName: string;
         maxListeners: number;
         createdAt: string;
         listenerCount:number;

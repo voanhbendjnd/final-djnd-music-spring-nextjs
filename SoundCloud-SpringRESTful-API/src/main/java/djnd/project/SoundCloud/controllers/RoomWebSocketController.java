@@ -29,25 +29,17 @@ public class RoomWebSocketController {
         String sessionId = headerAccessor.getSessionId();
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
 
-        log.info("📸 Snapshot requested for room: {} by user: {}", roomId, userId);
-
         RoomRealtimeState state = roomStateManager.getRoomState(roomId);
         if (state == null) {
-            log.warn("⚠️ Room state not found for room: {}", roomId);
+            log.warn("Room state not found for room: {}", roomId);
             return;
         }
 
-        // ✅ Add user vào connectedUserIds khi họ request snapshot (tức là đã join)
-        if (userId != null && !state.getConnectedUserIds().contains(userId)) {
+        boolean isNewUser = userId != null && !state.getConnectedUserIds().contains(userId);
+
+        if (isNewUser) {
             state.getConnectedUserIds().add(userId);
             state.incrementVersion();
-            // Broadcast USER_JOIN cho mọi người
-            roomStateManager.broadcast(RoomEvent.builder()
-                    .type(RoomEvent.Type.USER_JOIN)
-                    .roomId(roomId)
-                    .payload(state) // gửi full state để update connectedUserIds
-                    .sentAt(System.currentTimeMillis())
-                    .build());
         }
 
         updateCurrentTimeBeforeBroadcast(state);
@@ -58,6 +50,15 @@ public class RoomWebSocketController {
                 .payload(state)
                 .sentAt(System.currentTimeMillis())
                 .build());
+
+        if (isNewUser) {
+            roomStateManager.broadcast(RoomEvent.builder()
+                    .type(RoomEvent.Type.USER_JOIN)
+                    .roomId(roomId)
+                    .payload(state.getConnectedUserIds()) // chỉ gửi Set<Long>
+                    .sentAt(System.currentTimeMillis())
+                    .build());
+        }
     }
 
     @MessageMapping("/room/{roomId}/play")
@@ -129,7 +130,7 @@ public class RoomWebSocketController {
         state.incrementVersion();
         state.setUpdatedAt(System.currentTimeMillis());
 
-        log.info("⏩ Room {} seeked to {}s", roomId, time);
+        log.info("Room {} seeked to {}s", roomId, time);
         roomStateManager.updateState(state, sessionId);
     }
 
@@ -141,17 +142,17 @@ public class RoomWebSocketController {
 
         RoomRealtimeState state = roomStateManager.getRoomState(roomId);
         if (state == null) {
-            log.warn("⚠️ Room {} not found for queue add", roomId);
+            log.warn("Room {} not found for queue add", roomId);
             return;
         }
 
         updateCurrentTimeBeforeBroadcast(state);
 
-        log.info("➕ User {} adding track {} to room {} queue", userId, trackId, roomId);
+        log.info("User {} adding track {} to room {} queue", userId, trackId, roomId);
 
         // If nothing is playing, this track becomes the active track
         if (state.getCurrentTrackId() == null) {
-            log.info("🎵 Auto-starting playback with track {} as room was idle", trackId);
+            log.info("Auto-starting playback with track {} as room was idle", trackId);
             state.setCurrentTrackId(trackId);
             state.setCurrentTime(0.0);
             state.setIsPlaying(true);
@@ -172,14 +173,14 @@ public class RoomWebSocketController {
         RoomRealtimeState state = roomStateManager.getRoomState(roomId);
 
         if (state == null || !state.getHostUserId().equals(userId)) {
-            log.warn("🚫 User {} cannot remove from queue in room {}", userId, roomId);
+            log.warn("User {} cannot remove from queue in room {}", userId, roomId);
             return;
         }
 
         if (index >= 0 && index < state.getQueue().size()) {
             updateCurrentTimeBeforeBroadcast(state);
             Long removedTrack = state.getQueue().remove(index.intValue());
-            log.info("➖ Removed track {} from queue at index {}", removedTrack, index);
+            log.info("Removed track {} from queue at index {}", removedTrack, index);
             state.incrementVersion();
             roomStateManager.updateState(state, sessionId);
         }
@@ -197,7 +198,7 @@ public class RoomWebSocketController {
 
         updateCurrentTimeBeforeBroadcast(state);
         state.getQueue().clear();
-        log.info("🧹 Cleared queue for room {}", roomId);
+        log.info("Cleared queue for room {}", roomId);
         state.incrementVersion();
         roomStateManager.updateState(state, sessionId);
     }

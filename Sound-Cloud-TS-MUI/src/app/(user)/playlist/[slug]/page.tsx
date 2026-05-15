@@ -44,7 +44,7 @@ export async function generateMetadata(
     //
     // }
     return {
-        title: playlist.isPublic ? playlist.user?.name + '-' +playlist?.title : 'Private playlist',
+        title:'Playlist' + ' ' + playlist.isPublic ? playlist.user?.name + '-' +playlist?.title : 'Private playlist',
         description:playlist.isPublic ?  `Enjoy with ${playlist?.title}` : 'Private playlist',
         openGraph: {
             title: playlist.isPublic ? playlist?.title : 'Private playlist',

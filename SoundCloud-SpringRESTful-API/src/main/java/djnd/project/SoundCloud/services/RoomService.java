@@ -4,14 +4,18 @@ import djnd.project.SoundCloud.domain.entity.ListeningRoom;
 import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
 import djnd.project.SoundCloud.domain.request.RoomDTO;
 import djnd.project.SoundCloud.domain.response.ResRoom;
+import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.repositories.RoomRepository;
 import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.services.realtime.RoomStateManager;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +88,31 @@ public class RoomService {
     public List<ResRoom> findUserRooms(Long userId) {
         var rooms = this.roomRepository.findByHostIdAndIsActiveTrue(userId);
         return rooms.stream().map(this::toRes).toList();
+    }
+
+    public ResultPaginationDTO fetchAllWithPagination(Specification<ListeningRoom> spec, Pageable pageable,
+            String key) {
+        var res = new ResultPaginationDTO();
+        var meta = new ResultPaginationDTO.Meta();
+        if (key != null && !key.isEmpty()) {
+            Specification<ListeningRoom> sp = (r, q, c) -> {
+                var codeName = "%" + key.toLowerCase() + "%";
+                Predicate searchCode = c.like(c.lower(r.get("code")), codeName);
+                Predicate searchName = c.like(c.lower(r.get("name")), codeName);
+                return c.or(searchCode, searchName);
+
+            };
+            spec = spec.and(sp);
+        }
+        meta.setPage(pageable.getPageNumber() + 1);
+        meta.setPages(pageable.getPageSize());
+
+        var page = this.roomRepository.findAll(spec, pageable);
+        meta.setPages(page.getTotalPages());
+        meta.setTotal(page.getTotalElements());
+        res.setMeta(meta);
+        res.setResult(page.getContent().stream().map(this::toRes).toList());
+        return res;
     }
 
     @Transactional

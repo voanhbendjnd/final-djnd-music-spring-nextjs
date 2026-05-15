@@ -2,20 +2,19 @@
 
 import { useSession } from 'next-auth/react';
 import { useRoomSocket } from '@/hooks/use-room-socket';
-import { 
-    Box, Container, Typography, Avatar, AvatarGroup, Tooltip, Chip, 
-    IconButton, Paper, CircularProgress, Divider, List, ListItem, 
-    ListItemAvatar, ListItemText, Button
+import {
+    Box, Container, Typography, Chip,
+    IconButton, Paper, CircularProgress, Divider, List, ListItem,
+    ListItemAvatar, ListItemText, Button, useMediaQuery, useTheme,
+    Drawer, Tooltip, Stack
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
-import SkipNextIcon from '@mui/icons-material/SkipNext';
-import SyncIcon from '@mui/icons-material/Sync';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
-import LockIcon from '@mui/icons-material/Lock';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LogoutIcon from '@mui/icons-material/Logout';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
+import { ContentCopy, Tag, People, KeyboardArrowDown } from '@mui/icons-material';
+import { Avatar } from '@mui/material';
 import { useMemo, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -25,27 +24,142 @@ import SearchBar from '@/components/search/search-bar';
 import axios from 'axios';
 import { useTrackContext, ITrackContext } from '@/lib/track.wrapper';
 import { audioEngine } from '@/lib/audio-engine';
-import {toast} from "react-toastify";
+import { toast } from 'react-toastify';
 
 interface IProps {
     roomId: number;
-    initialData: IRoomMeta;
+    initialData: IRoomMeta | undefined;
 }
 
+// ─── Live dot indicator ───────────────────────────────────────────────────────
+function LiveDot() {
+    return (
+        <Box sx={{
+            width: 8, height: 8, borderRadius: '50%',
+            bgcolor: '#ff5500',
+            boxShadow: '0 0 8px #ff5500',
+            animation: 'livePulse 2s ease-in-out infinite',
+            '@keyframes livePulse': {
+                '0%,100%': { opacity: 1, transform: 'scale(1)' },
+                '50%': { opacity: 0.4, transform: 'scale(0.8)' },
+            },
+            flexShrink: 0,
+        }} />
+    );
+}
+
+// ─── Room Code Badge ──────────────────────────────────────────────────────────
+function RoomCodeBadge({ code }: { code: string }) {
+    const [copied, setCopied] = useState(false);
+    const handleCopy = () => {
+        navigator.clipboard.writeText(code).then(() => {
+            setCopied(true);
+            toast.dark('Room code copied!');
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+    return (
+        <Box
+            onClick={handleCopy}
+            sx={{
+                display: 'inline-flex', alignItems: 'center', gap: 1,
+                px: 1.5, py: 0.75,
+                borderRadius: 2,
+                bgcolor: copied ? 'rgba(76,175,80,0.1)' : 'rgba(255,85,0,0.08)',
+                border: `1px solid ${copied ? 'rgba(76,175,80,0.3)' : 'rgba(255,85,0,0.2)'}`,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                userSelect: 'none',
+                '&:hover': { bgcolor: 'rgba(255,85,0,0.14)', borderColor: 'rgba(255,85,0,0.4)' },
+                '&:active': { transform: 'scale(0.97)' },
+            }}
+        >
+            <Tag sx={{ fontSize: 13, color: copied ? '#4caf50' : '#ff5500' }} />
+            <Typography sx={{
+                fontFamily: 'monospace', fontWeight: 800, fontSize: '0.85rem',
+                letterSpacing: '0.3em', color: copied ? '#4caf50' : '#ff5500',
+            }}>
+                {code}
+            </Typography>
+            <ContentCopy sx={{ fontSize: 13, color: copied ? '#4caf50' : 'rgba(255,255,255,0.3)' }} />
+        </Box>
+    );
+}
+
+// ─── Queue item ───────────────────────────────────────────────────────────────
+function QueueItem({
+                       track, index, isHost, onPlay, onRemove, isFirst,
+                   }: {
+    track: ITrack; index: number; isHost: boolean;
+    onPlay: () => void; onRemove: () => void; isFirst: boolean;
+}) {
+    return (
+        <Box>
+            {!isFirst && <Divider sx={{ borderColor: '#1e1e1e', mx: 2 }} />}
+            <ListItem
+                secondaryAction={isHost && (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Tooltip title="Play now">
+                            <IconButton size="small" onClick={onPlay}
+                                        sx={{ color: '#4caf50', '&:hover': { bgcolor: 'rgba(76,175,80,0.1)' } }}>
+                                <PlayArrowIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Remove">
+                            <IconButton size="small" onClick={onRemove}
+                                        sx={{ color: '#555', '&:hover': { color: '#f44336', bgcolor: 'rgba(244,67,54,0.1)' } }}>
+                                <DeleteIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                )}
+                sx={{
+                    py: { xs: 1.5, sm: 2 },
+                    pr: isHost ? 10 : 2,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' },
+                }}
+            >
+                <ListItemAvatar>
+                    <Box sx={{
+                        position: 'relative', width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 },
+                        borderRadius: 1.5, overflow: 'hidden', flexShrink: 0,
+                    }}>
+                        <Image src={track.imgUrl} alt={track.title} fill style={{ objectFit: 'cover' }} unoptimized />
+                    </Box>
+                </ListItemAvatar>
+                <ListItemText
+                    primary={track.title}
+                    secondary={track.uploader?.name}
+                    primaryTypographyProps={{
+                        fontWeight: 600, color: '#fff', noWrap: true,
+                        fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                    }}
+                    secondaryTypographyProps={{ color: '#666', fontSize: '0.75rem' }}
+                    sx={{ ml: { xs: 0.5, sm: 1 } }}
+                />
+            </ListItem>
+        </Box>
+    );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function RoomClient({ roomId, initialData }: IProps) {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     const { currentTrack, setCurrentTrack, audioRef, setIsRoomMode, setIsHost } = useTrackContext() as ITrackContext;
     const isSyncingRef = useRef(false);
-    
+
     const [passwordVerified, setPasswordVerified] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [activeTrackData, setActiveTrackData] = useState<ITrack | null>(null);
     const [queueData, setQueueData] = useState<ITrack[]>([]);
+    const [queueDrawerOpen, setQueueDrawerOpen] = useState(false);
 
     const userId = session?.user?.id ? Number(session.user.id) : 0;
     const token = session?.access_token || '';
-
 
     // Password logic
     useEffect(() => {
@@ -71,13 +185,8 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         shouldConnect ? token : '',
         {
             onRoomDeleted: () => {
-                console.log('ROOM_DELETED received');
-
-                toast.dark("Room closed");
-
-                setTimeout(() => {
-                    router.replace('/rooms');
-                }, 1500);
+                toast.dark('Room closed');
+                setTimeout(() => router.replace('/rooms'), 1500);
             }
         }
     );
@@ -87,111 +196,74 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         return roomState?.hostUserId === userId || initialData?.hostUserId === userId;
     }, [roomState, userId, initialData]);
 
-    // Expose room-mode + role to global player UI (footer)
+    const playbackState = useMemo(() => {
+        if (!roomState) return null;
+        return {
+            currentTrackId: roomState.currentTrackId,
+            currentTime: roomState.currentTime,
+            isPlaying: roomState.isPlaying,
+            updatedAt: roomState.updatedAt,
+            version: roomState.version,
+        };
+    }, [
+        roomState?.currentTrackId, roomState?.currentTime,
+        roomState?.isPlaying, roomState?.updatedAt, roomState?.version,
+    ]);
+
     useEffect(() => {
         if (!setIsRoomMode || !setIsHost) return;
-
-        if (shouldConnect) {
-            setIsRoomMode(true);
-            setIsHost(Boolean(isHost));
-        } else {
-            setIsRoomMode(false);
-            setIsHost(false);
-        }
-
+        if (shouldConnect) { setIsRoomMode(true); setIsHost(Boolean(isHost)); }
+        else { setIsRoomMode(false); setIsHost(false); }
         return () => {
-            setIsRoomMode(false);
-            setIsHost(false);
-            // Stop music when leaving the room
+            setIsRoomMode(false); setIsHost(false);
             audioEngine.pause();
-            if (currentTrack.id) {
-                setCurrentTrack({ ...currentTrack, isPlaying: false });
-            }
+            if (currentTrack.id) setCurrentTrack({ ...currentTrack, isPlaying: false });
         };
     }, [shouldConnect, isHost, setIsRoomMode, setIsHost]);
 
-
-
-    // Fetch active track metadata when it changes in room state
+    // Fetch active track
     useEffect(() => {
         let isCancelled = false;
         const fetchTrack = async (id: number) => {
-            console.log(`🎵 Room State: Fetching metadata for Track ID ${id}...`);
             try {
                 const res = await axios.get(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${id}`);
                 if (isCancelled) return;
-                
                 const track = res.data.data;
-                console.log(`✅ Room State: Track metadata loaded: "${track.title}"`);
-                
                 setActiveTrackData(track);
-                
-                // CRITICAL: Sync with global player immediately
-                // We use the roomState's isPlaying as the source of truth
-                setCurrentTrack({ 
-                    ...track, 
-                    isPlaying: roomState?.isPlaying ?? true 
-                });
+                setCurrentTrack({ ...track, isPlaying: roomState?.isPlaying ?? true });
             } catch (e) {
-                console.error("❌ Room State: Failed to fetch active track metadata", e);
+                console.error('❌ Failed to fetch track metadata', e);
             }
         };
-
-        if (roomState?.currentTrackId) {
-            fetchTrack(Number(roomState.currentTrackId));
-        } else {
-            setActiveTrackData(null);
-        }
-
+        if (roomState?.currentTrackId) fetchTrack(Number(roomState.currentTrackId));
+        else setActiveTrackData(null);
         return () => { isCancelled = true; };
     }, [roomState?.currentTrackId, roomState?.isPlaying, setCurrentTrack]);
 
     // Fetch queue metadata
     useEffect(() => {
         const fetchQueue = async () => {
-            if (!roomState?.queue || roomState.queue.length === 0) {
-                setQueueData([]);
-                return;
-            }
+            if (!roomState?.queue || roomState.queue.length === 0) { setQueueData([]); return; }
             try {
-                // For simplicity, fetch individually or create a bulk endpoint later
-                const promises = roomState.queue.map(id => 
-                    axios.get(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${id}`)
+                const results = await Promise.all(
+                    roomState.queue.map(id => axios.get(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${id}`))
                 );
-                const results = await Promise.all(promises);
                 setQueueData(results.map(r => r.data.data));
-            } catch (e) {
-                console.error("Failed to fetch queue data", e);
-            }
+            } catch (e) { console.error('Failed to fetch queue', e); }
         };
         fetchQueue();
     }, [roomState?.queue]);
 
-    // Sync local playback events to room (Host only)
+    // Host: emit playback events
     useEffect(() => {
         const footer = audioRef.current;
         if (!footer || !isHost || !activeTrackData) return;
-
-        const handlePlay = () => {
-            if (isSyncingRef.current) return;
-            console.log('📤 Host triggered Play');
-            play(Number(activeTrackData.id), footer.currentTime);
-        };
-        const handlePause = () => {
-            if (isSyncingRef.current) return;
-            console.log('📤 Host triggered Pause');
-            pause();
-        };
-        const handleSeeked = () => {
-            if (isSyncingRef.current) return;
-            console.log('📤 Host triggered Seek');
-            seek(footer.currentTime);
-        };
-
+        const handlePlay = () => { if (!isSyncingRef.current) play(Number(activeTrackData.id), footer.currentTime); };
+        const handlePause = () => { if (!isSyncingRef.current) pause(); };
+        const handleSeeked = () => { if (!isSyncingRef.current) seek(footer.currentTime); };
         footer.addEventListener('play', handlePlay);
         footer.addEventListener('pause', handlePause);
         footer.addEventListener('seeked', handleSeeked);
-
         return () => {
             footer.removeEventListener('play', handlePlay);
             footer.removeEventListener('pause', handlePause);
@@ -199,125 +271,82 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         };
     }, [isHost, activeTrackData, play, pause, seek, audioRef]);
 
-    // Handle audio sync from Room State to Footer Player
+    // Listener: sync from room state
     useEffect(() => {
-        if (!roomState || !audioRef.current || !activeTrackData) return;
-
+        if (isHost) return;
+        if (!playbackState || !audioRef.current || !activeTrackData) return;
         const footer = audioRef.current;
-        const capturedState = { ...roomState }; // snapshot để dùng trong closures
+        const capturedState = playbackState;
         let aborted = false;
 
-        /**
-         * Tính targetTime tại thời điểm GỌI HÀM (lazy).
-         * Mỗi lần gọi lại đều ra kết quả mới và chính xác hơn.
-         */
         const calcTargetTime = (): number => {
             let t = capturedState.currentTime;
-            if (capturedState.isPlaying && capturedState.updatedAt) {
+            if (capturedState.isPlaying && capturedState.updatedAt)
                 t += (Date.now() - capturedState.updatedAt) / 1000;
-            }
             return Math.max(0, t);
         };
 
-        /**
-         * Sync play/pause trước — không cần audio ready.
-         * Sync seek chỉ sau khi audio có thể seek (readyState >= 2).
-         */
         const performSync = async () => {
             if (aborted) return;
-
             isSyncingRef.current = true;
-
-            // ── 1. Sync play/pause ───────────────────────────────────────────────
             try {
-                if (capturedState.isPlaying && footer.paused) {
-                    await footer.play();           // chờ promise để biết khi nào xong
-                } else if (!capturedState.isPlaying && !footer.paused) {
-                    footer.pause();
-                }
-            } catch {
-                // play() bị abort (e.g. user tương tác chặn autoplay) — bỏ qua
-            }
-
+                if (capturedState.isPlaying && footer.paused) await footer.play();
+                else if (!capturedState.isPlaying && !footer.paused) footer.pause();
+            } catch {}
             if (aborted) { isSyncingRef.current = false; return; }
-
-            // ── 2. Sync seek — chỉ khi audio đã có thể seek ─────────────────────
-            const targetTime = calcTargetTime(); // tính NGAY trước khi seek
-            const drift = Math.abs(footer.currentTime - targetTime);
-
-            if (drift > 1.5) {
-                console.log(`🔄 Seek: ${footer.currentTime.toFixed(1)}s → ${targetTime.toFixed(1)}s (drift ${drift.toFixed(1)}s)`);
-                footer.currentTime = targetTime;
-            }
-
-            // Reset flag sau khi tất cả operations xong
-            isSyncingRef.current = false;
+            const targetTime = calcTargetTime();
+            if (Math.abs(footer.currentTime - targetTime) > 1.5) footer.currentTime = targetTime;
+            setTimeout(() => { if (!aborted) isSyncingRef.current = false; }, 300);
         };
 
-        /**
-         * Chờ audio sẵn sàng seek rồi mới performSync.
-         * readyState >= 2 (HAVE_CURRENT_DATA) = có thể set currentTime an toàn.
-         */
-        const waitForReadyThenSync = () => {
+        const waitForReady = () => {
             if (aborted) return;
-
-            if (footer.readyState >= 2) {
-                // Audio đã ready → sync ngay
-                performSync();
-            } else {
-                // Chưa ready → đợi canplay (đảm bảo có đủ data để seek)
-                const onCanPlay = () => {
-                    footer.removeEventListener('canplay', onCanPlay);
-                    if (!aborted) performSync();
-                };
-                footer.addEventListener('canplay', onCanPlay);
-            }
+            if (footer.readyState >= 2) { performSync(); return; }
+            const onCanPlay = () => { footer.removeEventListener('canplay', onCanPlay); if (!aborted) performSync(); };
+            footer.addEventListener('canplay', onCanPlay);
         };
 
-        // ── Chạy lần đầu ─────────────────────────────────────────────────────────
-        waitForReadyThenSync();
-
-        // ── Chạy lại khi track mới load (đổi src) ────────────────────────────────
-        // loadedmetadata: biết track mới đã load xong metadata → bắt đầu chờ canplay
-        const onLoadedMetadata = () => { waitForReadyThenSync(); };
-        footer.addEventListener('loadedmetadata', onLoadedMetadata);
-
+        waitForReady();
+        const onLoaded = () => waitForReady();
+        footer.addEventListener('loadedmetadata', onLoaded);
         return () => {
-            aborted = true;                                      // huỷ mọi async flow đang chờ
+            aborted = true;
             isSyncingRef.current = false;
-            footer.removeEventListener('loadedmetadata', onLoadedMetadata);
+            footer.removeEventListener('loadedmetadata', onLoaded);
         };
-    }, [roomState, activeTrackData, audioRef]);    // Auto-play next track in queue when current ends (Host only)
+    }, [playbackState, activeTrackData, audioRef, isHost]);
+
+    // Auto-next track
     useEffect(() => {
         const footer = audioRef.current;
         if (!footer || !isHost || !activeTrackData) return;
-
         const handleEnded = () => {
-            console.log('⏭️ Track ended, playing next from queue');
-            if (roomState?.queue && roomState.queue.length > 0) {
-                const nextTrackId = Number(roomState.queue[0]);
-                play(nextTrackId, 0);
+            const q = roomState?.queue ?? [];
+            if (q.length > 0) {
+                const nextId = Number(q[0]);
                 removeFromQueue(0);
-            } else {
-                pause();
-            }
+                setTimeout(() => play(nextId, 0), 100);
+            } else { pause(); }
         };
-
         footer.addEventListener('ended', handleEnded);
         return () => footer.removeEventListener('ended', handleEnded);
     }, [isHost, activeTrackData, roomState?.queue, play, removeFromQueue, pause, audioRef]);
 
+    // ─── Loading / Error states ───────────────────────────────────────────────
     if (status === 'loading') {
-        return <Box sx={{ minHeight: '100vh', bgcolor: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: '#f50' }} /></Box>;
+        return (
+            <Box sx={{ minHeight: '100vh', bgcolor: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CircularProgress sx={{ color: '#ff5500' }} />
+            </Box>
+        );
     }
+
     if (!initialData) {
         return (
-            <Box sx={{ minHeight: '100vh', bgcolor: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
-                <Typography color="gray">Room not found or no longer available.</Typography>
-                <Button variant="outlined" onClick={() => {
-                    leaveRoom();
-                    router.push('/rooms');
-                }} sx={{ color: '#f50', borderColor: '#f50' }}>
+            <Box sx={{ minHeight: '100vh', bgcolor: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+                <Typography color="rgba(255,255,255,0.4)">Room not found or no longer available.</Typography>
+                <Button variant="outlined" onClick={() => { leaveRoom(); router.push('/rooms'); }}
+                        sx={{ color: '#ff5500', borderColor: '#ff5500', borderRadius: 2, textTransform: 'none' }}>
                     Back to Rooms
                 </Button>
             </Box>
@@ -326,214 +355,363 @@ export default function RoomClient({ roomId, initialData }: IProps) {
 
     if (showPasswordModal) {
         return (
-            <JoinRoomModal
-                open={showPasswordModal}
-                onClose={() => router.back()}
-                onSuccess={() => {
-                    setPasswordVerified(true);
-                    setShowPasswordModal(false);
-                }}
-                roomId={roomId}
+            <JoinRoomModal open={showPasswordModal} onClose={() => router.back()}
+                           onSuccess={() => { setPasswordVerified(true); setShowPasswordModal(false); }}
+                           roomId={roomId}
             />
         );
     }
 
+    const listenerCount = roomState?.connectedUserIds?.length || 0;
+
+    // ─── Render ───────────────────────────────────────────────────────────────
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#000', pt: 10, pb: 10 }}>
-            <Container maxWidth="lg">
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 6 }}>
-                    <Box>
-                        <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff', mb: 1 }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#080808', pt: { xs: 7, sm: 9, md: 10 }, pb: { xs: 14, sm: 12 } }}>
+            <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+
+                {/* ── HEADER ─────────────────────────────────────────────── */}
+                <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: { xs: 'flex-start', sm: 'flex-end' },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 2.5, sm: 0 },
+                    mb: { xs: 4, sm: 5, md: 6 },
+                }}>
+                    <Box sx={{ minWidth: 0 }}>
+                        {/* Connection status */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <LiveDot />
+                            <Typography variant="caption" color="rgba(255,255,255,0.35)" sx={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem' }}>
+                                Live Session
+                            </Typography>
+                        </Box>
+
+                        {/* Room name */}
+                        <Typography
+                            variant="h3"
+                            sx={{
+                                fontWeight: 900, color: '#fff',
+                                fontSize: { xs: '1.6rem', sm: '2rem', md: '2.5rem' },
+                                letterSpacing: '-0.5px', lineHeight: 1.1,
+                                mb: 1.5, wordBreak: 'break-word',
+                            }}
+                        >
                             {initialData.name}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Chip 
-                                label={isHost ? "HOST" : "LISTENER"} 
-                                sx={{ bgcolor: isHost ? '#f50' : '#333', color: '#fff', fontWeight: 'bold' }} 
+
+                        {/* Code badge + role chip + listener count */}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
+                            {initialData.code && <RoomCodeBadge code={initialData.code} />}
+                            <Chip
+                                label={isHost ? 'HOST' : 'LISTENER'}
+                                size="small"
+                                sx={{
+                                    bgcolor: isHost ? 'rgba(255,85,0,0.15)' : 'rgba(255,255,255,0.07)',
+                                    color: isHost ? '#ff5500' : 'rgba(255,255,255,0.6)',
+                                    border: isHost ? '1px solid rgba(255,85,0,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                                    fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.08em',
+                                    height: 24,
+                                }}
                             />
-                            <Typography variant="body1" color="gray">
-                                {roomState?.connectedUserIds?.length || 0} people listening
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <People sx={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }} />
+                                <Typography variant="caption" color="rgba(255,255,255,0.35)" sx={{ fontSize: '0.75rem' }}>
+                                    {listenerCount} listening
+                                </Typography>
+                            </Box>
                         </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <AvatarGroup max={5}>
-                            {roomState?.connectedUserIds?.map(id => (
-                                <Avatar key={id} sx={{ bgcolor: id === roomState.hostUserId ? '#f50' : '#333' }}>{id}</Avatar>
-                            ))}
-                        </AvatarGroup>
-
-                        {/*<Button */}
-                        {/*    variant="outlined" */}
-                        {/*    color="error" */}
-                        {/*    startIcon={<LogoutIcon />}*/}
-                        {/*    onClick={() => router.push('/')}*/}
-                        {/*>*/}
+                    {/* Actions */}
+                    <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                        {/* Mobile: queue badge button */}
+                        {isMobile && (
                             <Button
                                 variant="outlined"
-                                color="error"
-                                startIcon={<LogoutIcon />}
-                                onClick={() => {
-                                    leaveRoom();
-
-                                    setTimeout(() => {
-                                        router.push('/rooms');
-                                    }, 300);
+                                onClick={() => setQueueDrawerOpen(true)}
+                                startIcon={<QueueMusicIcon />}
+                                size="small"
+                                sx={{
+                                    color: 'rgba(255,255,255,0.6)',
+                                    borderColor: '#2a2a2a',
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    position: 'relative',
+                                    '&:hover': { borderColor: '#ff5500', color: '#fff' },
                                 }}
-                                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-
                             >
-                            Leave Room
+                                Queue {queueData.length > 0 && `(${queueData.length})`}
+                            </Button>
+                        )}
+
+                        <Button
+                            variant="outlined"
+                            color="error"
+                            startIcon={<LogoutIcon />}
+                            size={isMobile ? 'small' : 'medium'}
+                            onClick={() => { leaveRoom(); setTimeout(() => router.push('/room'), 300); }}
+                            sx={{
+                                borderRadius: 2, textTransform: 'none', fontWeight: 600,
+                                borderColor: 'rgba(244,67,54,0.4)',
+                                color: 'rgba(244,67,54,0.8)',
+                                '&:hover': { borderColor: '#f44336', color: '#f44336', bgcolor: 'rgba(244,67,54,0.06)' },
+                            }}
+                        >
+                            Leave
                         </Button>
-                    </Box>
+                    </Stack>
                 </Box>
 
-                <Box sx={{ mb: 4, maxWidth: '100%' }}>
-                    <Typography variant="body2" color="gray" sx={{ mb: 1, ml: 1 }}>
-                        Find tracks to add to the shared queue:
+                {/* ── SEARCH / ADD TO QUEUE ──────────────────────────────── */}
+                <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+                    <Typography variant="caption" color="rgba(255,255,255,0.3)"
+                                sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.68rem' }}>
+                        {isHost ? 'Add to queue' : 'Queue (host only)'}
                     </Typography>
-                    <Box sx={{ opacity: isHost ? 1 : 0.55, pointerEvents: isHost ? 'auto' : 'none' }}>
-                        <SearchBar 
+                    <Box sx={{ opacity: isHost ? 1 : 0.45, pointerEvents: isHost ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
+                        <SearchBar
                             onSelect={(suggestion) => {
                                 if (!isHost) return;
                                 const trackId = Number(suggestion.id);
-                                if (trackId) {
-                                    addToQueue(trackId);
-                                }
-                            }} 
+                                if (trackId) addToQueue(trackId);
+                            }}
                         />
                     </Box>
-                    {!isHost && (
-                        <Typography variant="caption" color="#888" sx={{ display: 'block', mt: 1, ml: 1 }}>
-                            Only the host can add tracks to the queue.
-                        </Typography>
-                    )}
                 </Box>
 
-                {/* ACTIVE PLAYER */}
+                {/* ── ACTIVE PLAYER ─────────────────────────────────────── */}
                 {activeTrackData ? (
-                    <Box sx={{ mb: 6 }}>
+                    <Box sx={{ mb: { xs: 4, sm: 6 } }}>
                         {isHost ? (
-                            <WaveTrack 
-                                track={activeTrackData} 
-                                comments={[]} 
-                                readOnly={false}
-                            />
+                            <WaveTrack track={activeTrackData} comments={[]} readOnly={false} />
                         ) : (
-                            <Paper sx={{ 
-                                p: 4, bgcolor: '#111', borderRadius: 4, border: '1px solid #222',
-                                display: 'flex', alignItems: 'center', gap: 4,
-                                background: 'linear-gradient(135deg, #111 0%, #050505 100%)'
+                            /* Listener player card */
+                            <Paper elevation={0} sx={{
+                                p: { xs: 2.5, sm: 4 },
+                                bgcolor: '#0f0f0f',
+                                borderRadius: { xs: 3, sm: 4 },
+                                border: '1px solid #1e1e1e',
+                                display: 'flex',
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                alignItems: { xs: 'flex-start', sm: 'center' },
+                                gap: { xs: 2.5, sm: 4 },
+                                background: 'linear-gradient(135deg, #0f0f0f 0%, #080808 100%)',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                '&::before': {
+                                    content: '""',
+                                    position: 'absolute', inset: 0,
+                                    background: 'radial-gradient(ellipse at top left, rgba(255,85,0,0.04) 0%, transparent 60%)',
+                                    pointerEvents: 'none',
+                                },
                             }}>
-                                <Box sx={{ 
-                                    width: 180, height: 180, position: 'relative', 
-                                    borderRadius: 3, overflow: 'hidden', flexShrink: 0,
-                                    boxShadow: '0 12px 40px rgba(0,0,0,0.8)'
+                                {/* Album art */}
+                                <Box sx={{
+                                    width: { xs: 80, sm: 140, md: 180 },
+                                    height: { xs: 80, sm: 140, md: 180 },
+                                    position: 'relative', borderRadius: { xs: 2, sm: 3 },
+                                    overflow: 'hidden', flexShrink: 0,
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                                 }}>
-                                    <Image 
-                                        src={activeTrackData.imgUrl} 
-                                        alt={activeTrackData.title} 
-                                        fill 
-                                        style={{ objectFit: 'cover' }}
-                                        unoptimized={true}
-                                    />
+                                    <Image src={activeTrackData.imgUrl} alt={activeTrackData.title}
+                                           fill style={{ objectFit: 'cover' }} unoptimized />
                                 </Box>
-                                <Box sx={{ flexGrow: 1 }}>
-                                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#fff', mb: 1 }}>
+
+                                {/* Track info */}
+                                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                    {/* Playing indicator */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                        <LiveDot />
+                                        <Typography variant="caption" color="rgba(255,255,255,0.3)"
+                                                    sx={{ textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 1 }}>
+                                            Now Playing
+                                        </Typography>
+                                    </Box>
+
+                                    <Typography
+                                        variant="h4"
+                                        sx={{
+                                            fontWeight: 800, color: '#fff',
+                                            fontSize: { xs: '1.1rem', sm: '1.5rem', md: '1.8rem' },
+                                            mb: 0.5, wordBreak: 'break-word',
+                                            letterSpacing: '-0.3px',
+                                        }}
+                                        noWrap
+                                    >
                                         {activeTrackData.title}
                                     </Typography>
-                                    <Typography variant="h6" sx={{ color: '#f50', fontWeight: 500, mb: 3 }}>
-                                        {activeTrackData.uploader.name}
+                                    <Typography
+                                        sx={{ color: '#ff5500', fontWeight: 600, fontSize: { xs: '0.85rem', sm: '1rem' } }}
+                                    >
+                                        {activeTrackData.uploader?.name}
                                     </Typography>
-                                    {/*<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>*/}
-                                    {/*    <CircularProgress size={20} sx={{ color: '#f50' }} />*/}
-                                    {/*    <Typography variant="body2" color="gray">*/}
-                                    {/*        Synchronized with host playback...*/}
-                                    {/*    </Typography>*/}
-                                    {/*</Box>*/}
                                 </Box>
                             </Paper>
                         )}
                     </Box>
                 ) : (
-                    <Paper sx={{ p: 8, bgcolor: '#0a0a0a', textAlign: 'center', borderRadius: 4, border: '1px dashed #333', mb: 6 }}>
-                        <LibraryMusicIcon sx={{ fontSize: 60, color: '#333', mb: 2 }} />
-                        <Typography variant="h5" color="gray">No track is currently playing.</Typography>
-                        <Typography variant="body2" color="#666">Add a song to the queue to get started!</Typography>
+                    <Paper elevation={0} sx={{
+                        p: { xs: 5, sm: 8 }, textAlign: 'center',
+                        bgcolor: '#0a0a0a', borderRadius: { xs: 3, sm: 4 },
+                        border: '1px dashed #222', mb: { xs: 4, sm: 6 },
+                    }}>
+                        <LibraryMusicIcon sx={{ fontSize: { xs: 44, sm: 60 }, color: '#222', mb: 2 }} />
+                        <Typography variant="h5" color="rgba(255,255,255,0.2)"
+                                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} gutterBottom>
+                            No track playing
+                        </Typography>
+                        <Typography variant="body2" color="rgba(255,255,255,0.15)" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                            {isHost ? 'Search and add a song to get started!' : 'Waiting for the host to play something...'}
+                        </Typography>
                     </Paper>
                 )}
 
-                {/* QUEUE SECTION */}
-                <Box sx={{ mt: 4 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                        <Typography variant="h5" fontWeight={700}>Upcoming in Queue</Typography>
-                        {isHost && queueData.length > 0 && (
-                            <Button size="small" color="error" onClick={clearQueue}>Clear All</Button>
-                        )}
-                    </Box>
-                    
-                    <Paper sx={{ bgcolor: '#1a1a1a', borderRadius: 4, overflow: 'hidden', border: '1px solid #333' }}>
-                        {queueData.length > 0 ? (
-                            <List sx={{ p: 0 }}>
-                                {queueData.map((track, index) => (
-                                    <Box key={`${track.id}-${index}`}>
-                                        <ListItem
-                                            secondaryAction={
-                                                isHost && (
-                                                    <Box>
-                                                        <IconButton 
-                                                            onClick={() => {
-                                                                play(Number(track.id), 0);
-                                                                removeFromQueue(index);
-                                                            }}
-                                                            sx={{ color: '#4caf50', mr: 1 }}
-                                                            title="Play Now"
-                                                        >
-                                                            <PlayArrowIcon />
-                                                        </IconButton>
-                                                        <IconButton 
-                                                            edge="end" 
-                                                            onClick={() => removeFromQueue(index)} 
-                                                            sx={{ color: '#666', '&:hover': { color: '#f44336' } }}
-                                                            title="Remove"
-                                                        >
-                                                            <DeleteIcon />
-                                                        </IconButton>
-                                                    </Box>
-                                                )
-                                            }
-                                            sx={{ py: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}
-                                        >
-                                            <ListItemAvatar>
-                                                <Avatar variant="rounded" src={track.imgUrl} sx={{ width: 48, height: 48 }} />
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={track.title}
-                                                secondary={track.uploader.name}
-                                                primaryTypographyProps={{ fontWeight: 600, color: '#fff' }}
-                                                secondaryTypographyProps={{ color: '#999' }}
-                                            />
-                                        </ListItem>
-                                        {index < queueData.length - 1 && <Divider sx={{ borderColor: '#333', mx: 2 }} />}
-                                    </Box>
-                                ))}
-                            </List>
-                        ) : (
-                            <Box sx={{ p: 6, textAlign: 'center' }}>
-                                <Typography color="rgba(255,255,255,0.3)">Queue is empty.</Typography>
-                            </Box>
-                        )}
-                    </Paper>
-                </Box>
+                {/* ── QUEUE — desktop/tablet inline ─────────────────────── */}
+                {!isMobile && (
+                    <QueueSection
+                        queueData={queueData}
+                        isHost={isHost}
+                        onPlay={(track, index) => { play(Number(track.id), 0); removeFromQueue(index); }}
+                        onRemove={removeFromQueue}
+                        onClear={clearQueue}
+                    />
+                )}
             </Container>
 
-            <JoinRoomModal 
+            {/* ── QUEUE DRAWER — mobile ─────────────────────────────────── */}
+            {isMobile && (
+                <Drawer
+                    anchor="bottom"
+                    open={queueDrawerOpen}
+                    onClose={() => setQueueDrawerOpen(false)}
+                    PaperProps={{
+                        sx: {
+                            bgcolor: '#0f0f0f',
+                            borderRadius: '20px 20px 0 0',
+                            maxHeight: '80vh',
+                            border: '1px solid #1e1e1e',
+                            borderBottom: 'none',
+                        },
+                    }}
+                >
+                    {/* Drag handle */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5 }}>
+                        <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: '#2a2a2a' }} />
+                    </Box>
+
+                    {/* Drawer header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 1.5 }}>
+                        <Typography fontWeight={700} sx={{ fontSize: '1rem' }}>
+                            Queue {queueData.length > 0 && `· ${queueData.length} tracks`}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            {isHost && queueData.length > 0 && (
+                                <Button size="small" color="error" onClick={() => { clearQueue(); setQueueDrawerOpen(false); }}
+                                        sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+                                    Clear all
+                                </Button>
+                            )}
+                            <IconButton size="small" onClick={() => setQueueDrawerOpen(false)} sx={{ color: '#555' }}>
+                                <KeyboardArrowDown />
+                            </IconButton>
+                        </Box>
+                    </Box>
+                    <Divider sx={{ borderColor: '#1e1e1e' }} />
+
+                    {/* Queue list */}
+                    <Box sx={{ overflowY: 'auto', pb: 4 }}>
+                        <QueueList
+                            queueData={queueData}
+                            isHost={isHost}
+                            onPlay={(track, index) => { play(Number(track.id), 0); removeFromQueue(index); }}
+                            onRemove={removeFromQueue}
+                        />
+                    </Box>
+                </Drawer>
+            )}
+
+            <JoinRoomModal
                 open={showPasswordModal}
                 onClose={() => router.push('/rooms')}
                 roomId={roomId}
                 onSuccess={() => setPasswordVerified(true)}
             />
+        </Box>
+    );
+}
+
+// ─── Queue List (shared between inline and drawer) ────────────────────────────
+function QueueList({
+                       queueData, isHost,
+                       onPlay, onRemove,
+                   }: {
+    queueData: ITrack[]; isHost: boolean;
+    onPlay: (track: ITrack, index: number) => void;
+    onRemove: (index: number) => void;
+}) {
+    if (queueData.length === 0) {
+        return (
+            <Box sx={{ p: 5, textAlign: 'center' }}>
+                <Typography color="rgba(255,255,255,0.2)" sx={{ fontSize: '0.875rem' }}>
+                    Queue is empty
+                </Typography>
+            </Box>
+        );
+    }
+    return (
+        <List sx={{ p: 0 }}>
+            {queueData.map((track, index) => (
+                <QueueItem
+                    key={`${track.id}-${index}`}
+                    track={track} index={index} isHost={isHost} isFirst={index === 0}
+                    onPlay={() => onPlay(track, index)}
+                    onRemove={() => onRemove(index)}
+                />
+            ))}
+        </List>
+    );
+}
+
+// ─── Queue Section (desktop/tablet) ──────────────────────────────────────────
+function QueueSection({
+                          queueData, isHost, onPlay, onRemove, onClear,
+                      }: {
+    queueData: ITrack[]; isHost: boolean;
+    onPlay: (track: ITrack, index: number) => void;
+    onRemove: (index: number) => void;
+    onClear: () => void;
+}) {
+    return (
+        <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <QueueMusicIcon sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }} />
+                    <Typography fontWeight={700} sx={{ fontSize: { sm: '1rem', md: '1.1rem' } }}>
+                        Up Next
+                    </Typography>
+                    {queueData.length > 0 && (
+                        <Chip label={queueData.length} size="small" sx={{
+                            bgcolor: 'rgba(255,85,0,0.1)', color: '#ff5500',
+                            border: '1px solid rgba(255,85,0,0.2)',
+                            height: 20, fontSize: '0.7rem', fontWeight: 700,
+                        }} />
+                    )}
+                </Box>
+                {isHost && queueData.length > 0 && (
+                    <Button size="small" color="error" onClick={onClear}
+                            sx={{ fontSize: '0.75rem', textTransform: 'none', borderRadius: 1.5 }}>
+                        Clear all
+                    </Button>
+                )}
+            </Box>
+
+            <Paper elevation={0} sx={{
+                bgcolor: '#0f0f0f', borderRadius: { sm: 3, md: 4 },
+                overflow: 'hidden', border: '1px solid #1e1e1e',
+            }}>
+                <QueueList queueData={queueData} isHost={isHost} onPlay={onPlay} onRemove={onRemove} />
+            </Paper>
         </Box>
     );
 }

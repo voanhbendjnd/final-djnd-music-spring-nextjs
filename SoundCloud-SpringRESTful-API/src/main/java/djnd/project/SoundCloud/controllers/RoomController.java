@@ -1,18 +1,22 @@
 package djnd.project.SoundCloud.controllers;
 
+import djnd.project.SoundCloud.domain.entity.ListeningRoom;
 import djnd.project.SoundCloud.domain.realtime.RoomRealtimeState;
 import djnd.project.SoundCloud.domain.request.RoomDTO;
-import djnd.project.SoundCloud.domain.response.ResRoom;
 import djnd.project.SoundCloud.services.RoomService;
 import djnd.project.SoundCloud.services.realtime.RoomStateManager;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.turkraft.springfilter.boot.Filter;
+
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -44,16 +48,23 @@ public class RoomController {
         }
     }
 
+    // @GetMapping
+    // public ResponseEntity<?> listRooms(@RequestParam(value = "filter", required =
+    // false) String filter) {
+    // Long currentUserId = SecurityUtils.getCurrentUserIdOrNull();
+    // List<ResRoom> rooms;
+    // if ("my".equals(filter) && currentUserId != null) {
+    // rooms = roomService.findUserRooms(currentUserId);
+    // } else {
+    // rooms = roomService.fetchAll();
+    // }
+    // return ResponseEntity.ok(rooms);
+    // }
+
     @GetMapping
-    public ResponseEntity<?> listRooms(@RequestParam(value = "filter", required = false) String filter) {
-        Long currentUserId = SecurityUtils.getCurrentUserIdOrNull();
-        List<ResRoom> rooms;
-        if ("my".equals(filter) && currentUserId != null) {
-            rooms = roomService.findUserRooms(currentUserId);
-        } else {
-            rooms = roomService.fetchAll();
-        }
-        return ResponseEntity.ok(rooms);
+    public ResponseEntity<?> listRoomsWithPagination(@RequestParam(value = "key", required = false) String key,
+            @Filter Specification<ListeningRoom> spec, Pageable pageable) {
+        return ResponseEntity.ok(this.roomService.fetchAllWithPagination(spec, pageable, key));
     }
 
     @PostMapping("/{id}/verify")

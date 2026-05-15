@@ -50,6 +50,20 @@ public class RoomStateManager {
         return localRoomStates.get(roomId);
     }
 
+    // Broadcast USER_JOIN chỉ với danh sách connectedUserIds mới
+    // Không gửi full state để tránh trigger audio sync trên client cũ
+    public void broadcastUserJoin(Long roomId, Set<Long> connectedUserIds) {
+        RoomEvent event = RoomEvent.builder()
+                .type(RoomEvent.Type.USER_JOIN)
+                .roomId(roomId)
+                .payload(connectedUserIds) // ← chỉ gửi set userIds, không phải full state
+                .sentAt(System.currentTimeMillis())
+                .build();
+
+        redisTemplate.convertAndSend(REDIS_ROOM_TOPIC, event);
+        messagingTemplate.convertAndSend("/topic/room/" + roomId, event);
+    }
+
     /**
      * Get or initialize room state with a specific host
      */

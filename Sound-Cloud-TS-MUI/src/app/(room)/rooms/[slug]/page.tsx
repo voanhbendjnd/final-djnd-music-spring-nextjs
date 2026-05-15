@@ -1,20 +1,68 @@
-/**
- * app/rooms/[id]/page.tsx
- *
- * Thay đổi so với bản cũ:
- * 1. Fetch có auth header (lấy session server-side qua next-auth getServerSession)
- *    → private room không còn bị 401 redirect trước khi client verify password
- * 2. Truyền `code` từ initialData xuống RoomClient để hiển thị / copy
- * 3. Phân biệt rõ 3 trường hợp: room không tồn tại, lỗi mạng, room private chưa auth
- */
+
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // ← điều chỉnh path nếu khác
 import RoomClient from '@/components/room/RoomClient';
 import { redirect } from 'next/navigation';
+import type {Metadata, ResolvingMetadata} from "next";
+import {sendRequest} from "@/utils/api";
+interface IProps {
+    params: {
+        slug: string;
+    }
+}
 
-export default async function Page({ params }: { params: { id: string } }) {
-    const roomId = Number(params.id);
+
+type Props = {
+    params: { slug: string }
+}
+export async function generateMetadata(
+    { params }: Props,
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+
+    const roomId = params.slug.split('-')[0];
+
+    try {
+        const res = await fetch(
+            `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/rooms/${roomId}`,
+            {
+                cache: 'no-store'
+            }
+        );
+
+        if (!res.ok) {
+            return {
+                title: 'Room not found'
+            };
+        }
+
+        const json = await res.json();
+
+        const room: IRoomMeta = json.data;
+
+        return {
+            title: `Listening to music in room ${room.name} together with everyone`,
+            description: `Enjoy music together in ${room.name}`,
+            openGraph: {
+                title: room.name,
+                description: `Join room ${room.name}`,
+                type: 'website',
+                images: [
+                    'https://github.com/voanhbendjnd/sharing-host-files/blob/master/DjndMusic/images/genshin-impact-lumine-5k-8k-1920x1080-5163.jpg?raw=true'
+                ],
+            }
+        };
+
+    } catch (e) {
+        return {
+            title: 'Room'
+        };
+    }
+}
+const RoomDetailPage = async ({ params }: IProps) => {
+    const { slug } = params;
+    const roomId = parseInt(slug.split('-')[0]);
 
     if (isNaN(roomId) || roomId <= 0) {
         redirect('/rooms/create');
@@ -58,19 +106,21 @@ export default async function Page({ params }: { params: { id: string } }) {
 
     // Room không tồn tại → redirect
     if (fetchError === 'not_found') {
-        redirect('/rooms');
+        redirect('/room');
     }
 
     // Server error nghiêm trọng → redirect
     if (fetchError === 'server_error' && !initialData) {
-        redirect('/rooms');
+        redirect('/room');
     }
 
     // initialData có thể null nếu room private và chưa authed.
     // RoomClient xử lý luôn trường hợp này bằng JoinRoomModal.
-    return <RoomClient roomId={roomId} initialData={initialData} />;
+    return <RoomClient roomId={roomId} initialData={initialData!} />;
 }
 
 // ─── Kiểu dữ liệu trả về từ backend ResRoom ─────────────────────────────────
 // Khớp với các field trong ListeningRoom entity + RoomRealtimeState
+
+export  default  RoomDetailPage;
 

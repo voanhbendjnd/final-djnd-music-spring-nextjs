@@ -187,7 +187,7 @@ const AppHeader = () => {
                 <FavoriteIcon sx={{ color: '#f50' }} />
                 Liked Tracks
             </MenuItem>
-            <MenuItem onClick={() => { handleProtectedNavigation('/rooms'); handleMenuClose(); }}>
+            <MenuItem onClick={() => { handleProtectedNavigation('/room'); handleMenuClose(); }}>
                 <GroupsIcon sx={{ color: '#f50' }} />
                 Listening Room
             </MenuItem>

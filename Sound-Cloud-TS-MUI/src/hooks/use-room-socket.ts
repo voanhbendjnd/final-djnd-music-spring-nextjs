@@ -55,16 +55,31 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
                 }
             });
 
-            // ✅ Subscribe TRƯỚC
             client.subscribe(`/topic/room/${roomId}`, (message: IMessage) => {
                 try {
                     const event = JSON.parse(message.body);
-                    if (event.type === 'STATE_UPDATE'
-                        || event.type === 'FULL_SNAPSHOT'
-                        ||  event.type === 'USER_JOIN'
-                        || event.type === 'USER_LEAVE'
-                    ) {
+
+                    if (event.type === 'STATE_UPDATE' || event.type === 'FULL_SNAPSHOT') {
+                        // ✅ Chỉ 2 loại này mới trigger full state update (và sync audio)
                         setRoomState(event.payload);
+
+                    } else if (event.type === 'USER_JOIN') {
+                        setRoomState(prev => {
+                            if (!prev) return prev;
+                            // event.payload là Set<Long> từ backend → deserialize thành array
+                            return { ...prev, connectedUserIds: event.payload as number[] };
+                        });
+                    } else if (event.type === 'USER_LEAVE') {
+                        // ✅ Tương tự — chỉ update connectedUserIds
+                        setRoomState(prev => {
+                            if (!prev) return prev;
+                            const updatedState = event.payload; // full state từ backend
+                            return {
+                                ...prev,
+                                connectedUserIds: updatedState.connectedUserIds,
+                            };
+                        });
+
                     } else if (event.type === 'ROOM_DELETED') {
                         onRoomDeletedRef.current?.();
                     }

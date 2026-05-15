@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import axiosInstance from '@/utils/axios-instance';
 import { toast } from 'react-toastify';
+import {generateRoomUrl} from "@/utils/generate.slug";
 
 // ─── Validation constants ────────────────────────────────────────────────────
 const NAME_MAX = 50;
@@ -138,9 +139,9 @@ export default function CreateRoomPage() {
                 password: isPublic ? '' : password,
             });
             const roomId = res.data.id;
+            const roomName = name; // field name đang có sẵn trong state
             toast.dark('Room created! Launching your session...');
-            router.push(`/rooms/${roomId}`);
-            // ✅ Không setLoading(false) ở đây — giữ loading state cho đến khi navigate xong
+            router.push(generateRoomUrl(String(roomId), roomName));
         } catch (error: any) {
             console.error(error);
             toast.error(error.response?.data?.message || 'Failed to create room');

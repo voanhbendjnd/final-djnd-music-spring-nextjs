@@ -141,7 +141,7 @@ const LikeTrack = (props: IProps) => {
                                     : <HeartBroken fontSize="small" />
                             }
                             // icon={<FavoriteIcon />}
-                            label={isLiked ? countLikes : "Like"}
+                            label={isLiked ? "Liked" : "Like"}
                             variant="outlined"
                         />
                         <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />}

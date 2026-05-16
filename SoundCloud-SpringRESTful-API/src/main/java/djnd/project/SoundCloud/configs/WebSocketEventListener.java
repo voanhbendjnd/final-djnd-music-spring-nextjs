@@ -19,15 +19,16 @@ public class WebSocketEventListener {
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        
+
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
-        // We also need to know which room they were in. 
+        // We also need to know which room they were in.
         // We can store roomId in session attributes during SUBSCRIBE.
         Long roomId = (Long) headerAccessor.getSessionAttributes().get("roomId");
-        
+
         if (userId != null && roomId != null) {
             log.info("User {} disconnected from room {}", userId, roomId);
             eventPublisher.publishEvent(new RoomPresenceEvent(this, roomId, userId, RoomPresenceEvent.Type.LEAVE));
         }
     }
+
 }

@@ -193,6 +193,57 @@ function SkeletonCard() {
     );
 }
 
+// ─── Search Field — defined OUTSIDE RoomsPage to prevent remount on every keystroke ─
+// Root cause: defining a component inside another component means React sees a NEW
+// component type on every render → unmounts old TextField → focus lost after 1 char.
+
+interface SearchFieldProps {
+    value: string;
+    onChange: (v: string) => void;
+    inputRef?: React.Ref<HTMLInputElement>;
+    autoFocus?: boolean;
+}
+
+function SearchField({ value, onChange, inputRef, autoFocus = false }: SearchFieldProps) {
+    return (
+        <TextField
+            inputRef={inputRef}
+            size="small"
+            placeholder="Search rooms or code..."
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            autoFocus={autoFocus}
+            InputProps={{
+                startAdornment: (
+                    <InputAdornment position="start">
+                        <Search sx={{ fontSize: 18, color: '#555' }} />
+                    </InputAdornment>
+                ),
+                endAdornment: value ? (
+                    <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => onChange('')} sx={{ color: '#555' }}>
+                            <Close fontSize="small" />
+                        </IconButton>
+                    </InputAdornment>
+                ) : null,
+            }}
+            sx={{
+                width: '100%',
+                '& .MuiOutlinedInput-root': {
+                    color: '#fff',
+                    bgcolor: '#111',
+                    borderRadius: 2,
+                    fontSize: '0.9rem',
+                    '& fieldset': { borderColor: '#2a2a2a' },
+                    '&:hover fieldset': { borderColor: '#ff5500' },
+                    '&.Mui-focused fieldset': { borderColor: '#ff5500', borderWidth: '1px' },
+                },
+                '& input::placeholder': { color: '#555', opacity: 1 },
+            }}
+        />
+    );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function RoomsPage() {
@@ -255,45 +306,7 @@ export default function RoomsPage() {
         setTimeout(() => searchInputRef.current?.focus(), 100);
     };
 
-    // ─── Search field (shared between desktop header and mobile drawer) ───────
 
-    const SearchField = ({ autoFocus = false }: { autoFocus?: boolean }) => (
-        <TextField
-            inputRef={autoFocus ? searchInputRef : undefined}
-            size="small"
-            placeholder="Search rooms or code..."
-            value={keyword}
-            onChange={(e) => { setPage(1); setKeyword(e.target.value); }}
-            autoFocus={autoFocus}
-            InputProps={{
-                startAdornment: (
-                    <InputAdornment position="start">
-                        <Search sx={{ fontSize: 18, color: '#555' }} />
-                    </InputAdornment>
-                ),
-                endAdornment: keyword ? (
-                    <InputAdornment position="end">
-                        <IconButton size="small" onClick={() => setKeyword('')} sx={{ color: '#555' }}>
-                            <Close fontSize="small" />
-                        </IconButton>
-                    </InputAdornment>
-                ) : null,
-            }}
-            sx={{
-                width: '100%',
-                '& .MuiOutlinedInput-root': {
-                    color: '#fff',
-                    bgcolor: '#111',
-                    borderRadius: 2,
-                    fontSize: '0.9rem',
-                    '& fieldset': { borderColor: '#2a2a2a' },
-                    '&:hover fieldset': { borderColor: '#ff5500' },
-                    '&.Mui-focused fieldset': { borderColor: '#ff5500', borderWidth: '1px' },
-                },
-                '& input::placeholder': { color: '#555', opacity: 1 },
-            }}
-        />
-    );
 
     // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -398,7 +411,7 @@ export default function RoomsPage() {
                     {/* Search bar — desktop + tablet only (mobile uses drawer) */}
                     {!isMobile && (
                         <Box sx={{ maxWidth: { sm: '100%', md: 360 } }}>
-                            <SearchField />
+                            <SearchField value={keyword} onChange={(v) => { setPage(1); setKeyword(v); }} />
                         </Box>
                     )}
 
@@ -574,7 +587,7 @@ export default function RoomsPage() {
                     </IconButton>
                 </Box>
 
-                <SearchField autoFocus />
+                <SearchField value={keyword} onChange={(v) => { setPage(1); setKeyword(v); }} inputRef={searchInputRef} autoFocus />
 
                 {keyword && (
                     <Box sx={{ mt: 2 }}>

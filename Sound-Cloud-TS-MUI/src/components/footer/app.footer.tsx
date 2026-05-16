@@ -479,51 +479,57 @@ const AppFooter = () => {
 
                             {/* Track Info */}
                             <Box sx={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setShowMobileDrawer(true)}>
-                                <Typography
-                                    noWrap
-                                    sx={{
-                                        color: '#fff',
-                                        fontSize: '14px',
-                                        fontWeight: 500,
-                                        mb: 0.5
-                                    }}
-                                >
+                                <Typography noWrap sx={{ color: '#fff', fontSize: '14px', fontWeight: 500, mb: 0.5 }}>
                                     {currentTrack.title}
                                 </Typography>
-                                <Typography
-                                    noWrap
-                                    sx={{
-                                        color: '#aaa',
-                                        fontSize: '12px'
-                                    }}
-                                >
+                                <Typography noWrap sx={{ color: '#aaa', fontSize: '12px' }}>
                                     {currentTrack.uploader?.name}
                                 </Typography>
                             </Box>
 
-                            {/* Play/Pause Button */}
-                            <IconButton
-                                onClick={() => {
-                                    if (isControlDisabled) return;
-                                    if (currentTrack.isPlaying) {
-                                        audioEngine.pause();
-                                        setCurrentTrack({ ...currentTrack, isPlaying: false });
-                                    } else {
-                                        audioEngine.play(currentTrack.trackUrl).catch(err => console.log('Play failed:', err));
-                                        setCurrentTrack({ ...currentTrack, isPlaying: true });
-                                    }
-                                }}
-                                sx={{
-                                    color: '#fff',
-                                    bgcolor: 'rgba(255,255,255,0.1)',
-                                    opacity: isControlDisabled ? 0.35 : 1,
-                                    pointerEvents: isControlDisabled ? 'none' : 'auto',
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
-                                }}
-                                disabled={isControlDisabled}
-                            >
-                                {currentTrack.isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-                            </IconButton>
+                            {/* ✅ Thêm prev/next/play cho mobile */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => { if (!isControlDisabled) playPreviousTrack(); }}
+                                    disabled={isControlDisabled}
+                                    sx={{ color: 'white', opacity: isControlDisabled ? 0.3 : 1 }}
+                                >
+                                    <SkipPreviousIcon sx={{ fontSize: 22 }} />
+                                </IconButton>
+
+                                <IconButton
+                                    onClick={() => {
+                                        if (isControlDisabled) return;
+                                        if (currentTrack.isPlaying) {
+                                            audioEngine.pause();
+                                            setCurrentTrack({ ...currentTrack, isPlaying: false });
+                                        } else {
+                                            audioEngine.play(currentTrack.trackUrl).catch(err => console.log('Play failed:', err));
+                                            setCurrentTrack({ ...currentTrack, isPlaying: true });
+                                        }
+                                    }}
+                                    disabled={isControlDisabled}
+                                    sx={{
+                                        color: '#fff',
+                                        bgcolor: 'rgba(255,255,255,0.1)',
+                                        width: 36, height: 36,
+                                        opacity: isControlDisabled ? 0.35 : 1,
+                                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                                    }}
+                                >
+                                    {currentTrack.isPlaying ? <PauseIcon sx={{ fontSize: 20 }} /> : <PlayArrowIcon sx={{ fontSize: 20 }} />}
+                                </IconButton>
+
+                                <IconButton
+                                    size="small"
+                                    onClick={() => { if (!isControlDisabled) playNextTrack(); }}
+                                    disabled={isControlDisabled}
+                                    sx={{ color: 'white', opacity: isControlDisabled ? 0.3 : 1 }}
+                                >
+                                    <SkipNextIcon sx={{ fontSize: 22 }} />
+                                </IconButton>
+                            </Box>
 
                             {/* SVG Border Progress (runs around the container) */}
                             <svg

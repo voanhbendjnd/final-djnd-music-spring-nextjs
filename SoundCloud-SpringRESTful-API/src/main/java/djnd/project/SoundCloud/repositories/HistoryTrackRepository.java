@@ -30,6 +30,14 @@ public interface HistoryTrackRepository
                         """)
         List<ResHistoryInter> getMyTrackListened(@Param("userId") Long userId, Pageable pageable);
 
+        @Query(value = """
+                        select ht.track.id from HistoryTrack ht
+                        join ht.user u
+                        where u.id = :userId
+                        order by ht.listenedAt desc
+                        """)
+        List<Long> getTop10IdsTrackHistoryListening(@Param("userId") Long userId, Pageable pageable);
+
         boolean existsByUserIdAndTrackId(Long userId, Long trackId);
 
         HistoryTrack findByUserIdAndTrackId(Long userId, Long trackId);

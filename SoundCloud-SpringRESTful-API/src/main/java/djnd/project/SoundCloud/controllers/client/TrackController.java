@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -220,4 +221,9 @@ public class TrackController {
         return ResponseEntity.ok(this.trackService.getRecommendations(category, excludeIds, pageable));
     }
 
+    @GetMapping("/random")
+    @ApiMessage("Get track ramdom")
+    public ResponseEntity<?> getTrackRamdom() throws BadRequestException {
+        return ResponseEntity.ok(this.trackService.getTrackRandomForPlayer());
+    }
 }

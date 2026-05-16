@@ -14,6 +14,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,7 +24,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import djnd.project.SoundCloud.domain.entity.Track;
@@ -36,6 +36,7 @@ import djnd.project.SoundCloud.domain.response.SearchFallbackResponse;
 import djnd.project.SoundCloud.domain.response.TrackResponse;
 import djnd.project.SoundCloud.redis.services.CountPlayTrack;
 import djnd.project.SoundCloud.repositories.CategoryRepository;
+import djnd.project.SoundCloud.repositories.HistoryTrackRepository;
 import djnd.project.SoundCloud.repositories.TrackLikeRepository;
 import djnd.project.SoundCloud.repositories.TrackRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
@@ -58,6 +59,7 @@ public class TrackService {
     final JdbcTemplate jdbcTemplate;
     final WaveformService waveformService;
     final YouTubeService youtubeService;
+    final HistoryTrackRepository historyTrackRepository;
     @Value("${djnd.soundcloud.location.folder.img}")
     private String imgFolder;
     @Value("${djnd.soundcloud.location.folder.temp}")
@@ -447,6 +449,21 @@ public class TrackService {
         var finalData = page.getContent().stream().map(this::convertToResponse).toList();
         res.setResult(finalData);
         return res;
+    }
+
+    public TrackResponse getTrackRandomForPlayer() throws BadRequestException {
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        var recentTrackIds = this.historyTrackRepository.getTop10IdsTrackHistoryListening(userId,
+                PageRequest.of(0, 10));
+        if (recentTrackIds == null || recentTrackIds.isEmpty()) {
+            recentTrackIds.add(0L);
+        }
+        var track = this.trackRepository.getTrackRamdom(recentTrackIds, PageRequest.of(0, 1)).getFirst();
+        if (track == null) {
+            throw new BadRequestException("Not track!");
+        }
+        return this.convertToResponse(track);
+
     }
 
 }

@@ -76,9 +76,15 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
 
     @Query(value = "select t.id as id, t.title as title, t.imgUrl as imgUrl, t.trackUrl as trackUrl, t.countPlay as countPlays, t.countLike as countLikes, u.name as uploader from Track t join t.user u join t.historyTracks h where t.id in :trackIds order by h.listenedAt desc")
     List<ResHistoryInter> getTracksForHistoryIdIn(@Param("trackIds") List<Long> trackIds, Pageable pageable);
+
     @Query(value = "select t from Track t where t.category.name = :category and t.id not in :excludeIds")
-    Page<Track> findByByCategoryAndIdNotIn(@Param("category") String category, @Param("excludeIds") List<Long> excludeIds, Pageable pageable);
+    Page<Track> findByByCategoryAndIdNotIn(@Param("category") String category,
+            @Param("excludeIds") List<Long> excludeIds, Pageable pageable);
 
     @Query(value = "select t from Track t where t.id not in :excludeIds")
     Page<Track> findAllByIdNotIn(@Param("excludeIds") List<Long> excludeIds, Pageable pageable);
+
+    @EntityGraph(attributePaths = { "user", "category" })
+    @Query(value = "select t from Track t where t.id not in :ids order by RAND()")
+    List<Track> getTrackRamdom(@Param("ids") List<Long> ids, Pageable pageable);
 }

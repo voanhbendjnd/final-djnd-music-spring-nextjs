@@ -24,7 +24,14 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
     useEffect(() => {
         onRoomDeletedRef.current = options?.onRoomDeleted;
     }, [options?.onRoomDeleted]);
+    const requestSnapshot = useCallback((payload?: any) => {
+        if (!stompClientRef.current?.connected) return;
 
+        stompClientRef.current.publish({
+            destination: `/app/room/${roomId}/snapshot`,
+            body: JSON.stringify(payload ?? {}),
+        });
+    }, [roomId]);
     useEffect(() => {
         if (!token || token === 'undefined' || !roomId || roomId <= 0 || !userId || userId <= 0) {
             return;
@@ -89,10 +96,11 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
             });
 
             // Request snapshot sau khi subscribe cả 2
-            client.publish({
-                destination: `/app/room/${roomId}/snapshot`,
-                body: JSON.stringify({})
-            });
+            // client.publish({
+            //     destination: `/app/room/${roomId}/snapshot`,
+            //     body: JSON.stringify({})
+            // });
+            requestSnapshot();
         };
 
         client.onDisconnect = () => setIsConnected(false);

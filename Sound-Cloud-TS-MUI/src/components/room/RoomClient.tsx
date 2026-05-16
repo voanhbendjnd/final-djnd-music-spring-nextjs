@@ -582,23 +582,25 @@ export default function RoomClient({ roomId, initialData }: IProps) {
             {/* ── QUEUE DRAWER — mobile ─────────────────────────────────── */}
             {isMobile && (
                 <Drawer
-                    anchor="bottom"
+                    anchor="top"
                     open={queueDrawerOpen}
                     onClose={() => setQueueDrawerOpen(false)}
-                    PaperProps={{
-                        sx: {
+                    // ModalProps: cho phép scroll page khi drawer mở
+                    // keepMounted=false để unmount khi đóng → giải phóng bộ nhớ
+                    ModalProps={{ keepMounted: false }}
+                    sx={{
+                        '& .MuiPaper-root': {
+                            // Navbar mobile ~56px — drawer bắt đầu từ dưới navbar
+                            top: '0px',
+                            maxHeight: 'calc(85vh - 56px)',
                             bgcolor: '#0f0f0f',
-                            borderRadius: '20px 20px 0 0',
-                            maxHeight: '80vh',
+                            borderRadius: '0 0 20px 20px',
                             border: '1px solid #1e1e1e',
-                            borderBottom: 'none',
+                            borderTop: 'none',
+                            zIndex: 1250,
                         },
                     }}
                 >
-                    {/* Drag handle */}
-                    <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5 }}>
-                        <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: '#2a2a2a' }} />
-                    </Box>
 
                     {/* Drawer header */}
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 1.5 }}>
@@ -620,13 +622,24 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                     <Divider sx={{ borderColor: '#1e1e1e' }} />
 
                     {/* Queue list */}
-                    <Box sx={{ overflowY: 'auto', pb: 4 }}>
+                    <Box sx={{
+                        overflowY: 'auto',
+                        // padding bottom trong scroll area để item cuối không bị clip
+                        pb: 2,
+                        // Chiều cao scroll area = maxHeight drawer - header (~100px)
+                        // overflow tự xử lý, không cần set height cứng
+                    }}>
                         <QueueList
                             queueData={queueData}
                             isHost={isHost}
                             onPlay={(track, index) => { play(Number(track.id), 0); removeFromQueue(index); }}
                             onRemove={removeFromQueue}
                         />
+                    </Box>
+
+                    {/* Drag handle ở dưới — kéo lên để đóng */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+                        <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: '#2a2a2a' }} />
                     </Box>
                 </Drawer>
             )}

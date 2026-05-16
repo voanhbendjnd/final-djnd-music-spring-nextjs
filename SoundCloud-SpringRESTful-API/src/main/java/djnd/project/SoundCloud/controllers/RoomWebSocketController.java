@@ -21,29 +21,11 @@ public class RoomWebSocketController {
 
     private final RoomStateManager roomStateManager;
 
-    /**
-     * /room/{roomId}/snapshot
-     *
-     * Bug cũ:
-     * 1. Đọc currentTrackId/currentTime từ payload client gửi lên (client chỉ gửi
-     * {})
-     * → NullPointerException tại ((Number)
-     * payload.get("currentTime")).doubleValue()
-     * 2. Overwrite state bằng data rỗng từ client → host bị reset về track null
-     * 3. Luôn setIsPlaying(true) dù host đang pause
-     *
-     * Fix:
-     * - Chỉ thêm userId vào connectedUserIds nếu chưa có
-     * - updateCurrentTime để tính đúng elapsed trước khi gửi snapshot
-     * - Gửi FULL_SNAPSHOT về state HIỆN TẠI của room cho người join
-     * - Broadcast USER_JOIN với set connectedUserIds đã update
-     * - KHÔNG đụng vào currentTrackId / currentTime / isPlaying
-     */
     @MessageMapping("/room/{roomId}/snapshot")
     public void requestSnapshot(
             @DestinationVariable("roomId") Long roomId,
             SimpMessageHeaderAccessor headerAccessor,
-            @Payload(required = false) Map<String, Object> payload) { // ← required=false tránh lỗi nếu body rỗng
+            @Payload(required = false) Map<String, Object> payload) {
 
         String sessionId = headerAccessor.getSessionId();
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
@@ -54,7 +36,6 @@ public class RoomWebSocketController {
             return;
         }
 
-        // [DEBUG-snap1] log để verify fix
         log.info("[DEBUG-snap1] snapshot request — room={} userId={} currentTrack={} isPlaying={}",
                 roomId, userId, state.getCurrentTrackId(), state.getIsPlaying());
 
@@ -62,15 +43,10 @@ public class RoomWebSocketController {
 
         if (isNewUser) {
             state.getConnectedUserIds().add(userId);
-            // KHÔNG increment version ở đây — chưa có state change thực sự
         }
 
-        // Cập nhật currentTime theo thời gian thực trước khi gửi snapshot
-        // để người join nhận đúng vị trí playback hiện tại
         updateCurrentTimeBeforeBroadcast(state);
 
-        // Gửi FULL_SNAPSHOT riêng cho session này (personal queue)
-        // Payload là state hiện tại — KHÔNG modified bởi client
         roomStateManager.sendToSession(sessionId, RoomEvent.builder()
                 .type(RoomEvent.Type.FULL_SNAPSHOT)
                 .roomId(roomId)
@@ -87,7 +63,7 @@ public class RoomWebSocketController {
             roomStateManager.broadcast(RoomEvent.builder()
                     .type(RoomEvent.Type.USER_JOIN)
                     .roomId(roomId)
-                    .payload(state.getConnectedUserIds()) // chỉ gửi Set<Long> — nhẹ hơn full state
+                    .payload(state.getConnectedUserIds())
                     .sentAt(System.currentTimeMillis())
                     .build());
 
@@ -104,12 +80,12 @@ public class RoomWebSocketController {
 
         RoomRealtimeState state = roomStateManager.getRoomState(roomId);
         if (state == null) {
-            log.warn("⚠️ Room {} not found", roomId);
+            log.warn("Room {} not found", roomId);
             return;
         }
 
         if (!state.getHostUserId().equals(userId)) {
-            log.warn("🚫 Unauthorized: User {} is NOT the host ({}) of room {}", userId, state.getHostUserId(), roomId);
+            log.warn("Unauthorized: User {} is NOT the host ({}) of room {}", userId, state.getHostUserId(), roomId);
             return;
         }
 
@@ -124,7 +100,7 @@ public class RoomWebSocketController {
         state.incrementVersion();
         state.setUpdatedAt(System.currentTimeMillis());
 
-        log.info("▶️ Room {} playing track {} at {}s", roomId, trackId, time);
+        log.info("Room {} playing track {} at {}s", roomId, trackId, time);
         roomStateManager.updateState(state, sessionId);
     }
 
@@ -138,7 +114,7 @@ public class RoomWebSocketController {
             return;
 
         if (!state.getHostUserId().equals(userId)) {
-            log.warn("🚫 Unauthorized Pause: User {} is NOT the host ({}) of room {}", userId, state.getHostUserId(),
+            log.warn("Unauthorized Pause: User {} is NOT the host ({}) of room {}", userId, state.getHostUserId(),
                     roomId);
             return;
         }
@@ -148,7 +124,7 @@ public class RoomWebSocketController {
         state.incrementVersion();
         state.setUpdatedAt(System.currentTimeMillis());
 
-        log.info("⏸️ Room {} paused at {}s", roomId, state.getCurrentTime());
+        log.info("Room {} paused at {}s", roomId, state.getCurrentTime());
         roomStateManager.updateState(state, sessionId);
     }
 
@@ -242,11 +218,6 @@ public class RoomWebSocketController {
         roomStateManager.removeUser(roomId, userId, true);
     }
 
-    /**
-     * Cộng dồn elapsed time vào currentTime trước khi broadcast.
-     * Đảm bảo người join nhận đúng vị trí playback thực tế,
-     * không phải vị trí tại thời điểm host play/seek lần cuối.
-     */
     private void updateCurrentTimeBeforeBroadcast(RoomRealtimeState state) {
         if (Boolean.TRUE.equals(state.getIsPlaying()) && state.getUpdatedAt() != null) {
             long now = System.currentTimeMillis();

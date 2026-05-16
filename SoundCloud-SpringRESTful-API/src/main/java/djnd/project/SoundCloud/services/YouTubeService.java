@@ -31,6 +31,17 @@ public class YouTubeService {
         this.objectMapper = objectMapper;
     }
 
+    private boolean shouldAppendMusic(String keyword) {
+        String k = keyword.toLowerCase();
+
+        return !(k.contains("ost")
+                || k.contains("opening")
+                || k.contains("ending")
+                || k.contains("full")
+                || k.contains("lyric")
+                || k.contains("season"));
+    }
+
     @Cacheable(value = "youtubeSearch", key = "#keyword + '-' + (#pageToken != null ? #pageToken : 'first')")
     public YoutubeSearchResponseDTO searchVideos(String keyword, String pageToken) {
         if (keyword == null)
@@ -43,7 +54,11 @@ public class YouTubeService {
 
         try {
             RestTemplate restTemplate = new RestTemplate();
-            String encodedKeyword = URLEncoder.encode(keyword, StandardCharsets.UTF_8.toString());
+            var searchQuery = keyword;
+            if (shouldAppendMusic(keyword)) {
+                searchQuery += " music";
+            }
+            String encodedKeyword = URLEncoder.encode(searchQuery, StandardCharsets.UTF_8.toString());
             String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&q=" + encodedKeyword
                     + "&type=video&maxResults=10&key=" + apiKey;
 

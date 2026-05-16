@@ -19,6 +19,7 @@ public class ResRoom {
     Boolean isPublic;
     LocalDateTime createdAt;
     String code;
+    Boolean isActive;
     Integer listenerCount;
     RoomRealtimeState realtimeState;
 }

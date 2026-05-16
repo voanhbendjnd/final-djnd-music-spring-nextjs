@@ -1,6 +1,6 @@
 'use client'
 import { useHasMounted } from "@/utils/customHook";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, {  useEffect,useState } from "react";
 import { ITrackContext, useTrackContext } from "@/lib/track.wrapper";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -8,7 +8,6 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import IconButton from "@mui/material/IconButton";
-import AppBar from "@mui/material/AppBar";
 import { Container, useMediaQuery, useTheme, Slider } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import RepeatIcon from '@mui/icons-material/Repeat';
@@ -16,8 +15,6 @@ import RepeatOneIcon from '@mui/icons-material/RepeatOne';
 import axiosInstance from "@/utils/axios-instance";
 import Link from "next/link";
 import { useLikeTrackMutation } from "@/hooks/use-track";
-import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
@@ -34,7 +31,7 @@ import {VolumeDown, VolumeOff, VolumeUp} from "@mui/icons-material";
 
 const AppFooter = () => {
     const {
-        currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed,
+        currentTrack, setCurrentTrack,  viewedTracks, markTrackAsViewed,
         playNextTrack, playPreviousTrack,
         isShuffle, setIsShuffle,
         repeatMode, setRepeatMode,

@@ -22,8 +22,9 @@ import { useRouter } from "next/navigation";
 import { useTracks } from "@/hooks/use-track";
 
 interface IProps {
-    data: ITrack[],
-    title: string,
+    newTracks: ITrack[],
+    tracksMostListens: ITrack[],
+    tracksMostLikes: ITrack[],
 }
 
 // ─── Track Card ───────────────────────────────────────────────────────────────
@@ -182,8 +183,7 @@ const TrackCard = ({
 // ─── Main Slider ──────────────────────────────────────────────────────────────
 
 const MainSlider = (props: IProps) => {
-    const { data, title } = props;
-    const router = useRouter();
+    const { tracksMostLikes, tracksMostListens, newTracks} = props;
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -192,8 +192,6 @@ const MainSlider = (props: IProps) => {
     const { data: categoriesRes } = useCategories({ current: 1, pageSize: 20 });
     const categories = categoriesRes?.data?.result || [];
 
-    // ✅ category undefined = "All" → keepPreviousData giữ data cũ khi phân trang
-    // category = string cụ thể → queryKey mới → fetch ngay, không giữ data cũ
     const categoryParam = activeCategory !== "All" ? activeCategory : undefined
     const { data: filteredTracksRes, isLoading: isLoadingFiltered } = useTracks({
         current: 1,
@@ -315,11 +313,11 @@ const MainSlider = (props: IProps) => {
 
                     {activeCategory === 'All' ? (
                         <>
-                            <TrackSection sectionTitle="Multiple tracks" tracks={data} />
+                            <TrackSection sectionTitle="New tracks" tracks={newTracks} />
                             <Divider sx={{ my: 3, backgroundColor: '#333' }} />
-                            <TrackSection sectionTitle="Trending" tracks={data} />
+                            <TrackSection sectionTitle="Most popular" tracks={tracksMostListens} />
                             <Divider sx={{ my: 3, backgroundColor: '#333' }} />
-                            <TrackSection sectionTitle="POP" tracks={data} />
+                            <TrackSection sectionTitle="Most loved" tracks={tracksMostLikes} />
                         </>
                     ) : (
                         <>
@@ -345,8 +343,8 @@ const MainSlider = (props: IProps) => {
                         </Typography>
                         <Typography variant="h5" mb={2} fontWeight={700}>Start listening</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {(activeCategory !== 'All' ? filteredTracks : data).slice(0, 5).map((track: any) => (
-                                <MobileTrackRow key={track.id} track={track} trackList={activeCategory !== 'All' ? filteredTracks : data} />
+                            {(activeCategory !== 'All' ? filteredTracks : newTracks).slice(0, 5).map((track: any) => (
+                                <MobileTrackRow key={track.id} track={track} trackList={activeCategory !== 'All' ? filteredTracks : newTracks} />
                             ))}
                         </Box>
                     </Box>

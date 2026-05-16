@@ -68,6 +68,7 @@ public class RoomService {
         res.setIsPublic(room.getIsPublic());
         res.setName(room.getName());
         res.setCode(room.getCode());
+        res.setIsActive(room.getIsActive());
         RoomRealtimeState state = this.roomStateManager.getRoomState(room.getId());
         res.setListenerCount(state != null ? state.getConnectedUserIds().size() : 0);
         return res;

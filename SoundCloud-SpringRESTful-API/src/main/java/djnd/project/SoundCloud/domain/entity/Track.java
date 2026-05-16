@@ -69,11 +69,6 @@ public class Track {
     @OneToMany(mappedBy = "track", cascade = CascadeType.ALL, orphanRemoval = true)
     List<HistoryTrack> historyTracks;
     String waveformUrl;
-    @OneToMany(mappedBy = "track", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<RoomQueue> roomQueues;
-
-    @OneToMany(mappedBy = "track", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<RoomPlaybackState> roomPlaybackStates;
 
     @PrePersist
     public void handleBeforeCreateAt() {

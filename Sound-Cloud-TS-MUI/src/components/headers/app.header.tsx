@@ -9,65 +9,200 @@ import Badge from '@mui/material/Badge';
 import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
 import AccountCircle from '@mui/icons-material/AccountCircle';
-import MailIcon from '@mui/icons-material/Mail';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
 import HomeIcon from '@mui/icons-material/Home';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import SearchIcon from '@mui/icons-material/Search';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
+import LibraryMusicOutlinedIcon from '@mui/icons-material/LibraryMusicOutlined';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
 import GroupsIcon from '@mui/icons-material/Groups';
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import AddIcon from '@mui/icons-material/Add';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import HistoryIcon from '@mui/icons-material/History';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { Avatar, Container, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import Image from 'next/image';
 import SearchBar from '@/components/search/search-bar';
 import { generateProfileUrl } from "@/utils/generate.slug";
 
+// ─── Mobile nav items ─────────────────────────────────────────────────────────
+// 6 items — hiển thị scrollable horizontal hoặc 2 hàng
+// Chọn layout: scrollable horizontal với snap — phổ biến nhất trên music apps
+
+interface NavItem {
+    label: string;
+    path: string;
+    icon: React.ReactNode;
+    activeIcon: React.ReactNode;
+    protected?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+    {
+        label: 'Home',
+        path: '/',
+        icon: <HomeOutlinedIcon sx={{ fontSize: 22 }} />,
+        activeIcon: <HomeIcon sx={{ fontSize: 22 }} />,
+    },
+    {
+        label: 'Search',
+        path: '/search',
+        icon: <SearchOutlinedIcon sx={{ fontSize: 22 }} />,
+        activeIcon: <SearchIcon sx={{ fontSize: 22 }} />,
+    },
+    {
+        label: 'Upload',
+        path: '/track/upload',
+        icon: <CloudUploadOutlinedIcon sx={{ fontSize: 22 }} />,
+        activeIcon: <CloudUploadIcon sx={{ fontSize: 22 }} />,
+        protected: true,
+    },
+    {
+        label: 'Library',
+        path: '/playlist',
+        icon: <LibraryMusicOutlinedIcon sx={{ fontSize: 22 }} />,
+        activeIcon: <LibraryMusicIcon sx={{ fontSize: 22 }} />,
+        protected: true,
+    },
+    {
+        label: 'Rooms',
+        path: '/room',
+        icon: <GroupsOutlinedIcon sx={{ fontSize: 22 }} />,
+        activeIcon: <GroupsIcon sx={{ fontSize: 22 }} />,
+    },
+    {
+        label: 'History',
+        path: '/history',
+        icon: <HistoryOutlinedIcon sx={{ fontSize: 22 }} />,
+        activeIcon: <HistoryIcon sx={{ fontSize: 22 }} />,
+        protected: true,
+    },
+];
+
+// ─── Mobile Nav Item ──────────────────────────────────────────────────────────
+
+function MobileNavItem({
+                           item,
+                           isActive,
+                           onClick,
+                       }: {
+    item: NavItem;
+    isActive: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <Box
+            onClick={onClick}
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.4,
+                // Chiều rộng cố định — 6 items vừa màn hình 390px
+                minWidth: 0,
+                flex: '1 1 0',
+                py: 0.75,
+                cursor: 'pointer',
+                position: 'relative',
+                WebkitTapHighlightColor: 'transparent',
+                // Active top indicator line
+                '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: '50%',
+                    transform: isActive ? 'translateX(-50%) scaleX(1)' : 'translateX(-50%) scaleX(0)',
+                    width: 20,
+                    height: 2,
+                    bgcolor: '#ff5500',
+                    borderRadius: '0 0 2px 2px',
+                    transition: 'transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                },
+                '&:active': { opacity: 0.7 },
+            }}
+        >
+            {/* Icon */}
+            <Box
+                sx={{
+                    color: isActive ? '#ff5500' : 'rgba(255,255,255,0.45)',
+                    transition: 'color 0.18s, transform 0.18s',
+                    transform: isActive ? 'translateY(-1px)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 0,
+                }}
+            >
+                {isActive ? item.activeIcon : item.icon}
+            </Box>
+
+            {/* Label */}
+            <Typography
+                sx={{
+                    fontSize: '0.6rem',
+                    fontWeight: isActive ? 700 : 400,
+                    color: isActive ? '#ff5500' : 'rgba(255,255,255,0.35)',
+                    letterSpacing: isActive ? '0.04em' : '0.02em',
+                    lineHeight: 1,
+                    transition: 'color 0.18s, font-weight 0.18s',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%',
+                    px: 0.25,
+                }}
+            >
+                {item.label}
+            </Typography>
+        </Box>
+    );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 const AppHeader = () => {
     const { data: session } = useSession();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const router = useRouter();
+    const pathname = usePathname();
 
     // ── Scroll-aware header ────────────────────────────────────────────────────
-    // Logic: ẩn khi scroll xuống, hiện khi scroll lên (giống SoundCloud)
-    const [visible, setVisible]     = useState(true);
-    const [scrolled, setScrolled]   = useState(false); // true = đã rời khỏi top → đổi style
-    const lastScrollY               = useRef(0);
-    const ticking                   = useRef(false);
+    const [visible, setVisible]   = useState(true);
+    const [scrolled, setScrolled] = useState(false);
+    const lastScrollY             = useRef(0);
+    const ticking                 = useRef(false);
 
     useEffect(() => {
         const onScroll = () => {
             if (ticking.current) return;
             ticking.current = true;
-
             requestAnimationFrame(() => {
                 const currentY = window.scrollY;
-
                 setScrolled(currentY > 10);
-
                 if (currentY < 10) {
-                    // Đầu trang → luôn hiện
                     setVisible(true);
                 } else if (currentY > lastScrollY.current + 4) {
-                    // Đang scroll XUỐNG (threshold 4px tránh jitter)
                     setVisible(false);
                 } else if (currentY < lastScrollY.current - 4) {
-                    // Đang scroll LÊN
                     setVisible(true);
                 }
-
                 lastScrollY.current = currentY;
                 ticking.current = false;
             });
         };
-
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
@@ -78,14 +213,24 @@ const AppHeader = () => {
         }
     }, [session]);
 
-    // ── Nav ────────────────────────────────────────────────────────────────────
-    const pages = [
-        { title: 'Upload',    path: "/track/upload" },
-    ];
+    const pages = [{ title: 'Upload', path: "/track/upload" }];
 
     const handleProtectedNavigation = (path: string) => {
         if (!session) router.push("/auth/signin");
-        else          router.push(path);
+        else router.push(path);
+    };
+
+    const handleNavItem = (item: NavItem) => {
+        if (item.protected && !session) {
+            router.push('/auth/signin');
+        } else {
+            router.push(item.path);
+        }
+    };
+
+    const isNavActive = (item: NavItem): boolean => {
+        if (item.path === '/') return pathname === '/';
+        return pathname?.startsWith(item.path) ?? false;
     };
 
     // ── Menu state ─────────────────────────────────────────────────────────────
@@ -93,103 +238,82 @@ const AppHeader = () => {
     const [libraryAnchorEl,    setLibraryAnchorEl]    = React.useState<null | HTMLElement>(null);
     const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState<null | HTMLElement>(null);
 
-    const isMenuOpen       = Boolean(anchorEl);
+    const isMenuOpen        = Boolean(anchorEl);
     const isLibraryMenuOpen = Boolean(libraryAnchorEl);
-    const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
+    const isMobileMenuOpen  = Boolean(mobileMoreAnchorEl);
 
-    const handleProfileMenuOpen  = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
-    const handleLibraryMenuOpen  = (e: React.MouseEvent<HTMLElement>) => setLibraryAnchorEl(e.currentTarget);
-    const handleMobileMenuClose  = () => setMobileMoreAnchorEl(null);
-    const handleMenuClose        = () => { 
-        setAnchorEl(null); 
+    const handleProfileMenuOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+    const handleLibraryMenuOpen = (e: React.MouseEvent<HTMLElement>) => setLibraryAnchorEl(e.currentTarget);
+    const handleMobileMenuClose = () => setMobileMoreAnchorEl(null);
+    const handleMenuClose       = () => {
+        setAnchorEl(null);
         setLibraryAnchorEl(null);
-        handleMobileMenuClose(); 
+        handleMobileMenuClose();
     };
-    const handleMobileMenuOpen   = (e: React.MouseEvent<HTMLElement>) => setMobileMoreAnchorEl(e.currentTarget);
+    const handleMobileMenuOpen = (e: React.MouseEvent<HTMLElement>) => setMobileMoreAnchorEl(e.currentTarget);
 
     // ── Menus ──────────────────────────────────────────────────────────────────
-    const menuId = 'primary-search-account-menu';
+    const menuSx = {
+        '& .MuiPaper-root': {
+            backgroundColor: '#0e0e0e',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        },
+        '& .MuiMenuItem-root': {
+            color: 'rgba(255,255,255,0.8)',
+            fontSize: '0.875rem',
+            '&:hover': { backgroundColor: 'rgba(255,85,0,0.08)', color: '#fff' },
+        },
+    };
+
     const renderMenu = (
         <Menu
             anchorEl={anchorEl}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            id={menuId}
             keepMounted
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             open={isMenuOpen}
             onClose={handleMenuClose}
-            sx={{
-                '& .MuiPaper-root': {
-                    backgroundColor: '#121212',
-                    color: '#fff',
-                    border: '1px solid #333'
-                },
-                '& .MuiMenuItem-root': {
-                    color: '#fff',
-                    '&:hover': { backgroundColor: '#1f1f1f' }
-                }
-            }}
+            sx={menuSx}
         >
             {session?.user?.role === 'SUPER_ADMIN' && (
-                <MenuItem>
-                    <Link href="/dashboard/user" style={{ textDecoration: 'none', color: '#fff' }}>
-                        Admin
-                    </Link>
+                <MenuItem onClick={handleMenuClose}>
+                    <Link href="/dashboard/user" style={{ textDecoration: 'none', color: 'inherit' }}>Admin</Link>
                 </MenuItem>
             )}
             {session && (
-                <MenuItem>
-                    <Link
-                        href={generateProfileUrl(session.user?.name, session.user?.id!)}
-                        style={{ textDecoration: 'none', color: '#fff' }}
-                    >
+                <MenuItem onClick={handleMenuClose}>
+                    <Link href={generateProfileUrl(session.user?.name, session.user?.id!)} style={{ textDecoration: 'none', color: 'inherit' }}>
                         Profile
                     </Link>
                 </MenuItem>
             )}
-            <MenuItem onClick={() => { signOut(); handleMenuClose(); }}>
-                Logout
-            </MenuItem>
+            <MenuItem onClick={() => { signOut(); handleMenuClose(); }}>Logout</MenuItem>
         </Menu>
     );
 
-    const mobileMenuId = 'primary-search-account-menu-mobile';
     const renderLibraryMenu = (
         <Menu
             anchorEl={libraryAnchorEl}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            id="library-popup-menu"
             keepMounted
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             open={isLibraryMenuOpen}
             onClose={handleMenuClose}
-            sx={{
-                '& .MuiPaper-root': {
-                    backgroundColor: '#121212',
-                    color: '#fff',
-                    border: '1px solid #333',
-                    minWidth: '200px',
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.5)'
-                },
-                '& .MuiMenuItem-root': {
-                    color: '#fff',
-                    gap: '12px',
-                    py: 1.5,
-                    '&:hover': { backgroundColor: '#1f1f1f' }
-                }
-            }}
+            sx={{ ...menuSx, '& .MuiPaper-root': { ...menuSx['& .MuiPaper-root'], minWidth: 200 } }}
         >
             <MenuItem onClick={() => { handleProtectedNavigation('/playlist'); handleMenuClose(); }}>
-                <LibraryMusicIcon sx={{ color: '#f50' }} />
-                Liked Playlists
+                <LibraryMusicIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Liked Playlists
             </MenuItem>
             <MenuItem onClick={() => { handleProtectedNavigation('/like'); handleMenuClose(); }}>
-                <FavoriteIcon sx={{ color: '#f50' }} />
-                Liked Tracks
+                <FavoriteIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Liked Tracks
             </MenuItem>
-            <MenuItem onClick={() => { handleProtectedNavigation('/room'); handleMenuClose(); }}>
-                <GroupsIcon sx={{ color: '#f50' }} />
-                Listening Room
+            <MenuItem onClick={() => { handleProtectedNavigation('/rooms'); handleMenuClose(); }}>
+                <GroupsIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Listening Room
+            </MenuItem>
+            <MenuItem onClick={() => { handleProtectedNavigation('/history'); handleMenuClose(); }}>
+                <HistoryIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> History
             </MenuItem>
         </Menu>
     );
@@ -198,29 +322,14 @@ const AppHeader = () => {
         <Menu
             anchorEl={mobileMoreAnchorEl}
             anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            id={mobileMenuId}
             keepMounted
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             open={isMobileMenuOpen}
             onClose={handleMobileMenuClose}
+            sx={menuSx}
         >
-            <MenuItem>
-                <IconButton size="large" color="inherit">
-                    <Badge badgeContent={4} color="error"><MailIcon /></Badge>
-                </IconButton>
-                <p>Messages</p>
-            </MenuItem>
-            <MenuItem>
-                <IconButton size="large" color="inherit">
-                    <Badge badgeContent={17} color="error"><NotificationsIcon /></Badge>
-                </IconButton>
-                <p>Notifications</p>
-            </MenuItem>
             <MenuItem onClick={handleProfileMenuOpen}>
-                <IconButton size="large" color="inherit">
-                    <AccountCircle />
-                </IconButton>
-                <p>Profile</p>
+                <AccountCircle sx={{ mr: 1 }} /> Profile
             </MenuItem>
         </Menu>
     );
@@ -231,22 +340,14 @@ const AppHeader = () => {
 
                 {/* ── Desktop Header ─────────────────────────────────────── */}
                 <AppBar
-                    position="fixed"          // ← fixed thay vì static
+                    position="fixed"
                     sx={{
                         display: { xs: 'none', md: 'block' },
-
-                        // Scroll-aware: trượt lên/xuống bằng transform (GPU-accelerated)
                         transform: visible ? 'translateY(0)' : 'translateY(-100%)',
-                        transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease, backdrop-filter 0.25s ease, box-shadow 0.25s ease',
-
-                        // Khi đã scroll: đổi sang nền mờ kiểu glassmorphism
-                        backgroundColor: scrolled
-                            ? 'rgba(10, 10, 10, 0.82)'
-                            : '#030303',
+                        transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1), background-color 0.25s, backdrop-filter 0.25s, box-shadow 0.25s',
+                        backgroundColor: scrolled ? 'rgba(10,10,10,0.82)' : '#030303',
                         backdropFilter: scrolled ? 'blur(14px)' : 'none',
-                        boxShadow: scrolled
-                            ? '0 1px 0 rgba(255,255,255,0.06)'
-                            : 'none',
+                        boxShadow: scrolled ? '0 1px 0 rgba(255,255,255,0.06)' : 'none',
                     }}
                 >
                     <Container>
@@ -254,118 +355,64 @@ const AppHeader = () => {
                             <Typography
                                 variant="h6"
                                 noWrap
-                                component="div"
                                 onClick={() => router.push('/')}
                                 sx={{
                                     display: { xs: 'none', sm: 'block' },
-                                    marginRight: '50px',
-                                    cursor: 'pointer',
-                                    fontWeight: 700,
-                                    letterSpacing: '-0.5px',
-                                    '&:hover': { color: '#f50' },
-                                    transition: 'color 0.2s'
+                                    mr: '50px', cursor: 'pointer',
+                                    fontWeight: 700, letterSpacing: '-0.5px',
+                                    '&:hover': { color: '#f50' }, transition: 'color 0.2s',
                                 }}
                             >
                                 DJND Music
                             </Typography>
 
                             <SearchBar />
-
                             <Box sx={{ flexGrow: 1 }} />
 
                             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: '20px' }}>
                                 {pages.map((page) => (
-                                    <Typography
-                                        key={page.title}
-                                        onClick={() => handleProtectedNavigation(page.path)}
-                                        sx={{
-                                            textAlign: 'center',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            '&:hover': { color: '#f50' },
-                                            transition: 'color 0.2s'
-                                        }}
-                                    >
+                                    <Typography key={page.title}
+                                                onClick={() => handleProtectedNavigation(page.path)}
+                                                sx={{ cursor: 'pointer', fontSize: '0.9rem', '&:hover': { color: '#f50' }, transition: 'color 0.2s' }}>
                                         {page.title}
                                     </Typography>
                                 ))}
 
                                 <Tooltip title="Library & Rooms">
-                                    <Typography
-                                        onClick={handleLibraryMenuOpen}
-                                        sx={{
-                                            textAlign: 'center',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            '&:hover': { color: '#f50' },
-                                            transition: 'color 0.2s',
-                                            fontWeight: isLibraryMenuOpen ? 700 : 400,
-                                            color: isLibraryMenuOpen ? '#f50' : 'inherit'
-                                        }}
-                                    >
+                                    <Typography onClick={handleLibraryMenuOpen}
+                                                sx={{
+                                                    cursor: 'pointer', fontSize: '0.9rem',
+                                                    display: 'flex', alignItems: 'center', gap: '6px',
+                                                    '&:hover': { color: '#f50' }, transition: 'color 0.2s',
+                                                    fontWeight: isLibraryMenuOpen ? 700 : 400,
+                                                    color: isLibraryMenuOpen ? '#f50' : 'inherit',
+                                                }}>
                                         Library
                                     </Typography>
                                 </Tooltip>
 
                                 {session?.user?.role === 'SUPER_ADMIN' && (
-                                    <Typography
-                                        onClick={() => handleProtectedNavigation('/dashboard/user')}
-                                        sx={{
-                                            textAlign: 'center',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            '&:hover': { color: '#f50' },
-                                            transition: 'color 0.2s'
-                                        }}
-                                    >
+                                    <Typography onClick={() => handleProtectedNavigation('/dashboard/user')}
+                                                sx={{ cursor: 'pointer', fontSize: '0.9rem', '&:hover': { color: '#f50' }, transition: 'color 0.2s' }}>
                                         Dashboard
                                     </Typography>
                                 )}
 
                                 {session ? (
-                                    <Avatar
-                                        onClick={handleProfileMenuOpen}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            width: 40,
-                                            height: 40,
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                            border: '2px solid transparent',
-                                            '&:hover': { borderColor: '#f50' },
-                                            transition: 'border-color 0.2s'
-                                        }}
-                                    >
+                                    <Avatar onClick={handleProfileMenuOpen}
+                                            sx={{ cursor: 'pointer', width: 40, height: 40, position: 'relative', overflow: 'hidden', border: '2px solid transparent', '&:hover': { borderColor: '#f50' }, transition: 'border-color 0.2s' }}>
                                         {session.user?.avatar ? (
-                                            <Image
-                                                src={session.user.avatar}
-                                                alt={session.user?.name || 'User Avatar'}
-                                                fill
-                                                sizes="40px"
-                                                style={{ objectFit: 'cover' }}
-                                            />
-                                        ) : (
-                                            session.user?.name?.charAt(0).toUpperCase()
-                                        )}
+                                            <Image src={session.user.avatar} alt={session.user?.name || 'Avatar'}
+                                                   fill sizes="40px" style={{ objectFit: 'cover' }} />
+                                        ) : session.user?.name?.charAt(0).toUpperCase()}
                                     </Avatar>
                                 ) : (
-                                    <Link href="/auth/signin" style={{ textDecoration: 'none', color: 'unset' }}>
-                                        Login
-                                    </Link>
+                                    <Link href="/auth/signin" style={{ textDecoration: 'none', color: 'unset' }}>Login</Link>
                                 )}
                             </Box>
 
                             <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
-                                <IconButton
-                                    size="large"
-                                    aria-controls={mobileMenuId}
-                                    aria-haspopup="true"
-                                    onClick={handleMobileMenuOpen}
-                                    color="inherit"
-                                >
+                                <IconButton size="large" onClick={handleMobileMenuOpen} color="inherit">
                                     <MoreIcon />
                                 </IconButton>
                             </Box>
@@ -373,10 +420,6 @@ const AppHeader = () => {
                     </Container>
                 </AppBar>
 
-                {/*
-                  * Spacer: bù chiều cao header khi dùng position="fixed"
-                  * để nội dung bên dưới không bị header che mất
-                  */}
                 <Box sx={{ display: { xs: 'none', md: 'block' }, height: '64px' }} />
 
                 {renderMobileMenu}
@@ -391,44 +434,95 @@ const AppHeader = () => {
                             bottom: 0,
                             left: 0,
                             right: 0,
-                            height: 60,
-                            bgcolor: '#111',
-                            display: 'flex',
-                            justifyContent: 'space-around',
-                            alignItems: 'center',
-                            borderTop: '1px solid #333',
-                            zIndex: 9999
+                            zIndex: 9999,
+
+                            // Glassmorphism dark — nhất quán với footer player
+                            bgcolor: 'rgba(8,8,8,0.94)',
+                            backdropFilter: 'blur(20px)',
+                            WebkitBackdropFilter: 'blur(20px)',
+
+                            // Top border với subtle gradient — thay vì đường thẳng nhàm
+                            borderTop: '1px solid rgba(255,255,255,0.07)',
+
+                            // Subtle glow từ trên xuống
+                            '&::before': {
+                                content: '""',
+                                position: 'absolute',
+                                top: 0, left: 0, right: 0,
+                                height: 1,
+                                background: 'linear-gradient(90deg, transparent 0%, rgba(255,85,0,0.3) 50%, transparent 100%)',
+                            },
+
+                            // Safe area cho iPhone X+
+                            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                         }}
                     >
-                        <IconButton onClick={() => router.push('/')} sx={{ color: '#fff', '&:hover': { color: '#f50' } }}>
-                            <HomeIcon />
-                        </IconButton>
-                        <IconButton onClick={() => router.push('/search')} sx={{ color: '#fff', '&:hover': { color: '#f50' } }}>
-                            <SearchIcon />
-                        </IconButton>
-                        <IconButton
-                            onClick={() => router.push(session ? '/track/upload' : '/auth/signin')}
-                            sx={{ color: '#fff', '&:hover': { color: '#f50' } }}
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'stretch',
+                                height: 58,
+                                px: 0.5,
+                            }}
                         >
-                            <CloudUploadIcon />
-                        </IconButton>
-                        <IconButton onClick={() => router.push('/playlist')} sx={{ color: '#fff', '&:hover': { color: '#f50' } }}>
-                            <LibraryMusicIcon />
-                        </IconButton>
-                        <IconButton
-                            onClick={() => router.push(
-                                session
-                                    ? generateProfileUrl(session.user.name!, session.user.id!)
-                                    : '/auth/signin'
-                            )}
-                            sx={{ color: '#fff', '&:hover': { color: '#f50' } }}
-                        >
-                            {session?.user?.avatar ? (
-                                <Avatar src={session.user.avatar} sx={{ width: 28, height: 28 }} />
-                            ) : (
-                                <AccountCircleIcon />
-                            )}
-                        </IconButton>
+                            {/* Profile / Avatar item — special, ở đầu */}
+                            <Box
+                                onClick={() => router.push(
+                                    session
+                                        ? generateProfileUrl(session.user.name!, session.user.id!)
+                                        : '/auth/signin'
+                                )}
+                                sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 0.4,
+                                    flex: '1 1 0',
+                                    py: 0.75,
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    WebkitTapHighlightColor: 'transparent',
+                                    '&:active': { opacity: 0.7 },
+                                }}
+                            >
+                                {session?.user?.avatar ? (
+                                    <Avatar
+                                        src={session.user.avatar}
+                                        sx={{
+                                            width: 24, height: 24,
+                                            border: pathname?.startsWith('/profile') || pathname?.startsWith('/user')
+                                                ? '2px solid #ff5500'
+                                                : '2px solid rgba(255,255,255,0.2)',
+                                            transition: 'border-color 0.2s',
+                                        }}
+                                    />
+                                ) : (
+                                    <AccountCircleOutlinedIcon sx={{ fontSize: 22, color: 'rgba(255,255,255,0.45)' }} />
+                                )}
+                                <Typography sx={{
+                                    fontSize: '0.6rem', fontWeight: 400,
+                                    color: 'rgba(255,255,255,0.35)',
+                                    textTransform: 'uppercase', letterSpacing: '0.02em',
+                                    lineHeight: 1,
+                                }}>
+                                    {session ? 'Me' : 'Sign in'}
+                                </Typography>
+                            </Box>
+
+                            {/* Divider mỏng */}
+                            <Box sx={{ width: '1px', bgcolor: 'rgba(255,255,255,0.05)', my: 1.5 }} />
+
+                            {/* Nav items */}
+                            {NAV_ITEMS.map((item) => (
+                                <MobileNavItem
+                                    key={item.path}
+                                    item={item}
+                                    isActive={isNavActive(item)}
+                                    onClick={() => handleNavItem(item)}
+                                />
+                            ))}
+                        </Box>
                     </Box>
                 )}
             </Box>

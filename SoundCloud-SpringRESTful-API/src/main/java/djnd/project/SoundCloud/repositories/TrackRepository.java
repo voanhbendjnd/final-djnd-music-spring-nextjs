@@ -87,4 +87,5 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
     @EntityGraph(attributePaths = { "user", "category" })
     @Query(value = "select t from Track t where t.id not in :ids order by RAND()")
     List<Track> getTrackRamdom(@Param("ids") List<Long> ids, Pageable pageable);
+
 }

@@ -40,20 +40,23 @@ interface IRoomMeta {
 // ─── Room Card ────────────────────────────────────────────────────────────────
 
 function RoomCard({ room, onClick }: { room: IRoomMeta; onClick: () => void }) {
+    const isDisabled = !room.isActive;
+
     return (
         <Paper
-            onClick={onClick}
+            onClick={isDisabled ? undefined : onClick}
             elevation={0}
             sx={{
                 p: { xs: 2.5, sm: 3 },
                 bgcolor: '#141414',
                 color: '#fff',
                 borderRadius: { xs: 3, sm: 4 },
-                border: '1px solid #222',
+                border: `1px solid ${isDisabled ? '#1a1a1a' : '#222'}`,
                 transition: 'border-color 0.25s, transform 0.25s, background-color 0.25s',
-                cursor: 'pointer',
+                cursor: isDisabled ? 'not-allowed' : 'pointer',
                 position: 'relative',
                 overflow: 'hidden',
+                opacity: isDisabled ? 0.5 : 1, // ← mờ đi khi inactive
                 '&::before': {
                     content: '""',
                     position: 'absolute',
@@ -63,13 +66,13 @@ function RoomCard({ room, onClick }: { room: IRoomMeta; onClick: () => void }) {
                     transition: 'opacity 0.3s',
                     pointerEvents: 'none',
                 },
-                '&:hover': {
+                '&:hover': isDisabled ? {} : {
                     borderColor: '#ff5500',
                     transform: { xs: 'none', sm: 'translateY(-4px)' },
                     bgcolor: '#1a1a1a',
                     '&::before': { opacity: 1 },
                 },
-                '&:active': {
+                '&:active': isDisabled ? {} : {
                     transform: 'scale(0.98)',
                 },
             }}
@@ -86,28 +89,40 @@ function RoomCard({ room, onClick }: { room: IRoomMeta; onClick: () => void }) {
                         bgcolor: room.isPublic ? 'rgba(76,175,80,0.1)' : 'rgba(255,152,0,0.1)',
                         color: room.isPublic ? '#4caf50' : '#ff9800',
                         border: `1px solid ${room.isPublic ? 'rgba(76,175,80,0.25)' : 'rgba(255,152,0,0.25)'}`,
-                        fontWeight: 700,
-                        fontSize: '11px',
-                        height: 24,
+                        fontWeight: 700, fontSize: '11px', height: 24,
                         '& .MuiChip-icon': { color: 'inherit' },
                     }}
                 />
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{
-                        width: 7, height: 7, borderRadius: '50%',
-                        bgcolor: '#ff5500',
-                        boxShadow: '0 0 6px #ff5500',
-                        animation: 'pulse 2s ease-in-out infinite',
-                        '@keyframes pulse': {
-                            '0%, 100%': { opacity: 1 },
-                            '50%': { opacity: 0.4 },
-                        },
-                    }} />
-                    <Typography variant="caption" color="rgba(255,255,255,0.45)" sx={{ fontSize: '11px' }}>
-                        {room.listenerCount} live
-                    </Typography>
-                </Box>
+                {/* ✅ Thay live dot bằng inactive badge nếu không active */}
+                {isDisabled ? (
+                    <Chip
+                        size="small"
+                        label="Inactive"
+                        sx={{
+                            bgcolor: 'rgba(255,255,255,0.05)',
+                            color: 'rgba(255,255,255,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            fontSize: '10px', height: 20, fontWeight: 600,
+                        }}
+                    />
+                ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Box sx={{
+                            width: 7, height: 7, borderRadius: '50%',
+                            bgcolor: '#ff5500',
+                            boxShadow: '0 0 6px #ff5500',
+                            animation: 'pulse 2s ease-in-out infinite',
+                            '@keyframes pulse': {
+                                '0%, 100%': { opacity: 1 },
+                                '50%': { opacity: 0.4 },
+                            },
+                        }} />
+                        <Typography variant="caption" color="rgba(255,255,255,0.45)" sx={{ fontSize: '11px' }}>
+                            {room.listenerCount} live
+                        </Typography>
+                    </Box>
+                )}
             </Box>
 
             {/* Room name */}
@@ -124,15 +139,10 @@ function RoomCard({ room, onClick }: { room: IRoomMeta; onClick: () => void }) {
             {room.code && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
                     <Tag sx={{ fontSize: 12, color: '#ff5500' }} />
-                    <Typography
-                        sx={{
-                            fontFamily: 'monospace',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.15em',
-                            color: 'rgba(255,85,0,0.7)',
-                        }}
-                    >
+                    <Typography sx={{
+                        fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700,
+                        letterSpacing: '0.15em', color: 'rgba(255,85,0,0.7)',
+                    }}>
                         {room.code}
                     </Typography>
                 </Box>
@@ -141,46 +151,44 @@ function RoomCard({ room, onClick }: { room: IRoomMeta; onClick: () => void }) {
             {/* Host + timestamp */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                    <Avatar sx={{
-                        width: 22, height: 22, fontSize: '0.65rem',
-                        bgcolor: '#ff5500', flexShrink: 0,
-                    }}>
+                    <Avatar sx={{ width: 22, height: 22, fontSize: '0.65rem', bgcolor: '#ff5500', flexShrink: 0 }}>
                         {room.hostUserName?.charAt(0).toUpperCase()}
                     </Avatar>
-                    <Typography
-                        variant="body2"
-                        color="rgba(255,255,255,0.5)"
-                        noWrap
-                        sx={{ fontSize: '0.78rem' }}
-                    >
+                    <Typography variant="body2" color="rgba(255,255,255,0.5)" noWrap sx={{ fontSize: '0.78rem' }}>
                         {room.hostUserName}
                     </Typography>
                 </Box>
-
-                <Typography
-                    variant="caption"
-                    color="rgba(255,255,255,0.25)"
-                    sx={{ fontSize: '0.7rem', flexShrink: 0, ml: 1 }}
-                >
+                <Typography variant="caption" color="rgba(255,255,255,0.25)" sx={{ fontSize: '0.7rem', flexShrink: 0, ml: 1 }}>
                     {dayjs(room.createdAt).fromNow()}
                 </Typography>
             </Box>
 
-            {/* Mobile arrow hint */}
-            <KeyboardArrowRight
-                sx={{
-                    position: 'absolute',
-                    right: 12,
-                    bottom: 12,
-                    fontSize: 16,
-                    color: 'rgba(255,255,255,0.12)',
-                    display: { sm: 'none' },
-                }}
-            />
+            {/* ✅ Overlay khi inactive */}
+            {isDisabled && (
+                <Box sx={{
+                    position: 'absolute', inset: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    bgcolor: 'rgba(0,0,0,0.3)',
+                    borderRadius: 'inherit',
+                }}>
+                    <Typography sx={{
+                        fontSize: '0.75rem', fontWeight: 700,
+                        color: 'rgba(255,255,255,0.4)',
+                        textTransform: 'uppercase', letterSpacing: '0.1em',
+                    }}>
+                        Room Paused
+                    </Typography>
+                </Box>
+            )}
+
+            <KeyboardArrowRight sx={{
+                position: 'absolute', right: 12, bottom: 12,
+                fontSize: 16, color: 'rgba(255,255,255,0.12)',
+                display: { sm: 'none' },
+            }} />
         </Paper>
     );
 }
-
 // ─── Skeleton Card ────────────────────────────────────────────────────────────
 
 function SkeletonCard() {
@@ -297,7 +305,14 @@ export default function RoomsPage() {
         fetchRooms(page, debouncedKeyword);
     }, [page, debouncedKeyword]);
 
+    // const handleJoin = (room: IRoomMeta) => {
+    //     router.push(generateRoomUrl(String(room.id), room.name));
+    // };
     const handleJoin = (room: IRoomMeta) => {
+        if (!room.isActive) {
+            toast.dark('This room is currently paused and not accepting listeners.');
+            return;
+        }
         router.push(generateRoomUrl(String(room.id), room.name));
     };
 
@@ -311,10 +326,17 @@ export default function RoomsPage() {
     // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#0a0a0a' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#0a0a0a'}}>
             <Container
                 maxWidth="lg"
-                sx={{ py: { xs: 4, sm: 5, md: 6 }, px: { xs: 2, sm: 3 } }}
+                sx={{
+                    py: { xs: 4, sm: 5, md: 6 },
+                    px: { xs: 2, sm: 3 },
+                    pb: {
+                        xs: 14,
+                        sm: 6,
+                    }
+                }}
             >
 
                 {/* ── HEADER ─────────────────────────────────────────────── */}

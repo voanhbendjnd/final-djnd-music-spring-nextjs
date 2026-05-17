@@ -19,6 +19,7 @@ public class ResUser {
     String name;
     Boolean status;
     String avatar;
+    Integer countFollowers;
     String createdBy, updatedBy;
     LocalDateTime createdAt, updatedAt;
     Role role;

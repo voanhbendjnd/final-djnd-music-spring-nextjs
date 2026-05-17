@@ -11,17 +11,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * RoomRealtimeState — in-memory snapshot được giữ trong RoomStateManager.
- *
- * Thêm mới:
- * - {@code code} : mã phòng 6 ký tự (copy từ ListeningRoom khi khởi tạo state,
- * dùng để client hiển thị và search). Read-only sau khi set.
- * - {@code locked}: đã có, giữ nguyên.
- *
- * Không đổi gì ở phần presence / queue / version để không break các
- * WebSocket handler hiện tại.
- */
 @Getter
 @Setter
 @Builder

@@ -155,8 +155,6 @@ public class UserService {
         var user = this.userRepository.findByEmail(email);
         if (user != null) {
             user.setRefreshToken(refreshToken);
-            user.setPreviousRefreshToken(null);
-            user.setLastRefreshTime(null);
             this.userRepository.save(user);
         }
     }

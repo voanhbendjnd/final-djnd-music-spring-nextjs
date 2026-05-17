@@ -2,8 +2,11 @@ package djnd.project.SoundCloud.utils.error;
 
 import java.nio.file.AccessDeniedException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.coyote.BadRequestException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -138,4 +141,14 @@ public class GlobalException {
         return ResponseEntity.status(status).body(res);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrity(
+            DataIntegrityViolationException ex) {
+        var res = new RestResponse<>();
+        var status = HttpStatus.BAD_REQUEST.value();
+        res.setError(HttpStatus.BAD_REQUEST.toString());
+        res.setMessage(ex.getMessage());
+        res.setStatusCode(status);
+        return ResponseEntity.badRequest().body(res);
+    }
 }

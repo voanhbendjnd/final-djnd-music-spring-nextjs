@@ -68,9 +68,10 @@ export const authOptions: AuthOptions = {
 
     ],
     callbacks: {
-        async jwt({ token, user, account, profile, trigger }) {
+        async jwt({ token, user, account, profile, trigger, session }) {
             // Initial sign in - set token from login response
             if (trigger === "signIn") {
+
                 if(account?.provider !== "credentials"){
                     const res = await sendRequest<IBackendRes<ILoginRes>>({
                         url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/auth/social-login`,
@@ -90,6 +91,7 @@ export const authOptions: AuthOptions = {
                         token.error = undefined;
                     }
                 } else if(user){
+
                     const res = user as unknown as ILoginRes;
                     token.access_token = res.access_token;
                     token.refresh_token = res.refresh_token;
@@ -98,6 +100,15 @@ export const authOptions: AuthOptions = {
                     token.access_expire = dayjs(new Date()).add(+(process.env.TOKEN_EXPIRE_NUMBER as string), (process.env.TOKEN_EXPIRE_UNIT as any)).unix()
                     token.error = undefined;
                 }
+                return token;
+            }
+            // Update session manually
+            if (trigger === "update" && session) {
+                token.user = {
+                    ...token.user,
+                    ...session.user,
+                };
+
                 return token;
             }
             const isTimeAfter = dayjs(dayjs(new Date())).isAfter(dayjs(dayjs.unix((token.access_expire as number))));

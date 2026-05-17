@@ -17,14 +17,14 @@ dayjs.extend(relativeTime);
 interface IProps {
     comments: IComment[];
     trackId: string | null;
-    uploader: ITrack;
+    trackProp: ITrack;
     onInputFocus?: (momentAtFocus: number) => void;
     onInputBlur?: () => void;
     onCommentPosted?: () => void;
 }
 
 const CommentSection = (props: IProps) => {
-    const { comments, trackId, uploader, onCommentPosted, onInputBlur,onInputFocus } = props;
+    const { comments, trackId, trackProp, onCommentPosted, onInputBlur,onInputFocus } = props;
     const momentAtFocusRef = useRef<number>(0);
 
     // Infinite scroll state
@@ -34,7 +34,7 @@ const CommentSection = (props: IProps) => {
     // Nếu SSR trả về < 10 comment → chắc chắn không còn page tiếp
     const [hasMore, setHasMore] = useState(comments.length >= 10);
     const observerRef = useRef<HTMLDivElement | null>(null);
-    const userId = uploader.uploader.id;
+    const userId = trackProp.uploader.id;
     const commentParams = {
         current: currentPage,
         pageSize: 10, // Reduced from 100 to enable proper pagination
@@ -253,7 +253,7 @@ const CommentSection = (props: IProps) => {
             >
                 {/* UPLOADER */}
                 <Link
-                    href={generateProfileUrl(uploader.uploader.name, userId)}
+                    href={generateProfileUrl(trackProp.uploader.name, userId)}
                     style={{ textDecoration: 'none' }}
                 >
                     <Box
@@ -268,13 +268,13 @@ const CommentSection = (props: IProps) => {
                         }}
                     >
                         <Avatar
-                            src={uploader.uploader.avatar}
+                            src={trackProp.uploader.avatar}
                             sx={{
                                 width: { xs: 50, md: 100 },
                                 height: { xs: 50, md: 100 },
                             }}
                         >
-                            {uploader.uploader.name.charAt(0).toUpperCase()}
+                            {trackProp.uploader.name.charAt(0).toUpperCase()}
                         </Avatar>
 
                         <Typography
@@ -284,7 +284,7 @@ const CommentSection = (props: IProps) => {
                                 fontWeight: 500,
                             }}
                         >
-                            {uploader.uploader.name}
+                            {trackProp.uploader.name}
                         </Typography>
                     </Box>
                 </Link>

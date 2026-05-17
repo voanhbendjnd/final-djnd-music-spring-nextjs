@@ -14,7 +14,6 @@ interface IProps {
 export default function TrackDetailClient({ track, comments }: IProps) {
     const { data: session } = useSession();
 
-    // ✅ State cho preview comment trên waveform
     const [previewMoment, setPreviewMoment] = useState<number | null>(null);
     const [isInputFocused, setIsInputFocused] = useState(false);
 
@@ -39,10 +38,9 @@ export default function TrackDetailClient({ track, comments }: IProps) {
 
             <Container sx={{ mt: 3 }}>
                 <CommentSection
-                    uploader={track}
+                    trackProp={track}
                     comments={comments}
                     trackId={String(track.id)}
-                    // ✅ Callbacks để sync preview
                     onInputFocus={(momentAtFocus) => {
                         setPreviewMoment(momentAtFocus);
                         setIsInputFocused(true);

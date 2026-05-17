@@ -179,9 +179,16 @@ export default function ProfilePage() {
             setAvatarFile(null);
             setAvatarPreview(null);
             setIsEditingName(false);
-
+            const avatarUrl = `${updated.avatar}?t=${Date.now()}`;
             // Update session if available
-            await updateSession({ name: updated.name, avatar: updated.avatar });
+            // await updateSession({ name: updated.name, avatar: updated.avatar });
+            await updateSession({
+                user: {
+                    ...session?.user,
+                    name: updated.name,
+                    avatar: avatarUrl,
+                }
+            });
 
             setSnack({ open: true, msg: 'Profile updated!', severity: 'success' });
         } catch (e) {
@@ -598,7 +605,8 @@ export default function ProfilePage() {
                     }}>
                         Music
                     </Typography>
-                    {session ?                             <Link href={generateProfileUrl(session?.user.name, session.user.id)} style={{ textDecoration: 'none' }}>
+                    {session ?
+                        <Link href={generateProfileUrl(session?.user.name, session.user.id)} style={{ textDecoration: 'none' }}>
                             <Box sx={{
                                 position: 'relative',
                                 overflow: 'hidden',
@@ -707,7 +715,7 @@ export default function ProfilePage() {
                                 </Box>
                             </Box>
                         </Link>
-                        : <></>
+                        : null
                     }
                 </Box>
             </Box>

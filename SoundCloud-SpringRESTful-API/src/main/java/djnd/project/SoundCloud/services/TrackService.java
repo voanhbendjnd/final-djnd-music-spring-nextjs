@@ -250,6 +250,9 @@ public class TrackService {
         // uploader.setEmail(user.getEmail());
         uploader.setId(user.getId());
         uploader.setName(user.getName());
+        if (user.getAvatar() != null) {
+            uploader.setAvatar(user.getAvatar());
+        }
         // if (user.getRole() != null) {
         // uploader.setRole(user.getRole().getName());
         // }

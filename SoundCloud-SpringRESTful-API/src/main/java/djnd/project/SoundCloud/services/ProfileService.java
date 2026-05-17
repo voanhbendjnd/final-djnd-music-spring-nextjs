@@ -41,6 +41,7 @@ public class ProfileService {
         var saveUser = this.userRepository.save(user);
         // this.userRepository.updateNameAndAvatarUser(name, avatarUrl, userId);
         var res = new ResUser();
+        res.setEmail(saveUser.getEmail());
         res.setAvatar(saveUser.getAvatar());
         res.setName(saveUser.getName());
         return res;

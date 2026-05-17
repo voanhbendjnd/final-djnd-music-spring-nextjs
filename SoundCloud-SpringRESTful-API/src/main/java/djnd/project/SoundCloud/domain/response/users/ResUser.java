@@ -18,6 +18,7 @@ public class ResUser {
     String email;
     String name;
     Boolean status;
+    String avatar;
     String createdBy, updatedBy;
     LocalDateTime createdAt, updatedAt;
     Role role;

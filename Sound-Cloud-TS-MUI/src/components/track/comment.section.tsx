@@ -18,10 +18,14 @@ interface IProps {
     comments: IComment[];
     trackId: string | null;
     uploader: ITrack;
+    onInputFocus?: (momentAtFocus: number) => void;
+    onInputBlur?: () => void;
+    onCommentPosted?: () => void;
 }
 
 const CommentSection = (props: IProps) => {
-    const { comments, trackId, uploader } = props;
+    const { comments, trackId, uploader, onCommentPosted, onInputBlur,onInputFocus } = props;
+    const momentAtFocusRef = useRef<number>(0);
 
     // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
@@ -89,14 +93,13 @@ const CommentSection = (props: IProps) => {
     }, [hasMore, isFetching]);
 
     const handlePostComment = () => {
-        const currentMoment = audioRef.current ? Math.round(audioRef.current.currentTime) : 0;
+        const currentMoment = momentAtFocusRef.current; // ✅ Dùng thời điểm lúc focus, không phải lúc post
         if (!newComment.trim()) return;
 
-        // Build optimistic comment for local state
         const optimisticComment: IComment = {
             id: Date.now(),
             content: newComment,
-            moment: currentMoment,
+            moment: currentMoment, // ✅ Đúng thời điểm
             createdAt: new Date().toISOString(),
             user: {
                 id: session?.user?.id,
@@ -107,29 +110,26 @@ const CommentSection = (props: IProps) => {
             track: { id: Number(trackId) }
         } as any;
 
-        // Prepend to local state immediately
         setAllComments(prev => [optimisticComment, ...prev]);
 
         createCommentMutation.mutate(
             {
                 track_id: Number(trackId),
                 content: newComment,
-                moment: currentMoment,
+                moment: currentMoment, // ✅ Đúng thời điểm
             },
             {
                 onSuccess: () => {
-                    // Hook already invalidates all comment queries via onSettled
+                    onCommentPosted?.(); // ✅ Notify parent
                 },
                 onError: () => {
-                    // Rollback local state on error
                     setAllComments(prev => prev.filter(c => c.id !== optimisticComment.id));
                 }
             }
         );
         setNewComment("");
-        toast.dark("Post comment success");
-    }
-
+        onInputBlur?.();
+    };
     const handleJumpToMoment = (moment: number) => {
         if (audioRef.current) {
             // 1. Thay đổi thời gian của thẻ audio thực
@@ -193,6 +193,29 @@ const CommentSection = (props: IProps) => {
                             size="small"
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
+                            onFocus={() => {
+                                // ✅ Lưu thời điểm ngay khi focus
+                                const moment = audioRef.current
+                                    ? Math.round(audioRef.current.currentTime)
+                                    : 0;
+                                momentAtFocusRef.current = moment;
+                                onInputFocus?.(moment);
+                            }}
+                            onBlur={() => {
+                                // ✅ Chỉ blur nếu không phải vì click Post
+                                // dùng setTimeout để không conflict với click handler
+                                setTimeout(() => {
+                                    if (!newComment.trim()) {
+                                        onInputBlur?.();
+                                    }
+                                }, 200);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handlePostComment();
+                                }
+                            }}
                             sx={{
                                 background: '#303030',
                                 '& .MuiOutlinedInput-root': {

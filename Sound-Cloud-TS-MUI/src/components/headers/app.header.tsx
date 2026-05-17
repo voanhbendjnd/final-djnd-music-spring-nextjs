@@ -34,6 +34,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from 'next/image';
 import SearchBar from '@/components/search/search-bar';
 import { generateProfileUrl } from "@/utils/generate.slug";
+import {DiscFull} from "@mui/icons-material";
 
 // ─── Mobile nav items ─────────────────────────────────────────────────────────
 // 6 items — hiển thị scrollable horizontal hoặc 2 hàng
@@ -284,7 +285,7 @@ const AppHeader = () => {
             )}
             {session && (
                 <MenuItem onClick={handleMenuClose}>
-                    <Link href={generateProfileUrl(session.user?.name, session.user?.id!)} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <Link href={'/profile'} style={{ textDecoration: 'none', color: 'inherit' }}>
                         Profile
                     </Link>
                 </MenuItem>
@@ -303,6 +304,14 @@ const AppHeader = () => {
             onClose={handleMenuClose}
             sx={{ ...menuSx, '& .MuiPaper-root': { ...menuSx['& .MuiPaper-root'], minWidth: 200 } }}
         >
+            {session?
+            <MenuItem onClick={() => { handleProtectedNavigation(generateProfileUrl(session?.user.name!, session?.user.id!)); handleMenuClose(); }}>
+                <DiscFull sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> My Tracks
+            </MenuItem> :
+            <>
+            </>
+            }
+
             <MenuItem onClick={() => { handleProtectedNavigation('/playlist'); handleMenuClose(); }}>
                 <LibraryMusicIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Liked Playlists
             </MenuItem>
@@ -469,7 +478,7 @@ const AppHeader = () => {
                             <Box
                                 onClick={() => router.push(
                                     session
-                                        ? generateProfileUrl(session.user.name!, session.user.id!)
+                                        ? '/profile'
                                         : '/auth/signin'
                                 )}
                                 sx={{

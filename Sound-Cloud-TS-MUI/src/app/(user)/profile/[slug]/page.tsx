@@ -5,8 +5,8 @@ import {getServerSession} from "next-auth";
 import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 import {Metadata} from "next";
 export const metadata:Metadata ={
-    title:'Profile uploader',
-    description:'Profile page'
+    title:'My tracks',
+    description:'My track page'
 }
 const ProfilePage = async ({ params }: { params: { slug: string } }) => {
     const slug = params.slug;

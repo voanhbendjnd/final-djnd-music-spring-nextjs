@@ -530,4 +530,13 @@ public class UserService {
             throw new RuntimeException("fail to store excel data: " + e.getMessage());
         }
     }
+
+    protected ResUser toRes(User user) {
+        var res = new ResUser();
+        res.setAvatar(user.getAvatar());
+        res.setEmail(user.getEmail());
+        res.setId(user.getId());
+        res.setName(user.getName());
+        return res;
+    }
 }

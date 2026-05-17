@@ -7,6 +7,7 @@ import type { Metadata, ResolvingMetadata } from 'next'
 import WaveTrack from "@/components/track/wave.track";
 import {getServerSession} from "next-auth";
 import {authOptions} from "@/app/api/auth/[...nextauth]/route";
+import TrackDetailClient from "@/components/track/track.detail.client";
 
 type Props = {
     params: { slug: string }
@@ -109,27 +110,8 @@ const DetailTrackPage = async ({ params, searchParams }: {
 
     // const userUploader = resDataUploader.data as IUploader | undefined;
     const comments = resComments.data?.result ?? [];
-    return (
-        <div style={{ backgroundColor: '#121212', minHeight: '100vh' }}>
-            <div style={{ background: '#121212' }}>
-                <Container>
-                    <WaveTrack comments={comments}
-                        track={track}
-                    />
-                </Container>
-            </div>
-
-            <Container sx={{ mt: 3 }}>
-                <CommentSection
-                    uploader={track}
-                    comments={comments}
-                    trackId={String(id)}
-                />
-            </Container>
-        </div>
-
-
-    )
+    // detail track page
+    return <TrackDetailClient track={track} comments={comments} />;
 }
 
 export default DetailTrackPage;

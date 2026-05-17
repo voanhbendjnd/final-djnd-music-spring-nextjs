@@ -5,9 +5,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import djnd.project.SoundCloud.domain.entity.User;
 
@@ -33,4 +35,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @EntityGraph(attributePaths = { "role", "role.permissions" })
     @Query(value = "select u from User u where u.id = :id")
     Optional<User> findWithDetailById(@Param("id") Long id);
+
+    @Modifying
+    @Transactional
+    @Query(value = "update User u set u.name = :name, u.avatar = :avatar where u.id = :userId")
+    void updateNameAndAvatarUser(@Param("name") String name, @Param("avatar") String avatar,
+            @Param("userId") Long userId);
+
 }

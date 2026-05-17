@@ -72,7 +72,10 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
             });
         }
     }, [currentTrack.id, isLove, isMatched]);
-
+// Thêm vào phần state declarations
+    const momentAtFocusRef = useRef<number>(0);
+    const [previewMoment, setPreviewMoment] = useState<number | null>(null);
+    const [isCommentFocused, setIsCommentFocused] = useState(false);
     const handleLikeClick = () => {
         if (!session) {
             // Redirect to signin with callback URL
@@ -231,10 +234,12 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
     const handleSubmitComment = async () => {
         if (!commentInput.content.trim()) return;
 
-        // Ưu tiên thời gian chọn trên waveform (selectedTime), nếu không có mới dùng thời gian thực
-        const momentToPost = commentInput.open
-            ? Math.round(commentInput.selectedTime)
-            : (audioRef.current ? Math.round(audioRef.current.currentTime) : 0);
+        // ✅ Dùng thời điểm khi focus, không phải khi post
+        const momentToPost = isCommentFocused
+            ? momentAtFocusRef.current
+            : (commentInput.open
+                ? Math.round(commentInput.selectedTime)
+                : (audioRef.current ? Math.round(audioRef.current.currentTime) : 0));
 
         createCommentMutation.mutate({
             content: commentInput.content,
@@ -243,8 +248,10 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
         }, {
             onSuccess: () => {
                 clearCommentPreview();
-                // Reset text sau khi post thành công
                 setCommentInput(prev => ({ ...prev, content: '' }));
+                // ✅ Reset preview sau khi post
+                setIsCommentFocused(false);
+                setPreviewMoment(null);
                 toast.dark("Post comment success!");
             },
             onError: (error: any) => {
@@ -252,8 +259,7 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                 toast.warning(msg);
             }
         });
-    };
-    const calculateLeft = useCallback((moment: number) => {
+    };    const calculateLeft = useCallback((moment: number) => {
         if (waveDuration === 0) return "0%";
         const percent = (moment / waveDuration) * 100;
         return `${percent}%`;
@@ -640,9 +646,7 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                         {/* Comment avatars on waveform - Always visible */}
                         <Box sx={{
                             position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
+                            top: 0, left: 0, right: 0,
                             height: '100%',
                             pointerEvents: 'none',
                             zIndex: 20
@@ -685,7 +689,37 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                                     </Tooltip>
                                 );
                             })}
-
+                            {isCommentFocused && previewMoment != null && waveDuration > 0 && (
+                                <Tooltip
+                                    title={`${session?.user?.name || 'You'}: typing...`}
+                                    open={true}
+                                    arrow
+                                    placement="top"
+                                >
+                                    <Avatar
+                                        src={session?.user?.avatar}
+                                        sx={{
+                                            position: 'absolute',
+                                            left: calculateLeft(previewMoment),
+                                            top: isMobile ? 40 : 57,
+                                            width: isMobile ? 14 : 20,
+                                            height: isMobile ? 14 : 20,
+                                            transform: 'translateX(-50%)',
+                                            border: '2px solid #ff5500',
+                                            pointerEvents: 'none',
+                                            zIndex: 200,
+                                            boxShadow: '0 0 12px rgba(255,85,0,0.8)',
+                                            animation: 'previewPulse 1.5s ease-in-out infinite',
+                                            '@keyframes previewPulse': {
+                                                '0%,100%': { boxShadow: '0 0 8px rgba(255,85,0,0.8)' },
+                                                '50%': { boxShadow: '0 0 20px rgba(255,85,0,1)' },
+                                            },
+                                        }}
+                                    >
+                                        {session?.user?.name?.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                </Tooltip>
+                            )}
                             {/* Comment preview avatar */}
                             {commentPreview.show && (
                                 <Box
@@ -693,21 +727,11 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                                     sx={{
                                         position: 'absolute',
                                         left: `${commentPreview.position}%`,
-                                        top: 0,
-                                        bottom: 0,
+                                        top: 0, bottom: 0,
                                         width: '2px',
                                         bgcolor: '#f50',
                                         pointerEvents: 'auto',
                                         cursor: 'pointer',
-                                        '&::after': {
-                                            content: '"+"',
-                                            position: 'absolute',
-                                            top: -20,
-                                            left: '50%',
-                                            transform: 'translateX(-50%)',
-                                            color: '#f50',
-                                            fontWeight: 'bold'
-                                        }
                                     }}
                                 />
                             )}
@@ -812,29 +836,45 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                                     content: e.target.value
                                 }))
                             }
+                            // ✅ Capture thời điểm khi focus
+                            onFocus={() => {
+                                const moment = audioRef.current
+                                    ? Math.round(audioRef.current.currentTime)
+                                    : 0;
+                                momentAtFocusRef.current = moment;
+                                setPreviewMoment(moment);
+                                setIsCommentFocused(true);
+                            }}
+                            // ✅ Blur — dùng setTimeout tránh conflict với click Post
+                            onBlur={() => {
+                                setTimeout(() => {
+                                    if (!commentInput.content.trim()) {
+                                        setIsCommentFocused(false);
+                                        setPreviewMoment(null);
+                                    }
+                                }, 200);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSubmitComment();
+                                }
+                            }}
                             sx={{
                                 '& .MuiOutlinedInput-root': {
-                                    bgcolor: '#1a1a1a', // Nền hơi sáng hơn nền tổng thể một chút
+                                    bgcolor: '#1a1a1a',
                                     color: '#fff',
-                                    borderRadius: '8px', // Bo góc mềm mại hơn
+                                    borderRadius: '8px',
                                     transition: 'all 0.2s ease-in-out',
-
-                                    // 1. Viền mặc định
-                                    '& fieldset': {
-                                        borderColor: '#444',
-                                    },
-                                    // 2. Viền khi di chuột qua
-                                    '&:hover fieldset': {
-                                        borderColor: '#666',
-                                    },
-                                    // 3. Viền khi đang focus (nhập liệu)
+                                    '& fieldset': { borderColor: '#444' },
+                                    '&:hover fieldset': { borderColor: '#666' },
                                     '&.Mui-focused fieldset': {
-                                        borderColor: '#f50', // Màu cam thương hiệu của bạn
-                                        borderWidth: '1px',  // Không nên để quá dày, 1px là đủ tinh tế
+                                        borderColor: '#f50',
+                                        borderWidth: '1px',
                                     },
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#888', // Màu chữ placeholder dễ nhìn hơn
+                                    color: '#888',
                                     opacity: 1,
                                 },
                             }}
@@ -847,17 +887,12 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                                 variant="contained"
                                 sx={{
                                     bgcolor: '#f50',
-                                    color: '#fff', // Màu chữ khi nút active
+                                    color: '#fff',
                                     borderRadius: '20px',
                                     textTransform: 'none',
                                     fontWeight: 600,
-                                    '&:hover': {
-                                        bgcolor: '#ff4500',
-                                    },
-                                    '&.Mui-disabled': {
-                                        bgcolor: '#333', // Màu nền nút khi bị disabled (xám nhẹ thay vì đen)
-                                        color: '#666',   // Màu chữ khi bị disabled
-                                    }
+                                    '&:hover': { bgcolor: '#ff4500' },
+                                    '&.Mui-disabled': { bgcolor: '#333', color: '#666' }
                                 }}
                             >
                                 Post

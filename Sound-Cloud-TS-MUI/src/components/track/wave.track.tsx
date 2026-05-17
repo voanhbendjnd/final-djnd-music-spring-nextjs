@@ -22,11 +22,13 @@ interface IProps {
     isLiked?: boolean;
     track: ITrack;
     readOnly?: boolean;
+    previewMoment?: number | null;    // thời điểm preview (giây)
+    previewUser?: { name: string; avatar?: string } | null;
 }
 
 const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
-    const { comments, isLiked, track, readOnly = false } = props;
+    const { comments, isLiked, track, readOnly = false, previewMoment, previewUser } = props;
     const router = useRouter();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -822,6 +824,37 @@ const WaveTrack = (props: IProps) => {
                                     </Tooltip>
                                 );
                             })}
+                            {previewMoment != null && previewUser && waveDuration > 0 && (
+                                <Tooltip
+                                    title={`${previewUser.name}: typing...`}
+                                    open={true}
+                                    arrow
+                                    placement="top"
+                                >
+                                    <Avatar
+                                        src={previewUser.avatar}
+                                        sx={{
+                                            position: 'absolute',
+                                            left: `${(previewMoment / waveDuration) * 100}%`,
+                                            top: isMobile ? 38 : 75,
+                                            width: isMobile ? 14 : 24,
+                                            height: isMobile ? 14 : 24,
+                                            transform: 'translate(-50%, -50%)',
+                                            border: '2px solid #ff5500',
+                                            pointerEvents: 'none',
+                                            zIndex: 200,
+                                            boxShadow: '0 0 12px rgba(255,85,0,0.8)',
+                                            animation: 'previewPulse 1.5s ease-in-out infinite',
+                                            '@keyframes previewPulse': {
+                                                '0%,100%': { boxShadow: '0 0 8px rgba(255,85,0,0.8)' },
+                                                '50%': { boxShadow: '0 0 20px rgba(255,85,0,1)' },
+                                            },
+                                        }}
+                                    >
+                                        {previewUser.name?.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                </Tooltip>
+                            )}
                         </Box>
 
                     </Box>

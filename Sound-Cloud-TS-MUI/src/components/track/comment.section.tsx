@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, TextField, Avatar, Typography, Divider, IconButton, Button } from '@mui/material';
+import {Box, TextField, Avatar, Typography, Divider, IconButton, Button, Tooltip} from '@mui/material';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -440,43 +440,46 @@ const CommentSection = (props: IProps) => {
                                                 style={{ textDecoration: 'none', color: 'white' }}
                                             >
                                             <span style={{ fontWeight: 'bold' }}>
-                                                {comment.user.email === session?.user.email
+                                                {comment.user.id === Number(session?.user.id)
                                                     ? 'You'
                                                     : comment.user.name}
                                             </span>
                                             </Link>
                                             {' at '}
-                                            <span
-                                                onClick={() => handleJumpToMoment(comment.moment)}
-                                                style={{
-                                                    cursor: 'pointer',
-                                                    color: '#bdbdbd',
+                                            <Tooltip title={`jump to ${formatMoment(comment.moment)}`} placement="top">
+                                                <span
+                                                    onClick={() => handleJumpToMoment(comment.moment)}
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                        color: '#bdbdbd',
 
-                                                    transition: 'all 0.15s ease',
+                                                        transition: 'all 0.15s ease',
 
-                                                    padding: '1px 6px',
+                                                        padding: '1px 6px',
 
-                                                    borderRadius: '4px',
+                                                        borderRadius: '4px',
 
-                                                    display: 'inline-block',
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.color = '#fff';
-                                                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.color = '#bdbdbd';
-                                                    e.currentTarget.style.background = 'transparent';
-                                                }}
-                                                onMouseDown={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(0.96)';
-                                                }}
-                                                onMouseUp={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                }}
-                                            >
+                                                        display: 'inline-block',
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.color = '#fff';
+                                                        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.color = '#bdbdbd';
+                                                        e.currentTarget.style.background = 'transparent';
+                                                    }}
+                                                    onMouseDown={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(0.96)';
+                                                    }}
+                                                    onMouseUp={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                >
     {formatMoment(comment.moment)}
 </span>
+                                            </Tooltip>
+
                                         </Typography>
                                     {/*</UploaderHoverCard>*/}
 

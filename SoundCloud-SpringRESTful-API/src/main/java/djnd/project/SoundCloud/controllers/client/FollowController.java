@@ -24,7 +24,7 @@ public class FollowController {
     FollowService followService;
 
     @PostMapping
-    @ApiMessage("Update follow")
+    @ApiMessage("Change state follow")
     public ResponseEntity<?> updateFollowerAndCreateRecord(@RequestBody Map<String, String> mapRequest)
             throws BadRequestException {
         var followingIdStr = mapRequest.get("followingId");

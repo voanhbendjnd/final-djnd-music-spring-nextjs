@@ -45,8 +45,9 @@ public class FollowService {
 
         }
         var res = new ResFollower();
+        res.setUploaderId(followingId);
         res.setCountFollowers(this.userRepository.getCountFollowers(followingId));
-        res.setIsFollowed(deleted > 0 ? false : true);
+        res.setIsFollowed(deleted <= 0);
         return res;
     }
 }

@@ -4,37 +4,75 @@ import React, { createContext, useContext, useRef, useState, useCallback, useEff
 import HistoryTrackingProvider from "@/lib/history.tracking.provider";
 import axiosInstance from "@/utils/axios-instance";
 import { audioEngine } from "@/lib/audio-engine";
-
+export interface FollowState {
+    isFollowed: boolean;
+    countFollowers?: number;
+}
 export interface ITrackContext {
     currentTrack: IShareTrack;
-    setCurrentTrack: (track: IShareTrack) => void;
+
+    setCurrentTrack: React.Dispatch<
+        React.SetStateAction<IShareTrack>
+    >;
+
     audioRef: React.MutableRefObject<HTMLAudioElement | null>;
+
     savedTimes: React.MutableRefObject<Record<string, number>>;
+
     currentPlaylist: IPlaylist | null;
-    setCurrentPlaylist: (p: IPlaylist | null) => void;
+
+    setCurrentPlaylist: React.Dispatch<
+        React.SetStateAction<IPlaylist | null>
+    >;
+
     playlistTracks: any[];
-    setPlaylistTracks: (tracks: any[]) => void;
+
+    setPlaylistTracks: React.Dispatch<
+        React.SetStateAction<any[]>
+    >;
+
     currentTrackIndex: number;
-    setCurrentTrackIndex: (index: number) => void;
+
+    setCurrentTrackIndex: React.Dispatch<
+        React.SetStateAction<number>
+    >;
+
     playNextTrack: () => void;
     playPreviousTrack: () => void;
+
     viewedTracks: Set<string>;
     markTrackAsViewed: (trackId: string) => void;
+
     isShuffle: boolean;
     setIsShuffle: (v: boolean) => void;
+
     repeatMode: 'none' | 'all' | 'one';
     setRepeatMode: (v: 'none' | 'all' | 'one') => void;
+
     playMode: 'queue' | 'dynamic';
     setPlayMode: (v: 'queue' | 'dynamic') => void;
+
     queueType: any;
     setQueueType: (v: any) => void;
+
     shuffledIndexes: number[];
+
     playedTrackIds: Set<string>;
     addToPlayedTracks: (trackId: string) => void;
+
     isRoomMode: boolean;
     setIsRoomMode: (v: boolean) => void;
+
     isHost: boolean;
     setIsHost: (v: boolean) => void;
+
+    followedUploaders: Record<string, FollowState>;
+
+    toggleFollowUploader: (
+        uploaderId: string,
+        isFollowed: boolean,
+        countFollowers?: number
+    ) => void;
 }
 
 export const TrackContext = createContext<ITrackContext | null>(null);
@@ -100,7 +138,13 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
     const [playedTrackIds, setPlayedTrackIds] = useState<Set<string>>(new Set());
     const [isRoomMode, setIsRoomMode] = useState(false);
     const [isHost, setIsHost] = useState(false);
-
+    const [followedUploaders, setFollowedUploaders] = useState<Record<string, FollowState>>({});
+    const toggleFollowUploader = useCallback((uploaderId: string, isFollowed: boolean, countFollowers?: number) => {
+        setFollowedUploaders(prev => ({
+            ...prev,
+            [uploaderId]: { isFollowed, countFollowers }
+        }));
+    }, []);
     const addToPlayedTracks = useCallback((trackId: string) => {
         //@ts-ignore
         setPlayedTrackIds(prev => new Set([...prev, trackId]));
@@ -242,38 +286,43 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
     }, [playlistTracks, isShuffle, shuffledIndexes, repeatMode]);
 
     return (
-        <TrackContext.Provider value={{
-            currentTrack,
-            setCurrentTrack,
-            audioRef,
-            savedTimes,
-            viewedTracks,
-            markTrackAsViewed,
-            currentPlaylist,
-            setCurrentPlaylist,
-            playlistTracks,
-            setPlaylistTracks,
-            currentTrackIndex,
-            setCurrentTrackIndex,
-            playNextTrack,
-            playPreviousTrack,
+        <TrackContext.Provider
+            value={{
+                currentTrack,
+                setCurrentTrack,
+                audioRef,
+                savedTimes,
+                viewedTracks,
+                markTrackAsViewed,
+                currentPlaylist,
+                setCurrentPlaylist,
+                playlistTracks,
+                setPlaylistTracks,
+                currentTrackIndex,
+                setCurrentTrackIndex,
+                playNextTrack,
+                playPreviousTrack,
 
-            isShuffle,
-            setIsShuffle,
-            repeatMode,
-            setRepeatMode,
-            playMode,
-            setPlayMode,
-            queueType,
-            setQueueType,
-            shuffledIndexes,
-            playedTrackIds,
-            addToPlayedTracks,
-            isRoomMode,
-            setIsRoomMode,
-            isHost,
-            setIsHost,
-        }}>
+                isShuffle,
+                setIsShuffle,
+                repeatMode,
+                setRepeatMode,
+                playMode,
+                setPlayMode,
+                queueType,
+                setQueueType,
+                shuffledIndexes,
+                playedTrackIds,
+                addToPlayedTracks,
+                isRoomMode,
+                setIsRoomMode,
+                isHost,
+                setIsHost,
+
+                followedUploaders,
+                toggleFollowUploader,
+            }}
+        >
             <HistoryTrackingProvider>
                 {children}
             </HistoryTrackingProvider>

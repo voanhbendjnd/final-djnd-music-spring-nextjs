@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, TextField, Avatar, Typography, Divider, IconButton } from '@mui/material';
+import { Box, TextField, Avatar, Typography, Divider, IconButton, Button } from '@mui/material';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -8,9 +8,12 @@ import { useSession } from "next-auth/react";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { SendSharp } from "@mui/icons-material";
 import { useCreateComment, useFetchCommentsAxios } from "@/hooks/use.comment";
-import { toast } from "react-toastify";
 import Link from "next/link";
-import {generateProfileUrl} from "@/utils/generate.slug";
+import { generateProfileUrl } from "@/utils/generate.slug";
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import { PersonRemove } from "@mui/icons-material";
+import { useFollowMutation } from "@/hooks/use.follow";
+import UploaderHoverCard from "@/components/profile/uploader.hover.card";
 
 dayjs.extend(relativeTime);
 
@@ -24,30 +27,49 @@ interface IProps {
 }
 
 const CommentSection = (props: IProps) => {
-    const { comments, trackId, trackProp, onCommentPosted, onInputBlur,onInputFocus } = props;
+    const { comments, trackId, trackProp, onCommentPosted, onInputBlur, onInputFocus } = props;
     const momentAtFocusRef = useRef<number>(0);
 
-    // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
     const [allComments, setAllComments] = useState<IComment[]>(comments);
-    // SSR page.tsx fetch page=1 với size=20. Client pageSize=10.
-    // Nếu SSR trả về < 10 comment → chắc chắn không còn page tiếp
     const [hasMore, setHasMore] = useState(comments.length >= 10);
     const observerRef = useRef<HTMLDivElement | null>(null);
     const userId = trackProp.uploader.id;
+
     const commentParams = {
         current: currentPage,
-        pageSize: 10, // Reduced from 100 to enable proper pagination
+        pageSize: 10,
         trackId: Number(trackId),
         sort: "updatedAt,desc"
     };
     const { data: resComments, isLoading, isFetching } = useFetchCommentsAxios(commentParams, {
-        enabled: hasMore, // Không gọi API khi đã hết comment
+        enabled: hasMore,
     });
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
-    const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
+    const { currentTrack, audioRef, savedTimes, followedUploaders, toggleFollowUploader } = useTrackContext() as ITrackContext;
     const createCommentMutation = useCreateComment(commentParams);
+    const mutationFollow = useFollowMutation();
+
+    // Follow state: ưu tiên map trong context, fallback về data từ trackProp
+    const uploaderIdStr = String(userId);
+    const followState = (followedUploaders ?? {})[uploaderIdStr];
+    const isFollowed = followState !== undefined
+        ? followState.isFollowed
+        : (trackProp.uploader?.isFollowed ?? false);
+
+    // Ẩn nút follow nếu là chính mình
+    const isSelf = session && Number(session.user?.id) === Number(userId);
+
+    const handleFollowClick = () => {
+        if (!session) return;
+        mutationFollow.mutate(uploaderIdStr, {
+            onSuccess: (res) => {
+                const { isFollowed, countFollowers } = res.data;
+                toggleFollowUploader?.(uploaderIdStr, isFollowed, countFollowers);
+            },
+        });
+    };
 
     // Update allComments when new data is fetched
     useEffect(() => {
@@ -55,7 +77,6 @@ const CommentSection = (props: IProps) => {
             const { result: newComments, meta } = resComments;
 
             if (meta) {
-                // 1. Nếu không có dữ liệu HOẶC đã đến trang cuối cùng thì dừng
                 if (newComments.length === 0 || meta.page >= meta.pages) {
                     setHasMore(false);
                 } else {
@@ -63,7 +84,6 @@ const CommentSection = (props: IProps) => {
                 }
             }
 
-            // 2. Chỉ append comment nếu có dữ liệu mới
             if (newComments.length > 0) {
                 setAllComments(prev => {
                     const existingIds = new Set(prev.map(c => c.id));
@@ -93,13 +113,13 @@ const CommentSection = (props: IProps) => {
     }, [hasMore, isFetching]);
 
     const handlePostComment = () => {
-        const currentMoment = momentAtFocusRef.current; // ✅ Dùng thời điểm lúc focus, không phải lúc post
+        const currentMoment = momentAtFocusRef.current;
         if (!newComment.trim()) return;
 
         const optimisticComment: IComment = {
             id: Date.now(),
             content: newComment,
-            moment: currentMoment, // ✅ Đúng thời điểm
+            moment: currentMoment,
             createdAt: new Date().toISOString(),
             user: {
                 id: session?.user?.id,
@@ -116,11 +136,11 @@ const CommentSection = (props: IProps) => {
             {
                 track_id: Number(trackId),
                 content: newComment,
-                moment: currentMoment, // ✅ Đúng thời điểm
+                moment: currentMoment,
             },
             {
                 onSuccess: () => {
-                    onCommentPosted?.(); // ✅ Notify parent
+                    onCommentPosted?.();
                 },
                 onError: () => {
                     setAllComments(prev => prev.filter(c => c.id !== optimisticComment.id));
@@ -130,21 +150,18 @@ const CommentSection = (props: IProps) => {
         setNewComment("");
         onInputBlur?.();
     };
+
     const handleJumpToMoment = (moment: number) => {
         if (audioRef.current) {
-            // 1. Thay đổi thời gian của thẻ audio thực
             audioRef.current.currentTime = moment;
-
-            // 2. Nếu nhạc đang dừng, bạn có thể chọn tự động phát luôn
             audioRef.current.play().catch(e => console.log("Audio play failed:", e));
-
-            // 3. (Tùy chọn) Lưu lại thời gian vào savedTimes để đồng bộ
             const fileName = new URLSearchParams(window.location.search).get('audio');
             if (fileName) {
                 savedTimes.current[fileName] = moment;
             }
         }
     };
+
     const formatMoment = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -159,21 +176,14 @@ const CommentSection = (props: IProps) => {
                 px: { xs: 1, md: 2 },
                 maxWidth: 1200,
                 mx: 'auto',
-                marginBottom:30
+                marginBottom: 30
             }}
         >
-
             {/* INPUT */}
-            <Box
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    width: '100%',
-                }}
-            >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                 {session && (
                     <>
+                    <UploaderHoverCard uploader={session.user}>
                         <Link
                             href={generateProfileUrl(session.user?.name, session.user.id)}
                             style={{ textDecoration: 'none' }}
@@ -185,6 +195,8 @@ const CommentSection = (props: IProps) => {
                                 {session.user?.name?.charAt(0).toUpperCase()}
                             </Avatar>
                         </Link>
+                    </UploaderHoverCard>
+
 
                         <TextField
                             fullWidth
@@ -194,7 +206,6 @@ const CommentSection = (props: IProps) => {
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             onFocus={() => {
-                                // ✅ Lưu thời điểm ngay khi focus
                                 const moment = audioRef.current
                                     ? Math.round(audioRef.current.currentTime)
                                     : 0;
@@ -202,8 +213,6 @@ const CommentSection = (props: IProps) => {
                                 onInputFocus?.(moment);
                             }}
                             onBlur={() => {
-                                // ✅ Chỉ blur nếu không phải vì click Post
-                                // dùng setTimeout để không conflict với click handler
                                 setTimeout(() => {
                                     if (!newComment.trim()) {
                                         onInputBlur?.();
@@ -218,9 +227,7 @@ const CommentSection = (props: IProps) => {
                             }}
                             sx={{
                                 background: '#303030',
-                                '& .MuiOutlinedInput-root': {
-                                    borderRadius: '6px',
-                                },
+                                '& .MuiOutlinedInput-root': { borderRadius: '6px' },
                                 '& .MuiInputBase-input': {
                                     color: '#fff',
                                     fontSize: { xs: 13, md: 14 },
@@ -230,10 +237,7 @@ const CommentSection = (props: IProps) => {
 
                         <IconButton
                             onClick={handlePostComment}
-                            sx={{
-                                background: '#303030',
-                                p: { xs: 1, md: 1.5 },
-                            }}
+                            sx={{ background: '#303030', p: { xs: 1, md: 1.5 } }}
                         >
                             <SendSharp sx={{ color: session ? '#f50' : '#7e7e7e' }} />
                         </IconButton>
@@ -252,50 +256,144 @@ const CommentSection = (props: IProps) => {
                 }}
             >
                 {/* UPLOADER */}
-                <Link
-                    href={generateProfileUrl(trackProp.uploader.name, userId)}
-                    style={{ textDecoration: 'none' }}
-                >
-                    <Box
-                        sx={{
-                            width: { xs: '100%', md: 120 },
-                            flexShrink: 0,
-                            textAlign: { xs: 'left', md: 'center' },
-                            display: 'flex',
-                            flexDirection: { xs: 'row', md: 'column' },
-                            alignItems: 'center',
-                            gap: { xs: 2, md: 1 },
-                        }}
-                    >
-                        <Avatar
-                            src={trackProp.uploader.avatar}
-                            sx={{
-                                width: { xs: 50, md: 100 },
-                                height: { xs: 50, md: 100 },
-                            }}
-                        >
-                            {trackProp.uploader.name.charAt(0).toUpperCase()}
-                        </Avatar>
-
-                        <Typography
-                            sx={{
-                                color: '#fff',
-                                fontSize: { xs: 14, md: 15 },
-                                fontWeight: 500,
-                            }}
-                        >
-                            {trackProp.uploader.name}
-                        </Typography>
-                    </Box>
-                </Link>
-
-                {/* COMMENTS */}
                 <Box
                     sx={{
-                        flex: 1,
-                        minWidth: 0,
+                        width: { xs: '100%', md: 120 },
+                        flexShrink: 0,
+                        textAlign: { xs: 'left', md: 'center' },
+                        display: 'flex',
+                        flexDirection: { xs: 'row', md: 'column' },
+                        alignItems: 'center',
+                        gap: { xs: 2, md: 1 },
                     }}
                 >
+                    <UploaderHoverCard uploader={trackProp.uploader}>
+                        <Link
+                            href={generateProfileUrl(trackProp.uploader.name, userId)}
+                            style={{ textDecoration: 'none' }}
+                        >
+                            <Avatar
+                                src={trackProp.uploader.avatar}
+                                sx={{
+                                    width: { xs: 50, md: 100 },
+                                    height: { xs: 50, md: 100 },
+                                }}
+                            >
+                                {trackProp.uploader.name.charAt(0).toUpperCase()}
+                            </Avatar>
+                        </Link>
+                    </UploaderHoverCard>
+
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'flex-start', md: 'center' }, gap: 0.5 }}>
+                        <UploaderHoverCard uploader={trackProp.uploader}>
+                            <Link
+                                href={generateProfileUrl(trackProp.uploader.name, userId)}
+                                style={{ textDecoration: 'none' }}
+                            >
+                                <Typography
+                                    sx={{
+                                        color: '#fff',
+                                        fontSize: { xs: 14, md: 15 },
+                                        fontWeight: 500,
+                                        '&:hover': { color: '#f50' },
+                                        transition: 'color 0.2s',
+                                    }}
+                                >
+                                    {trackProp.uploader.name}
+                                </Typography>
+                            </Link>
+                        </UploaderHoverCard>
+                        <Typography sx={{ fontSize: 12, color: '#888' }}>
+                            {(followedUploaders?.[uploaderIdStr]?.countFollowers
+                                ?? trackProp.uploader?.countFollowers
+                                ?? 0
+                            ).toLocaleString()} followers
+                        </Typography>
+
+
+                        {/* Follow button — ẩn nếu là chính mình */}
+                        {session && !isSelf && (
+                            <Button
+                                size="small"
+                                variant={isFollowed ? "outlined" : "contained"}
+                                startIcon={isFollowed ? <PersonRemove sx={{ fontSize: 14 }} /> : <PersonAddIcon sx={{ fontSize: 14 }} />}
+                                onClick={handleFollowClick}
+                                disabled={mutationFollow.isPending}
+                                sx={{
+                                    height: 30,
+
+                                    fontSize: 12,
+                                    fontWeight: 700,
+
+                                    px: 1.4,
+                                    py: 0.2,
+
+                                    minWidth: 0,
+
+                                    borderRadius: '4px',
+
+                                    textTransform: 'none',
+
+                                    boxShadow: 'none',
+
+                                    transition: 'all 0.15s ease',
+
+                                    ...(isFollowed
+                                        ? {
+                                            // Following
+                                            bgcolor: '#2f2f2f',
+                                            color: '#fff',
+
+                                            border: '1px solid #3a3a3a',
+
+                                            '&:hover': {
+                                                bgcolor: '#3a3a3a',
+                                                borderColor: '#4a4a4a',
+                                            },
+
+                                            '&:active': {
+                                                bgcolor: '#262626',
+                                            },
+                                        }
+                                        : {
+                                            // Follow
+                                            bgcolor: '#f2f2f2',
+                                            color: '#111',
+
+                                            border: '1px solid #d0d0d0',
+
+                                            '&:hover': {
+                                                bgcolor: '#e8e8e8',
+                                                borderColor: '#bdbdbd',
+                                            },
+
+                                            '&:active': {
+                                                bgcolor: '#dedede',
+                                            },
+                                        }),
+
+                                    '& .MuiButton-startIcon': {
+                                        marginRight: '4px',
+
+                                        '& svg': {
+                                            fontSize: 14,
+                                        },
+                                    },
+
+                                    '&.Mui-disabled': {
+                                        opacity: 0.5,
+                                    },
+                                }}
+                            >
+                                {isFollowed ? 'Following' : 'Follow'}
+                            </Button>
+                        )}
+                    </Box>
+                </Box>
+
+                {/* COMMENTS */}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
                         sx={{
                             mb: 2,
@@ -313,14 +411,7 @@ const CommentSection = (props: IProps) => {
                     </Typography>
 
                     {allComments.map((comment) => (
-                        <Box
-                            key={comment.id}
-                            sx={{
-                                display: 'flex',
-                                gap: 1.5,
-                                mb: 2,
-                            }}
-                        >
+                        <Box key={comment.id} sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
                             <Avatar
                                 src={comment.user?.avatar || undefined}
                                 sx={{ width: 32, height: 32 }}
@@ -338,63 +429,43 @@ const CommentSection = (props: IProps) => {
                                         gap: { xs: 0.5, md: 0 },
                                     }}
                                 >
-                                    <Typography
-                                        sx={{
-                                            color: '#fff',
-                                            fontSize: 13,
-                                            wordBreak: 'break-word',
-                                        }}
-                                    >
-                                        <Link
-                                            href={generateProfileUrl(
-                                                comment.user.name,
-                                                String(comment.user.id)
-                                            )}
-                                            style={{ textDecoration: 'none', color:'white' }}
-                                        >
-                                        <span style={{ fontWeight: 'bold' }}>
-                                            {comment.user.email === session?.user.email
-                                                ? 'You'
-                                                : comment.user.name}
+                                    <UploaderHoverCard uploader={comment.user}>
+                                        <Typography sx={{ color: '#fff', fontSize: 13, wordBreak: 'break-word' }}>
+                                            <Link
+                                                href={generateProfileUrl(comment.user.name, String(comment.user.id))}
+                                                style={{ textDecoration: 'none', color: 'white' }}
+                                            >
+                                            <span style={{ fontWeight: 'bold' }}>
+                                                {comment.user.email === session?.user.email
+                                                    ? 'You'
+                                                    : comment.user.name}
+                                            </span>
+                                            </Link>
+                                            {' at '}
+                                            <span
+                                                onClick={() => handleJumpToMoment(comment.moment)}
+                                                style={{ cursor: 'pointer', color: '#ccc' }}
+                                            >
+                                            {formatMoment(comment.moment)}
                                         </span>
-                                        </Link>
+                                        </Typography>
+                                    </UploaderHoverCard>
 
-                                        {' at '}
-                                        <span
-                                            onClick={() => handleJumpToMoment(comment.moment)}
-                                            style={{
-                                                cursor: 'pointer',
-                                                color: '#ccc',
-                                            }}
-                                        >
-                                        {formatMoment(comment.moment)}
-                                    </span>
-                                    </Typography>
 
-                                    <Typography
-                                        sx={{
-                                            fontSize: 12,
-                                            color: '#aaa',
-                                            whiteSpace: 'nowrap',
-                                        }}
-                                    >
+                                    <Typography sx={{ fontSize: 12, color: '#aaa', whiteSpace: 'nowrap' }}>
                                         {dayjs(comment.createdAt).fromNow()}
                                     </Typography>
                                 </Box>
 
-                                <Typography
-                                    sx={{
-                                        mt: 0.5,
-                                        color: '#ddd',
-                                        fontSize: 14,
-                                        wordBreak: 'break-word',
-                                    }}
-                                >
+                                <Typography sx={{ mt: 0.5, color: '#ddd', fontSize: 14, wordBreak: 'break-word' }}>
                                     {comment.content}
                                 </Typography>
                             </Box>
                         </Box>
                     ))}
+
+                    {/* Infinite scroll trigger */}
+                    <div ref={observerRef} />
 
                     {isFetching && (
                         <Box sx={{ textAlign: 'center', py: 2, color: '#999' }}>

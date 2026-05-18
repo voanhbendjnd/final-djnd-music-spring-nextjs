@@ -1,3 +1,5 @@
+import {FollowState} from "@/lib/track.wrapper";
+
 export { };
 declare global{
     interface IRequest{
@@ -130,6 +132,15 @@ declare global{
         }
     }
     interface ITrackContext{
+        followedUploaders: Record<string, FollowState>;
+
+        toggleFollowUploader: (
+            uploaderId: string,
+            isFollowed: boolean,
+            countFollowers?: number
+        ) => void;
+        // followedUploaders: Record<string, boolean>;
+        // toggleFollowUploader: (uploaderId: string, isFollowed: boolean) => void;
         currentTrack: IShareTrack;
         setCurrentTrack: (track: IShareTrack) => void;
         audioRef: React.MutableRefObject<HTMLAudioElement | null>;

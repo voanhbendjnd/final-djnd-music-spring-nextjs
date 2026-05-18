@@ -36,7 +36,8 @@ const AppFooter = () => {
         playNextTrack, playPreviousTrack,
         isShuffle, setIsShuffle,
         repeatMode, setRepeatMode,
-        isRoomMode, isHost
+        isRoomMode, isHost ,followedUploaders,
+        toggleFollowUploader
     } = useTrackContext() as ITrackContext;
 
     const isControlDisabled = isRoomMode && !isHost;
@@ -115,18 +116,13 @@ const AppFooter = () => {
     }, [currentTrack.id, currentTrack.isLiked]);
     // ── Follow toggle ─────────────────────────────────────────────────────────
     const handleFollowClick = () => {
-        if (!session) {
-            router.push('/auth/signin');
-            return;
-        }
-
-        const uploaderId = currentTrack.uploader?.id;
+        if (!session) { router.push('/auth/signin'); return; }
         if (!uploaderId) return;
 
         mutationFollow.mutate(String(uploaderId), {
             onSuccess: (res) => {
                 const payload = res.data;
-
+                toggleFollowUploader(String(uploaderId), payload.isFollowed);
                 setCurrentTrack({
                     ...currentTrack,
                     uploader: {
@@ -207,8 +203,10 @@ const AppFooter = () => {
     }
 
     const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
-    const isFollowed = currentTrack.uploader?.isFollowed ?? false;
-
+    const uploaderId = currentTrack.uploader?.id;
+    const isFollowed = uploaderId !== undefined
+        ? (followedUploaders[String(uploaderId)] ?? currentTrack.uploader?.isFollowed ?? false)
+        : false;
     // ─── Shared control button toggle play ────────────────────────────────────
     const handleTogglePlay = () => {
         if (isControlDisabled) return;

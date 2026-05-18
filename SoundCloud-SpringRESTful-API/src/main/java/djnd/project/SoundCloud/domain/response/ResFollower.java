@@ -9,6 +9,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResFollower {
+    Long uploaderId;
     Integer countFollowers;
     Boolean isFollowed;
 

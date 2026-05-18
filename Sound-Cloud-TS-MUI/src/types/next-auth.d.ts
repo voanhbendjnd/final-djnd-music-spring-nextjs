@@ -8,6 +8,7 @@ interface IUser{
     avatar: string;
     type:string;
     username: string;
+    countFollowers: number;
 }
 declare module "next-auth/jwt"{
     interface JWT{

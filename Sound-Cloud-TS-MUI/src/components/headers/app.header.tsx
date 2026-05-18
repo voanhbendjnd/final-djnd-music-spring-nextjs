@@ -35,6 +35,7 @@ import Image from 'next/image';
 import SearchBar from '@/components/search/search-bar';
 import { generateProfileUrl } from "@/utils/generate.slug";
 import {DiscFull} from "@mui/icons-material";
+import UploaderHoverCard from "@/components/profile/uploader.hover.card";
 
 // ─── Mobile nav items ─────────────────────────────────────────────────────────
 // 6 items — hiển thị scrollable horizontal hoặc 2 hàng
@@ -408,13 +409,16 @@ const AppHeader = () => {
                                 )}
 
                                 {session ? (
-                                    <Avatar onClick={handleProfileMenuOpen}
-                                            sx={{ cursor: 'pointer', width: 40, height: 40, position: 'relative', overflow: 'hidden', border: '2px solid transparent', '&:hover': { borderColor: '#f50' }, transition: 'border-color 0.2s' }}>
-                                        {session.user?.avatar ? (
-                                            <Image src={session.user.avatar} alt={session.user?.name || 'Avatar'}
-                                                   fill sizes="40px" style={{ objectFit: 'cover' }} />
-                                        ) : session.user?.name?.charAt(0).toUpperCase()}
-                                    </Avatar>
+                                    <UploaderHoverCard uploader={session.user}>
+                                        <Avatar onClick={handleProfileMenuOpen}
+                                                sx={{ cursor: 'pointer', width: 40, height: 40, position: 'relative', overflow: 'hidden', border: '2px solid transparent', '&:hover': { borderColor: '#f50' }, transition: 'border-color 0.2s' }}>
+                                            {session.user?.avatar ? (
+                                                <Image src={session.user.avatar} alt={session.user?.name || 'Avatar'}
+                                                       fill sizes="40px" style={{ objectFit: 'cover' }} />
+                                            ) : session.user?.name?.charAt(0).toUpperCase()}
+                                        </Avatar>
+                                    </UploaderHoverCard>
+
                                 ) : (
                                     <Link href="/auth/signin" style={{ textDecoration: 'none', color: 'unset' }}>Login</Link>
                                 )}

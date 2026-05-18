@@ -2,6 +2,9 @@ package djnd.project.SoundCloud.repositories;
 
 import java.util.List;
 
+import djnd.project.SoundCloud.domain.it.FollowingInterface;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +25,18 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     @Query(value = "select f.following.id from Follow f where f.follower.id = :userId and f.following.id in :followerIds")
     List<Long> getFollowerIdsByUserId(@Param("userId") Long userId, @Param("followerIds") List<Long> followerIds);
+    @Query(value = """
+        select 
+                u.id as id, u.name as name, u.avatar as avatar, u.countFollowers as countFollowers 
+        from 
+                Follow f
+        join 
+                f.following u
+        where 
+                f.follower.id = :followerId
+        """)
+    Page<FollowingInterface> fetchAllFollowingsByFollowerId(@Param("followerId") Long followerId, Pageable pageable);
+
+
+
 }

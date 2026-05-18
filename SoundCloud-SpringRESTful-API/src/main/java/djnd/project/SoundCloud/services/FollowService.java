@@ -1,6 +1,11 @@
 package djnd.project.SoundCloud.services;
 
+import djnd.project.SoundCloud.domain.entity.User;
+import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
+import djnd.project.SoundCloud.utils.error.PermissionException;
 import org.apache.coyote.BadRequestException;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +30,7 @@ public class FollowService {
     @Transactional
     public ResFollower toggleFollow(Long followingId) throws BadRequestException {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null) throw new BadRequestException("Current user id is null");
         if (userId.equals(followingId)) {
             throw new BadRequestException("Follower ID must be not equal following ID");
         }
@@ -49,5 +55,21 @@ public class FollowService {
         res.setCountFollowers(this.userRepository.getCountFollowers(followingId));
         res.setIsFollowed(deleted <= 0);
         return res;
+    }
+
+    public ResultPaginationDTO getAllFollowing(Pageable pageable) throws BadRequestException {
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null) throw new BadRequestException("Current user id is null");
+        var res = new ResultPaginationDTO();
+        var meta = new ResultPaginationDTO.Meta();
+        var page = this.followRepository.fetchAllFollowingsByFollowerId(userId, pageable);
+        meta.setPage(pageable.getPageNumber() + 1);
+        meta.setPageSize(pageable.getPageSize());
+        meta.setPages(page.getTotalPages());
+        meta.setTotal(page.getTotalElements());
+        res.setMeta(meta);
+        res.setResult(page.getContent());
+        return res;
+
     }
 }

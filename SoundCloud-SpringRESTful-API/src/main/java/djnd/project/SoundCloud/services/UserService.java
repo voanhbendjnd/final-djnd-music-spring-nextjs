@@ -495,6 +495,7 @@ public class UserService {
         userLogin.setType(user.getType() != null ? user.getType() : "SYSTEM");
         userLogin.setAvatar(user.getAvatar());
         userLogin.setUsername(user.getUsername());
+        userLogin.setCountFollowers(user.getCountFollowers());
         res.setUser(userLogin);
         var sessionID = this.sessionManager.createNewSession(user);
         var accessToken = this.securityUtils.createAccessToken(email, res, sessionID, user.getRole());

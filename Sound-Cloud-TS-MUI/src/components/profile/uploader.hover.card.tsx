@@ -35,6 +35,7 @@ const UploaderHoverCard = ({ uploader, children, profileUrl }: UploaderHoverCard
     const mutationFollow = useFollowMutation();
 
     const uploaderIdStr = String(uploader.id);
+    // console.log('>>> UPLOADER ID', typeof uploader.id)
     const isSelf = session && Number(session.user?.id) === Number(uploader.id);
 
     const followState = (followedUploaders ?? {})[uploaderIdStr];

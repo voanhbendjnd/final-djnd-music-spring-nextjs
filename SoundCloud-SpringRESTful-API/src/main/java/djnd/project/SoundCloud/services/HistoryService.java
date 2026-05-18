@@ -123,9 +123,11 @@ public class HistoryService {
         meta.setTotal(myHistories.getTotalElements());
         res.setMeta(meta);
         var finalData = myHistories.getContent().stream().map(this.trackService::convertToResponse).toList();
-        var trackIds = finalData.stream().map(x -> x.getId()).toList();
-        var idsTrackLikes = this.trackLikeRepository.getIdTracksByUserId(userId, trackIds);
-        finalData.forEach(x -> x.setIsLiked(idsTrackLikes.contains(x.getId())));
+        this.trackService.setStateIsFollowed(finalData,userId);
+        this.trackService.setStateIsLiked(finalData,userId);
+//        var trackIds = finalData.stream().map(x -> x.getId()).toList();
+//        var idsTrackLikes = this.trackLikeRepository.getIdTracksByUserId(userId, trackIds);
+//        finalData.forEach(x -> x.setIsLiked(idsTrackLikes.contains(x.getId())));
         res.setResult(finalData);
         return res;
     }

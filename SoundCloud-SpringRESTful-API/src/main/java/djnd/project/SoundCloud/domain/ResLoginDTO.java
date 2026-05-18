@@ -33,6 +33,7 @@ public class ResLoginDTO {
         String avatar;
         String type;
         String username;
+        Integer countFollowers;
     }
 
     @Getter

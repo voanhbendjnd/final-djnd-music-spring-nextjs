@@ -181,9 +181,9 @@ public class TrackController {
 
     @PatchMapping("/view/increase")
     @ApiMessage("Count play track")
-    public ResponseEntity<?> increamentCountPlayTrack(@RequestBody Map<String, Long> mpRequest) {
+    public ResponseEntity<?> incrementCountPlayTrack(@RequestBody Map<String, Long> mpRequest) {
         var trackId = mpRequest.get("trackId");
-        this.trackService.increamentCountPlayTrackToRedis(trackId);
+        this.trackService.incrementCountPlayTrackToRedis(trackId);
         return ResponseEntity.ok(null);
     }
 
@@ -222,8 +222,8 @@ public class TrackController {
     }
 
     @GetMapping("/random")
-    @ApiMessage("Get track ramdom")
-    public ResponseEntity<?> getTrackRamdom() throws BadRequestException {
+    @ApiMessage("Get track random")
+    public ResponseEntity<?> getTrackRandom() throws BadRequestException {
         return ResponseEntity.ok(this.trackService.getTrackRandomForPlayer());
     }
 }

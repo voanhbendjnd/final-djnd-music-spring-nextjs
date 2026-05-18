@@ -3,12 +3,10 @@ package djnd.project.SoundCloud.controllers.client;
 import java.util.Map;
 
 import org.apache.coyote.BadRequestException;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import djnd.project.SoundCloud.services.FollowService;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
@@ -41,5 +39,11 @@ public class FollowController {
         }
         throw new BadRequestException("Following ID not found!");
 
+    }
+
+    @GetMapping
+    @ApiMessage("Get followings by follower")
+    public ResponseEntity<?>getFollowings(Pageable pageable) throws BadRequestException{
+        return ResponseEntity.ok(this.followService.getAllFollowing(pageable));
     }
 }

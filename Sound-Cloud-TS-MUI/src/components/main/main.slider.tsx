@@ -453,6 +453,7 @@ const MobileTrackRow = ({ track, trackList }: { track: any; trackList: any[] }) 
 
                         </Typography>
                     </Link>
+
                     <Link href={generateProfileUrl(track.uploader.name, track.uploader.id)} style={{ textDecoration: 'none', color: 'white' }}>
                       <Typography variant="caption" sx={{ color: '#a7a7a7', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {track.uploader?.name || "no name"}

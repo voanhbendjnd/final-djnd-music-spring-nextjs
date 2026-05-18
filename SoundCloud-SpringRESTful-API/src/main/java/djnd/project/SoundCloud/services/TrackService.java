@@ -2,11 +2,7 @@ package djnd.project.SoundCloud.services;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 import djnd.project.SoundCloud.domain.entity.Category;
 import djnd.project.SoundCloud.domain.entity.User;
@@ -195,6 +191,7 @@ public class TrackService {
         }
         if (qStr != null && !qStr.isBlank()) {
             spec = spec.and((root, query, cb) -> {
+                assert query != null;
                 query.distinct(true);
                 String searchPattern = "%" + qStr.toLowerCase() + "%";
                 Predicate titlePredicate = cb.like(cb.lower(root.get("title")), searchPattern);
@@ -212,21 +209,9 @@ public class TrackService {
         res.setMeta(meta);
         var userId = SecurityUtils.getCurrentUserIdOrNull();
         var finalData = page.getContent().stream()
-                .map(x -> convertToResponse(x))
+                .map(this::convertToResponse)
                 .toList();
         if (userId != null) {
-            // var trackIds = finalData.stream().map(x -> x.getId()).toList();
-            // var likeTrackIdsSet = this.trackLikeRepository.getIdTracksByUserId(userId,
-            // trackIds).stream()
-            // .collect(Collectors.toSet());
-            // finalData.forEach(x -> x.setIsLiked(likeTrackIdsSet.contains(x.getId())));
-            // var allOwnerIds = page.getContent().stream().map(x ->
-            // x.getUser().getId()).toList();
-            // var followingIds = this.followRepository.getFollowerIdsByUserId(userId,
-            // allOwnerIds).stream()
-            // .collect(Collectors.toSet());
-            // finalData.forEach(x ->
-            // x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
             this.setStateIsFollowed(finalData, userId);
             this.setStateIsLiked(finalData, userId);
         }
@@ -261,16 +246,13 @@ public class TrackService {
         result.setWaveformUrl(x.getWaveformUrl());
         var user = x.getUser();
         var uploader = new TrackResponse.Uploader();
-        // uploader.setEmail(user.getEmail());
         uploader.setId(user.getId());
         uploader.setName(user.getName());
         uploader.setCountFollowers(user.getCountFollowers());
         if (user.getAvatar() != null) {
             uploader.setAvatar(user.getAvatar());
         }
-        // if (user.getRole() != null) {
-        // uploader.setRole(user.getRole().getName());
-        // }
+
         result.setUploader(uploader);
         return result;
     }
@@ -293,26 +275,14 @@ public class TrackService {
         if (userLoginId != null) {
             this.setStateIsFollowed(finalData, userLoginId);
             this.setStateIsLiked(finalData, userLoginId);
-            // var trackIds = finalData.stream().map(x -> x.getId()).toList();
-            // var idsTrackLiked = this.trackLikeRepository.getIdTracksByUserId(userLoginId,
-            // trackIds);
-            // finalData.forEach(x -> x.setIsLiked(idsTrackLiked.contains(x.getId())));
-            // var allOwnerIds = page.getContent().stream().map(x ->
-            // x.getUser().getId()).toList();
-            // var followingIds = this.followRepository.getFollowerIdsByUserId(userId,
-            // allOwnerIds).stream()
-            // .collect(Collectors.toSet());
-            // finalData.forEach(x ->
-            // x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
         }
         res.setResult(finalData);
         return res;
     }
 
     public Track getTrackOrThrow(Long id) {
-        var track = this.trackRepository.findById(id)
+         return this.trackRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Track ID", "" + id));
-        return track;
     }
 
     @Transactional
@@ -327,10 +297,10 @@ public class TrackService {
             trackLike.setUser(user);
 
             this.trackLikeRepository.save(trackLike);
-            this.trackRepository.increamentCountLikes(trackId);
+            this.trackRepository.incrementCountLikes(trackId);
         } else {
             this.trackLikeRepository.deleteByUserIdAndTrackId(user.getId(), trackId);
-            this.trackRepository.decreamentCountLikes(trackId);
+            this.trackRepository.decrementCountLikes(trackId);
         }
 
         var res = new ResTrackLike();
@@ -340,7 +310,7 @@ public class TrackService {
         return res;
     }
 
-    public void increamentCountPlayTrackToRedis(Long trackId) {
+    public void incrementCountPlayTrackToRedis(Long trackId) {
         this.countPlayTrack.saveViewToRedis(trackId);
     }
 
@@ -348,7 +318,7 @@ public class TrackService {
      * fixedRate = 600000 after 10 minutes run
      */
     @Scheduled(fixedRate = 600000)
-    public void increamentCountPlayTrack() {
+    public void incrementCountPlayTrack() {
         var viewMaps = this.countPlayTrack.getTrackIdAndCountView();
         if (viewMaps == null)
             return;
@@ -393,34 +363,22 @@ public class TrackService {
         meta.setTotal(myTracks.getTotalElements());
         res.setMeta(meta);
         // var userId = SecurityUtils.getCurrentUserIdOrNull();
-        var resMyTracks = myTracks.getContent().stream().map(x -> convertToResponse(x)).toList();
+        var resMyTracks = myTracks.getContent().stream().map(this::convertToResponse).toList();
         resMyTracks.forEach(x -> x.setIsLiked(true));
-        if (user != null) {
-            // var allOwnerIds = myTracks.getContent().stream().map(x ->
-            // x.getUser().getId()).toList();
-            // var followingIds = this.followRepository.getFollowerIdsByUserId(user.getId(),
-            // allOwnerIds).stream()
-            // .collect(Collectors.toSet());
-            // resMyTracks.forEach(x ->
-            // x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
-            this.setStateIsFollowed(resMyTracks, user.getId());
-        }
-        // var itrackIds = this.trackLikeRepository.findLikedTrackIds(user.getId(),
-        // resMyTracks.stream().map(x -> x.getId()).toList());
+        this.setStateIsFollowed(resMyTracks, user.getId());
         res.setResult(resMyTracks);
         return res;
     }
 
     protected void setStateIsLiked(List<TrackResponse> finalData, Long userLoginId) {
-        var trackIds = finalData.stream().map(x -> x.getId()).toList();
-        var idsTrackLiked = this.trackLikeRepository.getIdTracksByUserId(userLoginId, trackIds);
+        var trackIds = finalData.stream().map(TrackResponse::getId).toList();
+        var idsTrackLiked =new HashSet<>(this.trackLikeRepository.getIdTracksByUserId(userLoginId, trackIds));
         finalData.forEach(x -> x.setIsLiked(idsTrackLiked.contains(x.getId())));
     }
 
     protected void setStateIsFollowed(List<TrackResponse> finalData, Long userLoginId) {
         var allOwnerIds = finalData.stream().map(x -> x.getUploader().getId()).toList();
-        var followingIds = this.followRepository.getFollowerIdsByUserId(userLoginId, allOwnerIds).stream()
-                .collect(Collectors.toSet());
+        var followingIds = new HashSet<>(this.followRepository.getFollowerIdsByUserId(userLoginId, allOwnerIds));
         finalData.forEach(x -> x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
     }
 
@@ -514,7 +472,7 @@ public class TrackService {
         if (recentTrackIds == null || recentTrackIds.isEmpty()) {
             recentTrackIds.add(0L);
         }
-        var track = this.trackRepository.getTrackRamdom(recentTrackIds, PageRequest.of(0, 1)).getFirst();
+        var track = this.trackRepository.getTrackRandom(recentTrackIds, PageRequest.of(0, 1)).getFirst();
         if (track == null) {
             throw new BadRequestException("Not track!");
         }

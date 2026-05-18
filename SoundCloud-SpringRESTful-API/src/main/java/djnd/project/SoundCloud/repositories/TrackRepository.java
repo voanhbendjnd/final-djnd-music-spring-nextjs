@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.repositories;
 
 import java.util.List;
 
+import io.micrometer.common.lang.NonNullApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -31,19 +32,18 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query(value = "update Track t set t.countLike = t.countLike + 1 where t.id = :trackId")
-    void increamentCountLikes(@Param("trackId") Long trackId);
+    void incrementCountLikes(@Param("trackId") Long trackId);
 
     /**
      * Modify for spring know this method write data instead of read data
      * clearAuto delete cache in JPA, because data response track old iof track
      * update
      * 
-     * @param trackId
      */
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query(value = "update Track t set t.countLike = t.countLike - 1 where t.id = :trackId")
-    void decreamentCountLikes(@Param("trackId") Long trackId);
+    void decrementCountLikes(@Param("trackId") Long trackId);
 
     @Query(value = "select t.countLike from Track t where t.id = :trackId")
     Integer getCountLike(@Param("trackId") Long id);
@@ -51,7 +51,7 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query(value = "update Track t set t.countPlay = t.countPlay + 1 where t.id = :trackId")
-    void increamentCountPlay(@Param("trackId") Long trackId);
+    void incrementCountPlay(@Param("trackId") Long trackId);
 
     @Query(value = "select t.countPlay from Track t where t.id = :trackId")
     Long getCountPlayTrack(@Param("trackId") Long id);
@@ -86,6 +86,6 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
 
     @EntityGraph(attributePaths = { "user", "category" })
     @Query(value = "select t from Track t where t.id not in :ids order by RAND()")
-    List<Track> getTrackRamdom(@Param("ids") List<Long> ids, Pageable pageable);
+    List<Track> getTrackRandom(@Param("ids") List<Long> ids, Pageable pageable);
 
 }

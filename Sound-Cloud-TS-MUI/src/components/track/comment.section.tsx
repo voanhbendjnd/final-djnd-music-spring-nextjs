@@ -412,12 +412,16 @@ const CommentSection = (props: IProps) => {
 
                     {allComments.map((comment) => (
                         <Box key={comment.id} sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
-                            <Avatar
-                                src={comment.user?.avatar || undefined}
-                                sx={{ width: 32, height: 32 }}
-                            >
-                                {comment.user?.name?.charAt(0).toUpperCase()}
-                            </Avatar>
+                            <UploaderHoverCard uploader={comment.user}>
+                                <Avatar
+                                    src={comment.user?.avatar || undefined}
+                                    sx={{ width: 32, height: 32 }}
+                                >
+                                    {comment.user?.name?.charAt(0).toUpperCase()}
+                                </Avatar>
+                            </UploaderHoverCard>
+
+
 
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                 <Box
@@ -429,7 +433,7 @@ const CommentSection = (props: IProps) => {
                                         gap: { xs: 0.5, md: 0 },
                                     }}
                                 >
-                                    <UploaderHoverCard uploader={comment.user}>
+                                    {/*<UploaderHoverCard uploader={comment.user}>*/}
                                         <Typography sx={{ color: '#fff', fontSize: 13, wordBreak: 'break-word' }}>
                                             <Link
                                                 href={generateProfileUrl(comment.user.name, String(comment.user.id))}
@@ -444,12 +448,37 @@ const CommentSection = (props: IProps) => {
                                             {' at '}
                                             <span
                                                 onClick={() => handleJumpToMoment(comment.moment)}
-                                                style={{ cursor: 'pointer', color: '#ccc' }}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    color: '#bdbdbd',
+
+                                                    transition: 'all 0.15s ease',
+
+                                                    padding: '1px 6px',
+
+                                                    borderRadius: '4px',
+
+                                                    display: 'inline-block',
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.color = '#fff';
+                                                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.color = '#bdbdbd';
+                                                    e.currentTarget.style.background = 'transparent';
+                                                }}
+                                                onMouseDown={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(0.96)';
+                                                }}
+                                                onMouseUp={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                }}
                                             >
-                                            {formatMoment(comment.moment)}
-                                        </span>
+    {formatMoment(comment.moment)}
+</span>
                                         </Typography>
-                                    </UploaderHoverCard>
+                                    {/*</UploaderHoverCard>*/}
 
 
                                     <Typography sx={{ fontSize: 12, color: '#aaa', whiteSpace: 'nowrap' }}>

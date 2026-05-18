@@ -108,11 +108,12 @@ declare global{
         moment: number;
         user:{
             id: number;
-            role:string;
+            // role:string;
             avatar:string;
             name:string;
-            email:string;
-            type:string;
+            countFollowers:number;
+            // email:string;
+            // type:string;
         }
         track:{
             id: number;

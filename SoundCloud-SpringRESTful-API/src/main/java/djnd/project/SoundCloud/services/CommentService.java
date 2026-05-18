@@ -17,6 +17,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.Collections;
+
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
@@ -63,7 +65,7 @@ public class CommentService {
             meta.setPages(totalPages);
             meta.setTotal(page.getTotalElements());
             res.setMeta(meta);
-            res.setResult(java.util.Collections.emptyList());
+            res.setResult(Collections.emptyList());
             return res;
         }
 
@@ -93,11 +95,12 @@ public class CommentService {
         var user = comment.getUser();
         var track = comment.getTrack();
         userComment.setAvatar(user.getAvatar());
-        userComment.setEmail(user.getEmail());
+        userComment.setCountFollowers(user.getCountFollowers());
+//        userComment.setEmail(user.getEmail());
         userComment.setId(user.getId());
         userComment.setName(user.getName());
-        userComment.setRole(user.getRole().getName());
-        userComment.setType(user.getType());
+//        userComment.setRole(user.getRole().getName());
+//        userComment.setType(user.getType());
         trackComment.setId(track.getId());
         trackComment.setImgUrl(track.getImgUrl());
         trackComment.setTitle(track.getTitle());

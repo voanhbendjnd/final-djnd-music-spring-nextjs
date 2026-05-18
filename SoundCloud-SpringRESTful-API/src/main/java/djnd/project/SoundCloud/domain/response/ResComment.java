@@ -32,10 +32,11 @@ public class ResComment {
     public static class UserComment {
         Long id;
         String avatar;
-        String role;
+//        String role;
         String name;
-        String email;
-        String type;
+//        String email;
+//        String type;
+        Integer countFollowers;
     }
 
     @Setter

@@ -2,7 +2,7 @@
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import {Headphones, HeartBroken} from "@mui/icons-material";
+import {FavoriteBorder, Headphones, HearingSharp, HeartBroken} from "@mui/icons-material";
 import React, { useState, useEffect } from "react";
 import { useCountTrackMutation, useLikeTrackMutation } from "@/hooks/use-track";
 import { useSession } from "next-auth/react";
@@ -137,8 +137,8 @@ const LikeTrack = (props: IProps) => {
                             }}
                             icon={
                                 isLiked
-                                    ? <FavoriteIcon fontSize="small" />
-                                    : <HeartBroken fontSize="small" />
+                                    ? <FavoriteIcon />
+                                    : <FavoriteBorder />
                             }
                             // icon={<FavoriteIcon />}
                             label={isLiked ? "Liked" : "Like"}
@@ -152,7 +152,8 @@ const LikeTrack = (props: IProps) => {
                                     else router.push('/auth/signin');
 
                                 }}
-                                sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                                sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' },
+                                }}>
                             {!isMobile ?'Playlist' : ''}
                         </Button>
                         <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />}

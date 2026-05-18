@@ -55,6 +55,8 @@ declare global{
             "id": string;
             "name": string;
             "avatar":string;
+            "countFollowers":number;
+            "isFollowed": boolean;
         }
         "createdAt": string;
         "updatedAt": string;

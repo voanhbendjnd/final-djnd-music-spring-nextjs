@@ -5,6 +5,7 @@ import { sendRequest } from '@/utils/api';
 import '@/styles/app.css'
 import {getServerSession} from "next-auth";
 import {Metadata} from "next";
+import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 export const metadata:Metadata ={
   title:'Discover the top streamed music and songs online DJ music',
   description:'Home music'
@@ -24,12 +25,11 @@ export default async function HomePage() {
   // console.log("Check data server: ", await res.json());
   // const session = await getServerSession(authOptions);
   // console.log('>>> Session', session);
-  interface IUser {
-    name: String;
-    age: number;
-  }
+
+  const session = await getServerSession(authOptions);
 
   const newTracks = await sendRequest<IBackendRes<IFallbackHome<ITrackResponseWrapper>>>({
+
     url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks`,
     method: "GET",
     queryParams: {
@@ -38,7 +38,13 @@ export default async function HomePage() {
       sort: "updatedAt,desc"
     },    nextOption: {
       cache: 'no-store'
-    }
+    },
+    headers: {
+      // Chỉ gửi nếu có session
+      ...(session?.access_token && {
+        Authorization: `Bearer ${session.access_token}`
+      }),
+    },
   });
   const tracksMostListens = await sendRequest<IBackendRes<IFallbackHome<ITrackResponseWrapper>>>({
     url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks`,
@@ -49,7 +55,13 @@ export default async function HomePage() {
       sort: "countPlay,desc"
     },    nextOption: {
       cache: 'no-store'
-    }
+    },
+    headers: {
+      // Chỉ gửi nếu có session
+      ...(session?.access_token && {
+        Authorization: `Bearer ${session.access_token}`
+      }),
+    },
   });
   const tracksMostLikes = await sendRequest<IBackendRes<IFallbackHome<ITrackResponseWrapper>>>({
     url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks`,
@@ -60,7 +72,13 @@ export default async function HomePage() {
       sort: "countLike,desc"
     },    nextOption: {
       cache: 'no-store'
-    }
+    },
+    headers: {
+      // Chỉ gửi nếu có session
+      ...(session?.access_token && {
+        Authorization: `Bearer ${session.access_token}`
+      }),
+    },
   });
   //@ts-ignore
   const lastNewTracks = newTracks?.data?.data?.[0]?.result ?? [];

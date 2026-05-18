@@ -34,5 +34,7 @@ public class TrackResponse {
         String name;
         // String role;
         String avatar;
+        Integer countFollowers;
+        Boolean isFollowed;
     }
 }

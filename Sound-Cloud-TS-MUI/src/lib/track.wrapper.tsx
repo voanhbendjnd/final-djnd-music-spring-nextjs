@@ -61,6 +61,8 @@ const mapToShareTrack = (raw: any, isPlaying = true): IShareTrack => ({
         id: String(raw?.uploader?.id ?? ''),
         name: String(raw?.uploader?.name ?? ''),
         avatar: String(raw?.uploader?.avatar ?? ''),
+        isFollowed: Boolean(raw?.uploader?.isFollowed ?? true),
+        countFollowers: Number(raw?.uploader?.countFollowers ?? 0),
     },
     createdAt: String(raw?.createdAt ?? ''),
     updatedAt: String(raw?.updatedAt ?? ''),

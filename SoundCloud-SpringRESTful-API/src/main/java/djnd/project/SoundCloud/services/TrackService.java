@@ -36,6 +36,7 @@ import djnd.project.SoundCloud.domain.response.SearchFallbackResponse;
 import djnd.project.SoundCloud.domain.response.TrackResponse;
 import djnd.project.SoundCloud.redis.services.CountPlayTrack;
 import djnd.project.SoundCloud.repositories.CategoryRepository;
+import djnd.project.SoundCloud.repositories.FollowRepository;
 import djnd.project.SoundCloud.repositories.HistoryTrackRepository;
 import djnd.project.SoundCloud.repositories.TrackLikeRepository;
 import djnd.project.SoundCloud.repositories.TrackRepository;
@@ -60,6 +61,7 @@ public class TrackService {
     final WaveformService waveformService;
     final YouTubeService youtubeService;
     final HistoryTrackRepository historyTrackRepository;
+    final FollowRepository followRepository;
     @Value("${djnd.soundcloud.location.folder.img}")
     private String imgFolder;
     @Value("${djnd.soundcloud.location.folder.temp}")
@@ -165,6 +167,8 @@ public class TrackService {
         var res = convertToResponse(track);
         if (userId != null) {
             res.setIsLiked(this.trackLikeRepository.existsByUserIdAndTrackId(userId, id));
+            res.getUploader().setIsFollowed(
+                    this.followRepository.existsByFollowerIdAndFollowingId(userId, track.getUser().getId()));
         }
         return res;
 
@@ -211,10 +215,20 @@ public class TrackService {
                 .map(x -> convertToResponse(x))
                 .toList();
         if (userId != null) {
-            var trackIds = finalData.stream().map(x -> x.getId()).toList();
-            var likeTrackIdsSet = this.trackLikeRepository.getIdTracksByUserId(userId, trackIds).stream()
-                    .collect(Collectors.toSet());
-            finalData.forEach(x -> x.setIsLiked(likeTrackIdsSet.contains(x.getId())));
+            // var trackIds = finalData.stream().map(x -> x.getId()).toList();
+            // var likeTrackIdsSet = this.trackLikeRepository.getIdTracksByUserId(userId,
+            // trackIds).stream()
+            // .collect(Collectors.toSet());
+            // finalData.forEach(x -> x.setIsLiked(likeTrackIdsSet.contains(x.getId())));
+            // var allOwnerIds = page.getContent().stream().map(x ->
+            // x.getUser().getId()).toList();
+            // var followingIds = this.followRepository.getFollowerIdsByUserId(userId,
+            // allOwnerIds).stream()
+            // .collect(Collectors.toSet());
+            // finalData.forEach(x ->
+            // x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
+            this.setStateIsFollowed(finalData, userId);
+            this.setStateIsLiked(finalData, userId);
         }
         res.setResult(finalData);
 
@@ -250,6 +264,7 @@ public class TrackService {
         // uploader.setEmail(user.getEmail());
         uploader.setId(user.getId());
         uploader.setName(user.getName());
+        uploader.setCountFollowers(user.getCountFollowers());
         if (user.getAvatar() != null) {
             uploader.setAvatar(user.getAvatar());
         }
@@ -276,9 +291,19 @@ public class TrackService {
         var userLoginId = SecurityUtils.getCurrentUserIdOrNull();
         var finalData = page.getContent().stream().map(this::convertToResponse).toList();
         if (userLoginId != null) {
-            var trackIds = finalData.stream().map(x -> x.getId()).toList();
-            var idsTrackLiked = this.trackLikeRepository.getIdTracksByUserId(userLoginId, trackIds);
-            finalData.forEach(x -> x.setIsLiked(idsTrackLiked.contains(x.getId())));
+            this.setStateIsFollowed(finalData, userLoginId);
+            this.setStateIsLiked(finalData, userLoginId);
+            // var trackIds = finalData.stream().map(x -> x.getId()).toList();
+            // var idsTrackLiked = this.trackLikeRepository.getIdTracksByUserId(userLoginId,
+            // trackIds);
+            // finalData.forEach(x -> x.setIsLiked(idsTrackLiked.contains(x.getId())));
+            // var allOwnerIds = page.getContent().stream().map(x ->
+            // x.getUser().getId()).toList();
+            // var followingIds = this.followRepository.getFollowerIdsByUserId(userId,
+            // allOwnerIds).stream()
+            // .collect(Collectors.toSet());
+            // finalData.forEach(x ->
+            // x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
         }
         res.setResult(finalData);
         return res;
@@ -370,10 +395,33 @@ public class TrackService {
         // var userId = SecurityUtils.getCurrentUserIdOrNull();
         var resMyTracks = myTracks.getContent().stream().map(x -> convertToResponse(x)).toList();
         resMyTracks.forEach(x -> x.setIsLiked(true));
+        if (user != null) {
+            // var allOwnerIds = myTracks.getContent().stream().map(x ->
+            // x.getUser().getId()).toList();
+            // var followingIds = this.followRepository.getFollowerIdsByUserId(user.getId(),
+            // allOwnerIds).stream()
+            // .collect(Collectors.toSet());
+            // resMyTracks.forEach(x ->
+            // x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
+            this.setStateIsFollowed(resMyTracks, user.getId());
+        }
         // var itrackIds = this.trackLikeRepository.findLikedTrackIds(user.getId(),
         // resMyTracks.stream().map(x -> x.getId()).toList());
         res.setResult(resMyTracks);
         return res;
+    }
+
+    protected void setStateIsLiked(List<TrackResponse> finalData, Long userLoginId) {
+        var trackIds = finalData.stream().map(x -> x.getId()).toList();
+        var idsTrackLiked = this.trackLikeRepository.getIdTracksByUserId(userLoginId, trackIds);
+        finalData.forEach(x -> x.setIsLiked(idsTrackLiked.contains(x.getId())));
+    }
+
+    protected void setStateIsFollowed(List<TrackResponse> finalData, Long userLoginId) {
+        var allOwnerIds = finalData.stream().map(x -> x.getUploader().getId()).toList();
+        var followingIds = this.followRepository.getFollowerIdsByUserId(userLoginId, allOwnerIds).stream()
+                .collect(Collectors.toSet());
+        finalData.forEach(x -> x.getUploader().setIsFollowed(followingIds.contains(x.getUploader().getId())));
     }
 
     public TrackResponse getUploader(Long trackId, Long lastId, String trackUrl) {
@@ -450,6 +498,11 @@ public class TrackService {
         res.setMeta(meta);
 
         var finalData = page.getContent().stream().map(this::convertToResponse).toList();
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if (userId != null) {
+            this.setStateIsFollowed(finalData, userId);
+            this.setStateIsLiked(finalData, userId);
+        }
         res.setResult(finalData);
         return res;
     }

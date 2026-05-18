@@ -1,5 +1,7 @@
 package djnd.project.SoundCloud.repositories;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +17,7 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "delete from Follow f where f.follower.id = :followerId and f.following.id = :followingId")
     int deleteFollower(@Param("followerId") Long followerId, @Param("followingId") Long followingId);
+
+    @Query(value = "select f.following.id from Follow f where f.follower.id = :userId and f.following.id in :followerIds")
+    List<Long> getFollowerIdsByUserId(@Param("userId") Long userId, @Param("followerIds") List<Long> followerIds);
 }

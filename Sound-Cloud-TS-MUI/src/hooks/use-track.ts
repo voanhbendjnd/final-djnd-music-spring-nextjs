@@ -133,6 +133,21 @@ export interface IResTrackLike {
     isLiked: boolean;
     countPlays: number;
 }
+export interface IResFollow{
+    countFollowers: number;
+    isFollowed: boolean;
+}
+export const useFollowMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (followingId: number) =>
+            axiosInstance.post<any, IBackendRes<IResFollow>>(`/api/v1/follows`, { followingId }),
+        onSuccess: (res, followingId) => {
+            queryClient.invalidateQueries({ queryKey: trackKeys.detail(followingId) });
+            queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
+        },
+    });
+};
 
 export const useLikeTrackMutation = () => {
     const queryClient = useQueryClient();

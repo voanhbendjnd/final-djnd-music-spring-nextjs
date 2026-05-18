@@ -52,4 +52,5 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     @Query(value = "select u.countFollowers from User u where u.id = :userId")
     Integer getCountFollowers(@Param("userId") Long userId);
+
 }

@@ -8,13 +8,13 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import IconButton from "@mui/material/IconButton";
-import { Container, useMediaQuery, useTheme, Slider } from "@mui/material";
+import {Container, useMediaQuery, useTheme, Slider, Tooltip} from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import RepeatOneIcon from '@mui/icons-material/RepeatOne';
 import axiosInstance from "@/utils/axios-instance";
 import Link from "next/link";
-import { useLikeTrackMutation } from "@/hooks/use-track";
+import {useLikeTrackMutation} from "@/hooks/use-track";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
@@ -27,7 +27,8 @@ import SkipNextIcon from '@mui/icons-material/SkipNext';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
 import { redirect, useRouter } from "next/navigation";
 import { audioEngine } from "@/lib/audio-engine";
-import {VolumeDown, VolumeOff, VolumeUp} from "@mui/icons-material";
+import {PersonRemove, VolumeDown, VolumeOff, VolumeUp} from "@mui/icons-material";
+import {useFollowMutation} from "@/hooks/use.follow";
 
 const AppFooter = () => {
     const {
@@ -37,9 +38,9 @@ const AppFooter = () => {
         repeatMode, setRepeatMode,
         isRoomMode, isHost
     } = useTrackContext() as ITrackContext;
-    
+
     const isControlDisabled = isRoomMode && !isHost;
-    
+
     // Debugging room mode and host status
     useEffect(() => {
         if (isRoomMode) {
@@ -49,6 +50,8 @@ const AppFooter = () => {
     const hasMounted = useHasMounted();
 
     const mutation = useLikeTrackMutation();
+    const mutationFollow = useFollowMutation();
+
     const [isLiked, setIsLiked] = useState<boolean>(currentTrack.isLiked);
     const { data: session } = useSession();
     const keyword = "upload/";
@@ -110,6 +113,31 @@ const AppFooter = () => {
     useEffect(() => {
         setIsLiked(currentTrack.isLiked);
     }, [currentTrack.id, currentTrack.isLiked]);
+    // ── Follow toggle ─────────────────────────────────────────────────────────
+    const handleFollowClick = () => {
+        if (!session) {
+            router.push('/auth/signin');
+            return;
+        }
+
+        const uploaderId = currentTrack.uploader?.id;
+        if (!uploaderId) return;
+
+        mutationFollow.mutate(String(uploaderId), {
+            onSuccess: (res) => {
+                const payload = res.data;
+
+                setCurrentTrack({
+                    ...currentTrack,
+                    uploader: {
+                        ...currentTrack.uploader,
+                        isFollowed: payload.isFollowed,
+                        countFollowers: payload.countFollowers,
+                    },
+                });
+            },
+        });
+    };
 
     // Time update effect using singleton audioEngine
     useEffect(() => {
@@ -178,6 +206,24 @@ const AppFooter = () => {
         return null;
     }
 
+    const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+    const isFollowed = currentTrack.uploader?.isFollowed ?? false;
+
+    // ─── Shared control button toggle play ────────────────────────────────────
+    const handleTogglePlay = () => {
+        if (isControlDisabled) return;
+        if (currentTrack.isPlaying) {
+            audioEngine.pause();
+            setCurrentTrack({ ...currentTrack, isPlaying: false });
+        } else {
+            audioEngine.play(currentTrack.trackUrl).catch((e: any) => console.log('Play failed:', e));
+            setCurrentTrack({ ...currentTrack, isPlaying: true });
+        }
+    };
+
+
+
+
 
     return (
         <div style={{ marginTop: 50, display: 'block' }}>
@@ -220,91 +266,106 @@ const AppFooter = () => {
                                 gap: '12px'
                             }}>
                                 {/* Main Controls */}
-                                <IconButton
-                                    onClick={() => playPreviousTrack()}
-                                    sx={{ color: 'white', fontSize: '28px', opacity: isControlDisabled ? 0.3 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
-                                    disabled={isControlDisabled}
-                                >
-                                    <SkipPreviousIcon sx={{ fontSize: 28 }} />
-                                </IconButton>
+                                <Tooltip title="PreviousTrack" placement="top">
+                                    <IconButton
+                                        onClick={() => playPreviousTrack()}
+                                        sx={{ color: 'white', fontSize: '28px', opacity: isControlDisabled ? 0.3 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
+                                        disabled={isControlDisabled}
+                                    >
+                                        <SkipPreviousIcon sx={{ fontSize: 28 }} />
+                                    </IconButton>
+                                </Tooltip>
 
-                                <IconButton
-                                    onClick={() => {
-                                        if (isControlDisabled) return;
-                                        if (currentTrack.isPlaying) {
-                                            audioEngine.pause();
-                                            setCurrentTrack({ ...currentTrack, isPlaying: false });
-                                        } else {
-                                            audioEngine.play(currentTrack.trackUrl).catch((e: any) => console.log('Play failed:', e));
-                                            setCurrentTrack({ ...currentTrack, isPlaying: true });
-                                        }
-                                    }}
-                                    disabled={isControlDisabled}
-                                    sx={{
-                                        color: 'white',
-                                        borderRadius: '50%',
-                                        width: '40px',
-                                        height: '40px',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        opacity: isControlDisabled ? 0.3 : 1,
-                                        pointerEvents: isControlDisabled ? 'none' : 'auto',
-                                        '& svg': {
-                                            fontSize: '28px'
-                                        }
-                                    }}
-                                >
-                                    {currentTrack.isPlaying ? <PauseIcon sx={{ fontSize: 28 }} /> : <PlayArrowIcon sx={{ fontSize: 28 }} />}
-                                </IconButton>
+                                <Tooltip title={currentTrack.isPlaying ? 'Pause track' : 'Play track'} placement="top">
+                                    <IconButton
+                                        // onClick={() => {
+                                        //     if (isControlDisabled) return;
+                                        //     if (currentTrack.isPlaying) {
+                                        //         audioEngine.pause();
+                                        //         setCurrentTrack({ ...currentTrack, isPlaying: false });
+                                        //     } else {
+                                        //         audioEngine.play(currentTrack.trackUrl).catch((e: any) => console.log('Play failed:', e));
+                                        //         setCurrentTrack({ ...currentTrack, isPlaying: true });
+                                        //     }
+                                        // }}
+                                        // disabled={isControlDisabled}
 
-                                <IconButton
-                                    onClick={() => playNextTrack()}
-                                    sx={{ color: 'white', fontSize: '28px', opacity: isControlDisabled ? 0.3 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
-                                    disabled={isControlDisabled}
-                                >
-                                    <SkipNextIcon sx={{ fontSize: 28 }} />
-                                </IconButton>
+                                        onClick={handleTogglePlay} disabled={isControlDisabled}
+                                        sx={{
+                                            color: 'white',
+                                            borderRadius: '50%',
+                                            width: '40px',
+                                            height: '40px',
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            opacity: isControlDisabled ? 0.3 : 1,
+                                            pointerEvents: isControlDisabled ? 'none' : 'auto',
+                                            '& svg': {
+                                                fontSize: '28px'
+                                            }
+                                        }}
+                                    >
+                                        {currentTrack.isPlaying ? <PauseIcon sx={{ fontSize: 28 }} /> : <PlayArrowIcon sx={{ fontSize: 28 }} />}
+                                    </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title="Next track" placement="top">
+                                    <IconButton
+                                        onClick={() => playNextTrack()}
+                                        sx={{ color: 'white', fontSize: '28px', opacity: isControlDisabled ? 0.3 : 1, pointerEvents: isControlDisabled ? 'none' : 'auto' }}
+                                        disabled={isControlDisabled}
+                                    >
+                                        <SkipNextIcon sx={{ fontSize: 28 }} />
+                                    </IconButton>
+                                </Tooltip>
+
 
                                 {/* Shuffle Button */}
-                                <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                        if (isControlDisabled) return;
-                                        setIsShuffle(!isShuffle);
-                                    }}
-                                    disabled={isControlDisabled}
-                                    sx={{
-                                        color: isShuffle ? '#f50' : '#ccc',
-                                        opacity: isControlDisabled ? 0.4 : 1,
-                                        pointerEvents: isControlDisabled ? 'none' : 'auto',
-                                        transition: 'all 0.2s',
-                                        '&:hover': { color: 'white' }
-                                    }}
-                                >
-                                    <ShuffleIcon sx={{ fontSize: 22 }} />
-                                </IconButton>
+                                <Tooltip title="Play tracks shuffle" placement="top">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            if (isControlDisabled) return;
+                                            setIsShuffle(!isShuffle);
+                                        }}
+                                        disabled={isControlDisabled}
+                                        sx={{
+                                            color: isShuffle ? '#f50' : '#ccc',
+                                            opacity: isControlDisabled ? 0.4 : 1,
+                                            pointerEvents: isControlDisabled ? 'none' : 'auto',
+                                            transition: 'all 0.2s',
+                                            '&:hover': { color: 'white' }
+                                        }}
+                                    >
+                                        <ShuffleIcon sx={{ fontSize: 22 }} />
+                                    </IconButton>
+                                </Tooltip>
+
 
                                 {/* Repeat Button */}
-                                <IconButton
-                                    size="small"
-                                    onClick={() => {
-                                        if (isControlDisabled) return;
-                                        if (repeatMode === 'none') setRepeatMode('all');
-                                        else if (repeatMode === 'all') setRepeatMode('one');
-                                        else setRepeatMode('none');
-                                    }}
-                                    disabled={isControlDisabled}
-                                    sx={{
-                                        color: repeatMode !== 'none' ? '#f50' : '#ccc',
-                                        opacity: isControlDisabled ? 0.4 : 1,
-                                        pointerEvents: isControlDisabled ? 'none' : 'auto',
-                                        transition: 'all 0.2s',
-                                        '&:hover': { color: 'white' }
-                                    }}
-                                >
-                                    {repeatMode === 'one' ? <RepeatOneIcon sx={{ fontSize: 22 }} /> : <RepeatIcon sx={{ fontSize: 22 }} />}
-                                </IconButton>
+                                <Tooltip title="Repeat this track" placement="top">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            if (isControlDisabled) return;
+                                            if (repeatMode === 'none') setRepeatMode('all');
+                                            else if (repeatMode === 'all') setRepeatMode('one');
+                                            else setRepeatMode('none');
+                                        }}
+                                        disabled={isControlDisabled}
+                                        sx={{
+                                            color: repeatMode !== 'none' ? '#f50' : '#ccc',
+                                            opacity: isControlDisabled ? 0.4 : 1,
+                                            pointerEvents: isControlDisabled ? 'none' : 'auto',
+                                            transition: 'all 0.2s',
+                                            '&:hover': { color: 'white' }
+                                        }}
+                                    >
+                                        {repeatMode === 'one' ? <RepeatOneIcon sx={{ fontSize: 22 }} /> : <RepeatIcon sx={{ fontSize: 22 }} />}
+                                    </IconButton>
+                                </Tooltip>
+
 
                                 {/* Time Display */}
                                 <Typography sx={{ color: '#ccc', fontSize: '12px', fontWeight: 'bold', minWidth: '40px' }}>
@@ -375,28 +436,31 @@ const AppFooter = () => {
                                         minWidth: 140,
                                     }}
                                 >
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            setVolume(volume === 0 ? 0.5 : 0);
-                                        }}
-                                        sx={{
-                                            color: '#ccc',
-                                            transition: '0.2s',
+                                    <Tooltip title="Change volume" placement="top">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                                setVolume(volume === 0 ? 0.5 : 0);
+                                            }}
+                                            sx={{
+                                                color: '#ccc',
+                                                transition: '0.2s',
 
-                                            '&:hover': {
-                                                color: '#fff'
-                                            }
-                                        }}
-                                    >
-                                        {volume === 0 ? (
-                                            <VolumeOff />
-                                        ) : volume < 0.5 ? (
-                                            <VolumeDown />
-                                        ) : (
-                                            <VolumeUp />
-                                        )}
-                                    </IconButton>
+                                                '&:hover': {
+                                                    color: '#fff'
+                                                }
+                                            }}
+                                        >
+                                            {volume === 0 ? (
+                                                <VolumeOff />
+                                            ) : volume < 0.5 ? (
+                                                <VolumeDown />
+                                            ) : (
+                                                <VolumeUp />
+                                            )}
+                                        </IconButton>
+                                    </Tooltip>
+
 
                                     <Slider
                                         size="small"
@@ -496,17 +560,19 @@ const AppFooter = () => {
                                 </IconButton>
 
                                 <IconButton
-                                    onClick={() => {
-                                        if (isControlDisabled) return;
-                                        if (currentTrack.isPlaying) {
-                                            audioEngine.pause();
-                                            setCurrentTrack({ ...currentTrack, isPlaying: false });
-                                        } else {
-                                            audioEngine.play(currentTrack.trackUrl).catch(err => console.log('Play failed:', err));
-                                            setCurrentTrack({ ...currentTrack, isPlaying: true });
-                                        }
-                                    }}
+                                    // onClick={() => {
+                                    //     if (isControlDisabled) return;
+                                    //     if (currentTrack.isPlaying) {
+                                    //         audioEngine.pause();
+                                    //         setCurrentTrack({ ...currentTrack, isPlaying: false });
+                                    //     } else {
+                                    //         audioEngine.play(currentTrack.trackUrl).catch(err => console.log('Play failed:', err));
+                                    //         setCurrentTrack({ ...currentTrack, isPlaying: true });
+                                    //     }
+                                    // }}
+                                    onClick={handleTogglePlay}
                                     disabled={isControlDisabled}
+
                                     sx={{
                                         color: '#fff',
                                         bgcolor: 'rgba(255,255,255,0.1)',
@@ -572,21 +638,22 @@ const AppFooter = () => {
                         <Box sx={{ display: "flex", alignItems: "center", minWidth: 280, maxWidth: 300 }}>
                             <Box sx={{ width: 40, height: 40, mr: 1.5, flexShrink: 0, backgroundColor: '#444' }}>
                                 {!currentTrack.isYoutube ? (
-                                    <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
-                                        {currentTrack.imgUrl && (
-                                            <Image
-                                                src={`${currentTrack.imgUrl}`}
-                                                alt={currentTrack.title}
-                                                width={40}
-                                                height={40}
-                                                style={{
-                                                    objectFit: 'cover',
-                                                    borderRadius: '4px'
-                                                }}
-                                                unoptimized={true}
-                                            />
-                                        )}
-                                    </Link>
+                                            <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
+                                                {currentTrack.imgUrl && (
+                                                    <Image
+                                                        src={`${currentTrack.imgUrl}`}
+                                                        alt={currentTrack.title}
+                                                        width={40}
+                                                        height={40}
+                                                        style={{
+                                                            objectFit: 'cover',
+                                                            borderRadius: '4px'
+                                                        }}
+                                                        unoptimized={true}
+                                                    />
+                                                )}
+                                            </Link>
+
                                 ) : (
                                     <Image
                                         src={`${currentTrack.imgUrl}`}
@@ -604,22 +671,25 @@ const AppFooter = () => {
 
                             <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden' }}>
                                 {!currentTrack.isYoutube ? (
-                                    <Link href={generateProfileUrl(currentTrack.uploader.name, currentTrack.uploader.id)} style={{ textDecoration: 'none' }}>
-                                        <Typography
-                                            noWrap
-                                            sx={{
-                                                color: "#aaa",
-                                                fontSize: 11,
-                                                mb: 0.2,
-                                                '&:hover': {
-                                                    color: "white",
-                                                    fontWeight: 'bold'
-                                                }
-                                            }}
-                                        >
-                                            {currentTrack.uploader?.name || "Unknown"}
-                                        </Typography>
-                                    </Link>
+                                        <Tooltip title="Go to uploader page" placement="top">
+                                            <Link href={generateProfileUrl(currentTrack.uploader.name, currentTrack.uploader.id)} style={{ textDecoration: 'none' }}>
+                                                <Typography
+                                                    noWrap
+                                                    sx={{
+                                                        color: "#aaa",
+                                                        fontSize: 11,
+                                                        mb: 0.2,
+                                                        '&:hover': {
+                                                            color: "white",
+                                                            fontWeight: 'bold'
+                                                        }
+                                                    }}
+                                                >
+                                                    {currentTrack.uploader?.name || "Unknown"}
+                                                </Typography>
+                                            </Link>
+                                        </Tooltip>
+
                                 ) : (
                                     <Typography
                                         noWrap
@@ -634,22 +704,23 @@ const AppFooter = () => {
                                 )}
 
                                 {!currentTrack.isYoutube ? (
-                                    <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
-                                        <Typography
-                                            noWrap
-                                            sx={{
-                                                color: "white",
-                                                fontSize: 13,
-                                                fontWeight: 'bold',
-                                                transition: "color 0.2s ease",
-                                                '&:hover': {
-                                                    color: "#f50",
-                                                }
-                                            }}
-                                        >
-                                            {currentTrack.title || "No Track Selected"}
-                                        </Typography>
-                                    </Link>
+                                            <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
+                                                <Typography
+                                                    noWrap
+                                                    sx={{
+                                                        color: "white",
+                                                        fontSize: 13,
+                                                        fontWeight: 'bold',
+                                                        transition: "color 0.2s ease",
+                                                        '&:hover': {
+                                                            color: "#f50",
+                                                        }
+                                                    }}
+                                                >
+                                                    {currentTrack.title || "No Track Selected"}
+                                                </Typography>
+                                            </Link>
+
                                 ) : (
                                     <Typography
                                         noWrap
@@ -665,49 +736,81 @@ const AppFooter = () => {
                             </Box>
                             {!currentTrack.isYoutube && (
                                 <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            if (session) {
-                                                handleLikeClick()
-
-                                            }
-                                            else router.push('/auth/signin');
-
-                                        }}
-                                        disabled={mutation.isPending}
-                                        sx={{
-                                            color: '#ccc',
-                                            p: 0.5,
-                                            transition: 'all 0.2s ease',
-                                            '&:hover': {
-                                                transform: 'scale(1.2)',
-                                                backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                                            }
-                                        }}
-                                    >
-                                        <FavoriteIcon
-                                            sx={{
-                                                fontSize: 'inherit',
-                                                color: currentTrack.isLiked ? '#f64a00' : 'inherit',
-                                                transition: 'color 0.2s ease'
-                                            }}
-                                        />
-                                    </IconButton>
-                                    <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                        <PersonAddIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                        <PlaylistAddIcon
+                                    <Tooltip title={currentTrack.isLiked ? 'Unlike' : 'Like'} placement="top">
+                                        <IconButton
+                                            size="small"
                                             onClick={() => {
                                                 if (session) {
-                                                    setShowPlaylistModal(true);
-                                                } else {
-                                                    router.push('/auth/signin');
+                                                    handleLikeClick()
+
+                                                }
+                                                else router.push('/auth/signin');
+
+                                            }}
+                                            disabled={mutation.isPending}
+                                            sx={{
+                                                color: '#ccc',
+                                                p: 0.5,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    transform: 'scale(1.2)',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
                                                 }
                                             }}
-                                            fontSize="small" />
-                                    </IconButton>
+                                        >
+                                            <FavoriteIcon
+                                                sx={{
+                                                    fontSize: 'inherit',
+                                                    color: currentTrack.isLiked ? '#f64a00' : 'inherit',
+                                                    transition: 'color 0.2s ease'
+                                                }}
+                                            />
+                                        </IconButton>
+                                    </Tooltip>
+                                    {/* Follow / Unfollow */}
+                                    {session && Number(session.user.id) !== Number(currentTrack.uploader.id) ?
+                                        <Tooltip
+                                            title={isFollowed
+                                                ? `Unfollow ${currentTrack.uploader?.name}`
+                                                : `Follow ${currentTrack.uploader?.name}`}
+                                            placement="top"
+                                        >
+                                            <IconButton size="small"
+                                                        onClick={handleFollowClick}
+                                                        disabled={mutationFollow.isPending}
+                                                        sx={{
+                                                            p: 0.5,
+                                                            // Cam khi đang follow, xám khi chưa
+                                                            color: isFollowed ? '#ff5500' : '#ccc',
+                                                            transition: 'all 0.2s ease',
+                                                            '&:hover': {
+                                                                transform: 'scale(1.2)',
+                                                                backgroundColor: isFollowed
+                                                                    ? 'rgba(255,85,0,0.12)'
+                                                                    : 'rgba(255,255,255,0.1)',
+                                                            },
+                                                            '&.Mui-disabled': { opacity: 0.4 },
+                                                        }}>
+                                                {isFollowed
+                                                    ? <PersonRemove fontSize="small" />
+                                                    : <PersonAddIcon fontSize="small" />}
+                                            </IconButton>
+                                        </Tooltip>
+                                        : null
+                                    }
+
+                                    {/* Add to playlist */}
+                                    <Tooltip title="Add to playlist" placement="top">
+                                        <IconButton size="small"
+                                                    onClick={() => { session ? setShowPlaylistModal(true) : router.push('/auth/signin'); }}
+                                                    sx={{
+                                                        color: '#ccc', p: 0.5,
+                                                        transition: 'all 0.2s ease',
+                                                        '&:hover': { transform: 'scale(1.2)', backgroundColor: 'rgba(255,255,255,0.1)' },
+                                                    }}>
+                                            <PlaylistAddIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
                                 </Box>
                             )}
                         </Box>
@@ -803,16 +906,17 @@ const AppFooter = () => {
                             <SkipPreviousIcon fontSize="large" />
                         </IconButton>
                         <IconButton
-                            onClick={() => {
-                                if (isControlDisabled) return;
-                                if (currentTrack.isPlaying) {
-                                    audioEngine.pause();
-                                    setCurrentTrack({ ...currentTrack, isPlaying: false });
-                                } else {
-                                    audioEngine.play(currentTrack.trackUrl).catch(err => console.log('Drawer play failed:', err));
-                                    setCurrentTrack({ ...currentTrack, isPlaying: true });
-                                }
-                            }}
+                            // onClick={() => {
+                            //     if (isControlDisabled) return;
+                            //     if (currentTrack.isPlaying) {
+                            //         audioEngine.pause();
+                            //         setCurrentTrack({ ...currentTrack, isPlaying: false });
+                            //     } else {
+                            //         audioEngine.play(currentTrack.trackUrl).catch(err => console.log('Drawer play failed:', err));
+                            //         setCurrentTrack({ ...currentTrack, isPlaying: true });
+                            //     }
+                            // }}
+                            onClick={handleTogglePlay}
                             disabled={isControlDisabled}
                             sx={{
                                 color: '#fff',

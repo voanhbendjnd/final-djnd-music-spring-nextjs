@@ -34,7 +34,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from 'next/image';
 import SearchBar from '@/components/search/search-bar';
 import { generateProfileUrl } from "@/utils/generate.slug";
-import {DiscFull} from "@mui/icons-material";
+import {DiscFull, Diversity1} from "@mui/icons-material";
 import UploaderHoverCard from "@/components/profile/uploader.hover.card";
 
 // ─── Mobile nav items ─────────────────────────────────────────────────────────
@@ -321,6 +321,9 @@ const AppHeader = () => {
             </MenuItem>
             <MenuItem onClick={() => { handleProtectedNavigation('/rooms'); handleMenuClose(); }}>
                 <GroupsIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Listening Room
+            </MenuItem>
+            <MenuItem onClick={() => { handleProtectedNavigation('/you/follow'); handleMenuClose(); }}>
+                <Diversity1 sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Follow
             </MenuItem>
             <MenuItem onClick={() => { handleProtectedNavigation('/history'); handleMenuClose(); }}>
                 <HistoryIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> History

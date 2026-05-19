@@ -11,7 +11,7 @@ interface IProps {
 const PlaylistHeader = ({ playlist, onEditClick }: IProps) => {
     const { data: session } = useSession();
     const displayImage = playlist?.imgUrl || (playlist?.playlistTracks?.[0]?.imgUrl) || null;
-    const isOwner = session?.user?.id === playlist?.user?.id;
+    const isOwner = Number(session?.user?.id) === playlist?.user?.id;
 
     return (
         <Grid container spacing={4} sx={{ mb: 6 }}>

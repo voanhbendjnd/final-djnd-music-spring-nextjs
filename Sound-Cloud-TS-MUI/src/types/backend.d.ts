@@ -39,6 +39,8 @@ declare global{
             avatar: string;
             type:string;
             username: string;
+            countFollowers:number;
+            backgroundUrl: string;
         }
     }
     interface ITrack{

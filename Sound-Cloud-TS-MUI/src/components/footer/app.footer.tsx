@@ -59,6 +59,30 @@ const AppFooter = () => {
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
     const [showMobileDrawer, setShowMobileDrawer] = useState(false);
     const router = useRouter();
+    useEffect(() => {
+        if (!currentTrack?.title) return;
+
+        document.title = `${currentTrack.title} - ${currentTrack.uploader?.name} | DJND Music`;
+        // optional meta description
+        const metaDescription = document.querySelector(
+            'meta[name="description"]'
+        );
+
+        if (metaDescription) {
+            metaDescription.setAttribute(
+                'content',
+                `Listening to ${currentTrack.title}`
+            );
+        }
+        window.history.replaceState(
+            null,
+            '',
+            generateTrackUrlUp(
+                Number(currentTrack.id),
+                currentTrack.title
+            )
+        );
+    }, [currentTrack?.id, currentTrack?.title]);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const index = currentTrack.trackUrl ? currentTrack.trackUrl.indexOf(keyword) : -1;

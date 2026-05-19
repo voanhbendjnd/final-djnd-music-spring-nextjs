@@ -72,4 +72,21 @@ public class FollowService {
         return res;
 
     }
+
+    public ResultPaginationDTO getAllFollowers(Pageable pageable) throws BadRequestException {
+        var followingId = SecurityUtils.getCurrentUserIdOrNull();
+        if(followingId == null) throw new BadRequestException("Current user id is null");
+        var res = new ResultPaginationDTO();
+        var meta = new ResultPaginationDTO.Meta();
+        var page = this.followRepository.fetchAllFollowerByFollowingId(pageable, followingId);
+        meta.setPage(pageable.getPageNumber() + 1);
+        meta.setPageSize(pageable.getPageSize());
+        meta.setPages(page.getTotalPages());
+        meta.setTotal(page.getTotalElements());
+        res.setMeta(meta);
+        res.setResult(page.getContent());
+        return res;
+    }
+
+
 }

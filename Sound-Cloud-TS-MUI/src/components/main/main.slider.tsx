@@ -20,6 +20,7 @@ import { useCategories } from "@/hooks/use-category";
 import { useTrackContext, mapToShareTrack } from "@/lib/track.wrapper";
 import { useRouter } from "next/navigation";
 import { useTracks } from "@/hooks/use-track";
+import UploaderHoverCard from "@/components/profile/uploader.hover.card";
 
 interface IProps {
     newTracks: ITrack[],
@@ -165,16 +166,24 @@ const TrackCard = ({
                         mt: 1,
                         color: isThisPlaying ? '#f50' : '#fff',
                         transition: 'color 0.2s',
+                        '&:hover': {
+                            color: "#f50",
+                        }
                     }}
                 >
                     {track.title}
                 </Typography>
             </Link>
-            <Link href={generateProfileUrl(track.uploader.name, track.uploader.id)} style={{ textDecoration: 'none', color: 'white' }}>
-                <Typography variant="caption" sx={{ color: '#a7a7a7' }}>
-                    {track.uploader?.name || track.description}
-                </Typography>
-            </Link>
+            <UploaderHoverCard uploader={track.uploader}>
+                <Link href={generateProfileUrl(track.uploader.name, track.uploader.id)} style={{ textDecoration: 'none', color: 'white' }}>
+                    <Typography variant="caption" sx={{ color: '#a7a7a7', '&:hover': {
+                            color: "#f50",
+                        } }}>
+                        {track.uploader?.name || track.description}
+                    </Typography>
+                </Link>
+            </UploaderHoverCard>
+
 
         </div>
     )
@@ -447,18 +456,24 @@ const MobileTrackRow = ({ track, trackList }: { track: any; trackList: any[] }) 
                     <Link href={generateTrackUrl(track)} style={{ textDecoration: 'none', color: 'white' }}>
                         <Typography variant="body2" sx={{
                             fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                            color: isThisPlaying ? '#f50' : 'white', transition: 'color 0.2s'
+                            color: isThisPlaying ? '#f50' : 'white', transition: 'color 0.2s', '&:hover': {
+                                color: "#f50",
+                            }
                         }}>
                             {track.title}
 
                         </Typography>
                     </Link>
+                    <UploaderHoverCard uploader={track.uploader}>
+                        <Link href={generateProfileUrl(track.uploader.name, track.uploader.id)} style={{ textDecoration: 'none', color: 'white' }}>
+                            <Typography variant="caption" sx={{ color: '#a7a7a7', display: 'block', overflow: 'hidden',  '&:hover': {
+                                    color: "#f50",
+                                },textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {track.uploader?.name || "no name"}
+                            </Typography>
+                        </Link>
+                    </UploaderHoverCard>
 
-                    <Link href={generateProfileUrl(track.uploader.name, track.uploader.id)} style={{ textDecoration: 'none', color: 'white' }}>
-                      <Typography variant="caption" sx={{ color: '#a7a7a7', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {track.uploader?.name || "no name"}
-                      </Typography>
-                  </Link>
 
                 </Box>
             </Box>
@@ -505,7 +520,9 @@ const SidebarTrackRow = ({ track, subtitle }: { track: any; subtitle: string }) 
                         sx={{ color: isThisPlaying ? '#f50' : 'white', transition: 'color 0.2s',  fontWeight: 600,
                             maxWidth: 250, whiteSpace: 'nowrap',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis' }}
+                            textOverflow: 'ellipsis', '&:hover': {
+                                color: "#f50",
+                            } }}
                     >
                         {track.title}
                     </Typography>

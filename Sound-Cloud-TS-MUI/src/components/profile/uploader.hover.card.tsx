@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef, useCallback } from 'react';
-import { Box, Avatar, Typography, Button } from '@mui/material';
+import {Box, Avatar, Typography, Button, Tooltip} from '@mui/material';
 import { PersonAdd, PersonRemove } from '@mui/icons-material';
 import PeopleIcon from '@mui/icons-material/People';
 import Link from 'next/link';
@@ -214,12 +214,15 @@ const UploaderHoverCard = ({ uploader, children, profileUrl }: UploaderHoverCard
 
                     {/* Followers count */}
                     {displayFollowers !== undefined && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                            <PeopleIcon sx={{ fontSize: 13, color: '#888' }} />
-                            <Typography sx={{ fontSize: 12, color: '#888' }}>
-                                {displayFollowers.toLocaleString()}
-                            </Typography>
-                        </Box>
+                        <Tooltip title={`${displayFollowers.toLocaleString()} followers`} placement="top">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                                <PeopleIcon sx={{ fontSize: 13, color: '#888' }} />
+                                <Typography sx={{ fontSize: 12, color: '#888' }}>
+                                    {displayFollowers.toLocaleString()}
+                                </Typography>
+                            </Box>
+                        </Tooltip>
+
                     )}
 
                     {/* Location */}

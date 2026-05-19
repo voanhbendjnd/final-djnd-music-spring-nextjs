@@ -49,13 +49,16 @@ const PlaylistDetailClient = ({ playlist: initialPlaylist, playlistId }: IProps)
             id: track.uploader?.id?.toString(),
             name: track.uploader?.name,
             avatar: track.uploader?.avatar || "",
+            countFollowers:track.uploader.countFollowers || 0,
+            isFollowed:track.uploader.isFollowed || false,
         },
         isPlaying: false,
         description: track.description || "",
         category: track.category,
         peaks: track.peaks || undefined,
         createdAt: track.createdAt || "",
-        updatedAt: track.updatedAt || ""
+        updatedAt: track.updatedAt || "",
+        waveform_url: track.waveform_url || "",
     }), []);
 
     // Strict activeTrack logic: only show waveform if track is in this playlist AND is playing

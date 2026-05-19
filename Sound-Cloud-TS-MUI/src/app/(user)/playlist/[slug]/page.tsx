@@ -44,7 +44,7 @@ export async function generateMetadata(
     //
     // }
     return {
-        title:'Playlist' + ' ' + playlist.isPublic ? playlist.user?.name + '-' +playlist?.title : 'Private playlist',
+        title:('Playlist' + ' ' + playlist.isPublic ? playlist.user?.name + '-' +playlist?.title : 'Private playlist') + ' | DJND Music',
         description:playlist.isPublic ?  `Enjoy with ${playlist?.title}` : 'Private playlist',
         openGraph: {
             title: playlist.isPublic ? playlist?.title : 'Private playlist',

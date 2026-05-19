@@ -70,7 +70,7 @@ public class User extends BaseEntity {
     List<Follow> followings;
     @OneToMany(mappedBy = "follower")
     List<Follow> followers;
-
+    String backgroundUrl;
     public boolean isOTPRequired() {
         if (this.getOneTimePassword() == null) {
             return false;

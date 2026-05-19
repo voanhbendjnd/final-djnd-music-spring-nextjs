@@ -148,7 +148,9 @@ const SearchBar = (props: IProps) => {
                 uploader: {
                     id: "",
                     name: suggestion.channel,
-                    avatar: suggestion.thumbnail
+                    avatar: suggestion.thumbnail,
+                    countFollowers:0,
+                    isFollowed:false
                 },
                 waveform_url:"",
                 createdAt: "",
@@ -156,7 +158,7 @@ const SearchBar = (props: IProps) => {
                 peaks: "",
                 isPlaying: true,
                 isLiked: false,
-                isYoutube: true
+                isYoutube: true,
             });
             setPlaylistTracks([suggestion]);
             setShowSuggestions(false);

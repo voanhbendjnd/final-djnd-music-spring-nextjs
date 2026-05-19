@@ -536,6 +536,7 @@ public class UserService {
         res.setEmail(user.getEmail());
         res.setId(user.getId());
         res.setName(user.getName());
+        res.setBackgroundUrl(user.getBackgroundUrl());
         return res;
     }
 }

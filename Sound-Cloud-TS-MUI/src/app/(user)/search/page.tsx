@@ -153,13 +153,14 @@ const SearchPage = () => {
                 trackUrl: suggestion.videoId,
                 countLike: 0,
                 countPlay: 0,
-                uploader: { id: "", name: suggestion.channel, avatar: suggestion.thumbnail },
+                uploader: { id: "", name: suggestion.channel, avatar: suggestion.thumbnail, countFollowers: 0, isFollowed: false },
                 createdAt: "",
                 updatedAt: "",
                 peaks: "",
                 isPlaying: true,
                 isLiked: false,
-                isYoutube: true
+                isYoutube: true,
+                waveform_url:"",
             });
             const { setPlayMode, setQueueType, addToPlayedTracks } = useTrackContext() as ITrackContext;
             setPlayMode('dynamic');
@@ -378,13 +379,14 @@ const SearchPage = () => {
                                                         trackUrl: track.videoId,
                                                         countLike: 0,
                                                         countPlay: 0,
-                                                        uploader: { id: "", name: track.channel, avatar: track.thumbnail },
+                                                        uploader: { id: "", name: track.channel, avatar: track.thumbnail, countFollowers:0, isFollowed:false },
                                                         createdAt: "",
                                                         updatedAt: "",
                                                         peaks: "",
                                                         isPlaying: true,
                                                         isLiked: false,
-                                                        isYoutube: true
+                                                        isYoutube: true,
+                                                        waveform_url:""
                                                     });
                                                     const { setPlayMode, setQueueType, addToPlayedTracks } = useTrackContext() as ITrackContext;
                                                     setPlayMode('dynamic');

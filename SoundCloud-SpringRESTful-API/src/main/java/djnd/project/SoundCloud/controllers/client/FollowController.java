@@ -41,9 +41,17 @@ public class FollowController {
 
     }
 
-    @GetMapping
+    @GetMapping("/followings")
     @ApiMessage("Get followings by follower")
     public ResponseEntity<?>getFollowings(Pageable pageable) throws BadRequestException{
         return ResponseEntity.ok(this.followService.getAllFollowing(pageable));
     }
+
+
+    @GetMapping("/followers")
+    @ApiMessage("Get All followers by following")
+    public ResponseEntity<?> getFollowers(Pageable pageable) throws BadRequestException{
+        return ResponseEntity.ok(this.followService.getAllFollowers(pageable));
+    }
+
 }

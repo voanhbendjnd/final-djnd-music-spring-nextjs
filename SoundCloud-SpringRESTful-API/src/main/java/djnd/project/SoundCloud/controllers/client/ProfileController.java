@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.controllers.client;
 
 import java.io.IOException;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -34,8 +35,14 @@ public class ProfileController {
 
     @GetMapping
     @ApiMessage("Get data user for profile")
-    public ResponseEntity<?> getDataProfile() {
-        return ResponseEntity.ok(this.profileService.getInforUserProfile());
+    public ResponseEntity<?> getDataProfile() throws BadRequestException {
+        return ResponseEntity.ok(this.profileService.getInformationUserProfile());
+    }
+
+    @PatchMapping("/background")
+    @ApiMessage("Change or make background")
+    public ResponseEntity<?> saveBackground(@RequestPart(value = "backgroundUrl", required = false) MultipartFile file) throws IOException, BadRequestException {
+        return ResponseEntity.ok(this.profileService.saveBackgroundUrl(file));
     }
 
 }

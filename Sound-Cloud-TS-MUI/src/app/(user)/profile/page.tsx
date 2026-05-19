@@ -96,7 +96,30 @@ export default function ProfilePage() {
     const [snack, setSnack] = useState<{ open: boolean; msg: string; severity: 'success' | 'error' }>({
         open: false, msg: '', severity: 'success',
     });
-
+    const [followStats, setFollowStats] = useState<{ following: number; followers: number } | null>(null);
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const [profileRes, followingRes, followersRes]: any = await Promise.all([
+                    axiosInstance.get('/api/v1/profiles'),
+                    axiosInstance.get('/api/v1/follows/followings?page=1&size=1'),
+                    axiosInstance.get('/api/v1/follows/followers?page=1&size=1'),
+                ]);
+                const data: ProfileData = profileRes.data;
+                setProfile(data);
+                setEditName(data.name);
+                setFollowStats({
+                    following: followingRes?.data?.meta?.total ?? 0,
+                    followers: followersRes?.data?.meta?.total ?? 0,
+                });
+            } catch (e) {
+                console.error('Failed to fetch profile', e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProfile();
+    }, []);
     // ── Fetch profile ──────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchProfile = async () => {
@@ -268,7 +291,7 @@ export default function ProfilePage() {
                         color: '#fff',
                         letterSpacing: '-0.04em',
                         lineHeight: 0.95,
-                        fontFamily: '"Bebas Neue", "Impact", sans-serif',
+                        // fontFamily: '"Bebas Neue", "Impact", sans-serif',
                     }}>
                         Your Profile
                     </Typography>
@@ -427,7 +450,7 @@ export default function ProfilePage() {
                                                 fontSize: { xs: '1.6rem', sm: '2rem' },
                                                 fontWeight: 800,
                                                 letterSpacing: '-0.03em',
-                                                fontFamily: '"Bebas Neue", "Impact", sans-serif',
+                                                fontFamily: 'sans-serif',
                                                 pb: 0.5,
                                             },
                                             '& .MuiInput-underline:before': { borderBottomColor: '#2a2a2a' },
@@ -464,7 +487,7 @@ export default function ProfilePage() {
                                         color: '#fff',
                                         letterSpacing: '-0.04em',
                                         lineHeight: 1,
-                                        fontFamily: '"Bebas Neue", "Impact", sans-serif',
+                                        fontFamily: 'sans-serif',
                                         transition: 'color 0.15s',
                                     }}>
                                         {editName || profile.name}
@@ -492,11 +515,11 @@ export default function ProfilePage() {
                                 label="Email"
                                 value={profile.email}
                             />
-                            <StatPill
-                                icon={<PersonOutline sx={{ fontSize: 15 }} />}
-                                label="Role"
-                                value={profile.role || 'User'}
-                            />
+                            {/*<StatPill*/}
+                            {/*    icon={<PersonOutline sx={{ fontSize: 15 }} />}*/}
+                            {/*    label="Role"*/}
+                            {/*    value={profile.role || 'User'}*/}
+                            {/*/>*/}
                             {profile.status && (
                                 <StatPill
                                     icon={<PersonOutline sx={{ fontSize: 15 }} />}
@@ -505,7 +528,161 @@ export default function ProfilePage() {
                                 />
                             )}
                         </Box>
+                        {/* ── Follow stats ──────────────────────────────────────────── */}
+                        <Box sx={{ mb: 4 }}>
+                            <Typography sx={{
+                                fontSize: '0.6rem',
+                                letterSpacing: '0.2em',
+                                textTransform: 'uppercase',
+                                color: 'rgba(255,255,255,0.35)',
+                                mb: 1.5,
+                                fontWeight: 600,
+                            }}>
+                                Community
+                            </Typography>
 
+                            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                                {/* Following card */}
+                                <Link href="/you/follow" style={{ textDecoration: 'none', flex: '1 1 140px', minWidth: 130 }}>
+                                    <Box sx={{
+                                        p: 2,
+                                        bgcolor: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                        borderRadius: 2,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                        '&:hover': {
+                                            borderColor: 'rgba(255,85,0,0.35)',
+                                            bgcolor: 'rgba(255,85,0,0.05)',
+                                            transform: 'translateY(-2px)',
+                                            '& .follow-arrow': { opacity: 1, transform: 'translateX(0)' },
+                                        },
+                                    }}>
+                                        <Typography sx={{
+                                            fontSize: { xs: '0.7rem', sm: '0.7rem' },
+                                            fontWeight: 900,
+                                            color: '#fff',
+                                            lineHeight: 1,
+                                            letterSpacing: '-0.04em',
+                                            fontFamily: '"Bebas Neue", "Impact", sans-serif',
+                                        }}>
+                                            {followStats?.following?.toLocaleString() ?? '—'}
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
+                                            <Typography sx={{
+                                                fontSize: '0.7rem',
+                                                color: 'rgba(255,255,255,0.35)',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.1em',
+                                                fontWeight: 600,
+                                            }}>
+                                                Following
+                                            </Typography>
+                                            <ArrowOutward
+                                                className="follow-arrow"
+                                                sx={{
+                                                    fontSize: 13,
+                                                    color: '#ff5500',
+                                                    opacity: 0,
+                                                    transform: 'translateX(-4px)',
+                                                    transition: 'all 0.2s',
+                                                }}
+                                            />
+                                        </Box>
+                                    </Box>
+                                </Link>
+
+                                {/* Followers card */}
+                                <Link href="/you/follow" style={{ textDecoration: 'none', flex: '1 1 140px', minWidth: 130 }}>
+                                    <Box sx={{
+                                        p: 2,
+                                        bgcolor: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid rgba(255,255,255,0.07)',
+                                        borderRadius: 2,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                        '&:hover': {
+                                            borderColor: 'rgba(255,85,0,0.35)',
+                                            bgcolor: 'rgba(255,85,0,0.05)',
+                                            transform: 'translateY(-2px)',
+                                            '& .follow-arrow': { opacity: 1, transform: 'translateX(0)' },
+                                        },
+                                    }}>
+                                        <Typography sx={{
+                                            fontSize: { xs: '0.7rem', sm: '0.7rem' },
+                                            fontWeight: 900,
+                                            color: '#fff',
+                                            lineHeight: 1,
+                                            letterSpacing: '-0.04em',
+                                            fontFamily: '"Bebas Neue", "Impact", sans-serif',
+                                        }}>
+                                            {followStats?.followers?.toLocaleString() ?? '—'}
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
+                                            <Typography sx={{
+                                                fontSize: '0.7rem',
+                                                color: 'rgba(255,255,255,0.35)',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.1em',
+                                                fontWeight: 600,
+                                            }}>
+                                                Followers
+                                            </Typography>
+                                            <ArrowOutward
+                                                className="follow-arrow"
+                                                sx={{
+                                                    fontSize: 13,
+                                                    color: '#ff5500',
+                                                    opacity: 0,
+                                                    transform: 'translateX(-4px)',
+                                                    transition: 'all 0.2s',
+                                                }}
+                                            />
+                                        </Box>
+                                    </Box>
+                                </Link>
+
+                                {/* View all button */}
+                                <Link href="/you/follow" style={{ textDecoration: 'none', flex: '0 0 auto', alignSelf: 'stretch' }}>
+                                    <Box sx={{
+                                        height: '100%',
+                                        minHeight: 50,
+                                        px: 2,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 0.5,
+                                        bgcolor: 'rgba(255,85,0,0.06)',
+                                        border: '1px solid rgba(255,85,0,0.2)',
+                                        borderRadius: 2,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        '&:hover': {
+                                            bgcolor: 'rgba(255,85,0,0.12)',
+                                            borderColor: 'rgba(255,85,0,0.4)',
+                                            transform: 'translateY(-2px)',
+                                        },
+                                    }}>
+                                        <ArrowOutward sx={{ fontSize: 18, color: '#ff5500' }} />
+                                        <Typography sx={{
+                                            fontSize: '0.65rem',
+                                            color: '#ff5500',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.08em',
+                                            whiteSpace: 'nowrap',
+                                        }}>
+                                            View all
+                                        </Typography>
+                                    </Box>
+                                </Link>
+                            </Box>
+                        </Box>
                         {/* ── Action bar ─────────────────────────────────────── */}
                         {hasChanges && (
                             <Box

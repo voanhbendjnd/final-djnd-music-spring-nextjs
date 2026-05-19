@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.services;
 
 import java.io.IOException;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +27,9 @@ public class ProfileService {
     final UserService userService;
 
     // @Transactional
-    public ResUser editProfile(String name, MultipartFile fileName) throws IOException {
+    public ResUser editProfile(String name, MultipartFile fileName) throws IOException,BadRequestException {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null)throw new BadRequestException("User ID not found!");
         var user = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User ID", userId));
         if (fileName != null && !fileName.isEmpty()) {
@@ -47,11 +49,26 @@ public class ProfileService {
         return res;
     }
 
-    public ResUser getInforUserProfile() {
+    public ResUser getInformationUserProfile()throws BadRequestException {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null) throw new BadRequestException("User ID not found!");
         var user = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User ID", userId));
         return this.userService.toRes(user);
+    }
+
+    @Transactional
+    public ResUser saveBackgroundUrl(MultipartFile fileName)throws IOException, BadRequestException {
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null) throw new BadRequestException("User ID not found!");
+        var lastUrl = this.fileService.uploadToCloudinary(fileName, imgFolder).getSecureUrl();
+        var updated = this.userRepository.saveBackgroundUrl(lastUrl, userId);
+        if(updated > 0){
+            var res = new ResUser();
+            res.setEmail(lastUrl);
+            return res;
+        }
+        throw new BadRequestException("Update background url failed");
     }
 
 }

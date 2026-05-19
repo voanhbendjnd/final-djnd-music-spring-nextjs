@@ -29,7 +29,7 @@ export async function generateMetadata(
     const track = res?.data as ITrack;
 
     return {
-        title: track?.title || "Track Detail",
+        title: (track?.title || "Track Detail")  + ' | DJND Music',
         description: `Listening to ${track?.title}`,
         openGraph: {
             title: track?.title,

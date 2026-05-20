@@ -30,7 +30,6 @@ import djnd.project.SoundCloud.domain.response.ResTrackLike;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.domain.response.SearchFallbackResponse;
 import djnd.project.SoundCloud.domain.response.TrackResponse;
-import djnd.project.SoundCloud.redis.services.CountPlayTrack;
 import djnd.project.SoundCloud.repositories.CategoryRepository;
 import djnd.project.SoundCloud.repositories.FollowRepository;
 import djnd.project.SoundCloud.repositories.HistoryTrackRepository;

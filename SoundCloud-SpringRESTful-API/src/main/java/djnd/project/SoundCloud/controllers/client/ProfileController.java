@@ -4,12 +4,7 @@ import java.io.IOException;
 
 import org.apache.coyote.BadRequestException;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import djnd.project.SoundCloud.services.ProfileService;
@@ -37,6 +32,24 @@ public class ProfileController {
     @ApiMessage("Get data user for profile")
     public ResponseEntity<?> getDataProfile() throws BadRequestException {
         return ResponseEntity.ok(this.profileService.getInformationUserProfile());
+    }
+
+
+    @GetMapping("/user/{userId}")
+    @ApiMessage("Get data by userId")
+    public ResponseEntity<?> getDataProfileByUserId(@PathVariable("userId") String userIdStr) throws BadRequestException {
+        try{
+            var userId =  Long.parseLong(userIdStr);
+            if(userId <= 0){
+                throw new BadRequestException("User ID must be positive number!");
+            }
+            return ResponseEntity.ok(this.profileService.getInformationUserByUserId(userId));
+
+        }
+        catch(NumberFormatException ne){
+            throw new BadRequestException("User ID must be number!");
+        }
+
     }
 
     @PatchMapping("/background")

@@ -57,7 +57,6 @@ public class RoomWebSocketController {
         log.info("[DEBUG-snap1] FULL_SNAPSHOT sent to session={} — track={} time={}s playing={}",
                 sessionId, state.getCurrentTrackId(), state.getCurrentTime(), state.getIsPlaying());
 
-        // Broadcast USER_JOIN để các client khác cập nhật listener count
         if (isNewUser) {
             state.incrementVersion();
             roomStateManager.broadcast(RoomEvent.builder()

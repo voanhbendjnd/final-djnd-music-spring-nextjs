@@ -54,7 +54,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Integer getCountFollowers(@Param("userId") Long userId);
 
     @Modifying
-    @Query(value = "update User u set u.backgroundUrl = backgroundUrl where u.id = :userId")
+    @Query(value = "update User u set u.backgroundUrl = :backgroundUrl where u.id = :userId")
     Integer saveBackgroundUrl(@Param("backgroundUrl") String backgroundUrl, @Param("userId") Long userId);
 
 

@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static djnd.project.SoundCloud.services.realtime.RoomsConstants.REDIS_ROOM_TOPIC;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -30,8 +32,7 @@ public class RoomStateManager {
     // Local cache of room states active on THIS instance
     private final Map<Long, RoomRealtimeState> localRoomStates = new ConcurrentHashMap<>();
 
-    // Topic for Redis Pub/Sub
-    private static final String REDIS_ROOM_TOPIC = "room_events";
+
 
     // @EventListener
     // public void handlePresenceEvent(RoomPresenceEvent event) {
@@ -49,14 +50,11 @@ public class RoomStateManager {
     public RoomRealtimeState getRoomState(Long roomId) {
         return localRoomStates.get(roomId);
     }
-
-    // Broadcast USER_JOIN chỉ với danh sách connectedUserIds mới
-    // Không gửi full state để tránh trigger audio sync trên client cũ
     public void broadcastUserJoin(Long roomId, Set<Long> connectedUserIds) {
         RoomEvent event = RoomEvent.builder()
                 .type(RoomEvent.Type.USER_JOIN)
                 .roomId(roomId)
-                .payload(connectedUserIds) // ← chỉ gửi set userIds, không phải full state
+                .payload(connectedUserIds)
                 .sentAt(System.currentTimeMillis())
                 .build();
 
@@ -227,7 +225,11 @@ public class RoomStateManager {
             return state.getConnectedUserIds().isEmpty() && (now - state.getUpdatedAt() > 3600000);
         });
     }
-
+    /*
+    * line 4 chỉ cần nếu dùng identify bằng session ở line 1, default nếu not use session ở line 1 thì dùng
+    * username của Principal của spring getName() = username when login, nếu identify bằng username thì no need custom
+    * header line 4 unnecessary
+    * */
     public void sendToSession(String sessionId, RoomEvent event) {
         messagingTemplate.convertAndSendToUser(
                 sessionId,
@@ -239,6 +241,7 @@ public class RoomStateManager {
     private MessageHeaders createHeaders(String sessionId) {
         SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
         accessor.setSessionId(sessionId);
+        // handle immutable = never change (pattern)
         accessor.setLeaveMutable(true);
         return accessor.getMessageHeaders();
     }

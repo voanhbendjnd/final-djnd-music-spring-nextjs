@@ -41,6 +41,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.enableSimpleBroker("/topic")
                 .setHeartbeatValue(new long[] { 10000, 10000 }) // 10s heartbeat
                 .setTaskScheduler(taskScheduler());
+        // FE send
+        // publish({
+        //   destination: "/app/room.play"
+        //})
+        // BE accept
+        // @MessageMapping("/room.play")
         config.setApplicationDestinationPrefixes("/app");
     }
 
@@ -51,9 +57,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+//        registry.addEndpoint("/ws")
+//                .setAllowedOriginPatterns("*")
+//                .withSockJS();
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .setAllowedOriginPatterns("*");
     }
 
     @Override
@@ -74,14 +82,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     if (authToken != null && authToken.startsWith("Bearer ")) {
                         String token = authToken.substring(7);
                         try {
+                            // read JWT and get User Info
                             Claims claims = securityUtils.parseRefreshToken(token); // Reusing for access token parsing
                             String email = claims.getSubject();
                             @SuppressWarnings("unchecked")
                             Map<String, Object> userClaim = claims.get("user", Map.class);
                             Long userId = Long.valueOf(userClaim.get("id").toString());
-
+                            // return ra principal, UsernamePasswordAuthentication extend by Authentication, authentication
+                            // extend by principal
                             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                                    email, null, Collections.emptyList());
+                                    userId, null, Collections.emptyList());
                             // Store userId in session attributes for easy access
                             accessor.getSessionAttributes().put("userId", userId);
                             accessor.setUser(auth);
@@ -98,12 +108,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     // String destination = accessor.getDestination();
                     if (destination != null && destination.startsWith("/topic/room/")) {
                         try {
-                            String roomIdStr = destination.substring("/topic/room/".length());
-                            if ("NaN".equals(roomIdStr)) {
-                                log.warn("Detected NaN roomId subscription attempt. Ignoring.");
-                                return null;
-                            }
-                            Long roomId = Long.valueOf(roomIdStr);
+                            // lấy từ /topic/room/15
+                            String remaining =
+                                    destination.substring("/topic/room/".length());
+
+                            String roomIdStr =
+                                    remaining.split("/")[0];
+                            Long roomId =
+                                    Long.valueOf(roomIdStr);
+//                            String roomIdStr = destination.substring("/topic/room/".length());
+                            //                            Long roomId = Long.valueOf(roomIdStr);
+
+                            // save roomId vào websocket session
                             accessor.getSessionAttributes().put("roomId", roomId);
 
                             // Trigger join logic

@@ -87,7 +87,7 @@ public class PlayListService {
             this.playlistRepository.incremementTrackInPlaylist(playlist.getId(), 1);
             var currentTotalTracks = (playlist.getTotalTracks() != null ? playlist.getTotalTracks() : 0) + 1;
             playlist.setTotalTracks(currentTotalTracks);
-            return this.toResAddToPlaylist(playlist.getId(), existsTrackInPlaylist, currentTotalTracks);
+            return this.toResAddToPlaylist(playlist.getId(), false, currentTotalTracks);
         }
         if (!dto.getIsAdded()) {
             var playlistTrackDB = this.playlistTrackRepository.findByPlaylistIdAndTrackId(dto.getPlaylistId(),

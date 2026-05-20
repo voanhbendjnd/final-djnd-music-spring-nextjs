@@ -1,4 +1,4 @@
-package djnd.project.SoundCloud.redis.services;
+package djnd.project.SoundCloud.services;
 
 import java.util.Map;
 
@@ -13,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
 public class CountPlayTrack {
-    private static String KEY_COUNT_PLAYS = "track:views";
+    private final static String KEY_COUNT_PLAYS = "track:views";
     StringRedisTemplate stringRedisTemplate;
 
     public void saveViewToRedis(Long trackId) {

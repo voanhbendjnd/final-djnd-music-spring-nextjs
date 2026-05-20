@@ -23,7 +23,6 @@ public class RoomRealtimeState {
     Boolean isPlaying;
     Long hostUserId;
 
-    /** Mã phòng 6 ký tự — copy từ ListeningRoom.code khi getOrCreateState() */
     String code;
 
     @Builder.Default

@@ -57,6 +57,12 @@ public class ProfileService {
         return this.userService.toRes(user);
     }
 
+    public  ResUser getInformationUserByUserId(Long userId) throws BadRequestException {
+        var user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User ID", userId));
+        return this.userService.toRes(user);
+    }
+
     @Transactional
     public ResUser saveBackgroundUrl(MultipartFile fileName)throws IOException, BadRequestException {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
@@ -65,7 +71,7 @@ public class ProfileService {
         var updated = this.userRepository.saveBackgroundUrl(lastUrl, userId);
         if(updated > 0){
             var res = new ResUser();
-            res.setEmail(lastUrl);
+            res.setBackgroundUrl(lastUrl);
             return res;
         }
         throw new BadRequestException("Update background url failed");

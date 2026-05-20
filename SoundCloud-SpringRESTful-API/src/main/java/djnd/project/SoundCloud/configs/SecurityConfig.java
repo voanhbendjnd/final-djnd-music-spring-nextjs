@@ -48,7 +48,7 @@ public class SecurityConfig {
     // PublicEndpointFilter publicEndpointFilter
     ) throws Exception {
         String[] whiteList = {
-                "/",
+                "/**",
                 "/api/v1/**",
                 "/storage/**",
                 "/ws/**"

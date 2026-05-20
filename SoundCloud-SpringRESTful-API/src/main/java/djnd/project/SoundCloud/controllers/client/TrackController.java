@@ -164,7 +164,7 @@ public class TrackController {
     }
 
     @PostMapping("/likes")
-    @ApiMessage("Hanlde count likes track")
+    @ApiMessage("Handle count likes track")
     public ResponseEntity<?> handleCountLikesTrack(@RequestBody Map<String, Long> request)
             throws PermissionException {
         var trackId = request.get("trackId");

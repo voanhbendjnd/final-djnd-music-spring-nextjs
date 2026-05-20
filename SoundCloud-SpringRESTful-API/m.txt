@@ -1,0 +1,8 @@
+khi có transaction chỉ tự save entity nếu như nó update
+cascade hoạt động khi cấu hình dù update hay create thì cha cập  nhật thì con cũng vậy, transaction không ảnh hưởng
+nếu không có cascde mà có transaction thì vẫn tự save con nếu cha save nhưng chỉ áp dụng update
+map.putIfAbsent(id, room); concurrentMap tối ưu tốt cho nếu dùng many thread
+map.computeIfAbsent(
+    roomId,
+    roomId(key) -> new RoomRealtimeState() //
+); // handle race condition

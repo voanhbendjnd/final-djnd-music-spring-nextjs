@@ -64,7 +64,7 @@ public interface HistoryTrackRepository
                         where
                         	ht.user_id  = :userId
                         order by
-                         	ht.listened_at
+                         	ht.listened_at, t.created_at
                         desc
                         """, countQuery = """
                         select
@@ -78,8 +78,8 @@ public interface HistoryTrackRepository
                         where
                         	ht.user_id  = 1
                         order by
-                         	ht.listened_at
+                         	ht.listened_at, t.created_at
                         desc
-                                """, nativeQuery = true)
+                        """, nativeQuery = true)
         Page<Track> getTrackHistoryWithNative(@Param("userId") Long userId, Pageable pageable);
 }

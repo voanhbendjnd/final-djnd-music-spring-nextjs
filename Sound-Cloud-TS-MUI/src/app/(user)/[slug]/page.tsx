@@ -42,7 +42,11 @@ const UserProfilePage = async ({ params }: Props) => {
     if (!userId || isNaN(Number(userId))) redirect("/");
 
     const session = await getServerSession(authOptions);
-    const isOwnProfile = Number(session?.user?.id) === Number(userId);
+    
+    let isOwnProfile = false
+        if(session){
+            isOwnProfile = Number(session.user.id) === Number(userId);
+        }
     // Parallel fetch: profile + initial tracks + follow stats
     const [profileRes, tracksRes, followingRes, followersRes] = await Promise.all([
         sendRequest<IBackendRes<any>>({

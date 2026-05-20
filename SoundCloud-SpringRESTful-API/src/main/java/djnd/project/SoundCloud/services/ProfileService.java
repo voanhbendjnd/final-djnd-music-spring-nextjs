@@ -57,9 +57,12 @@ public class ProfileService {
         return this.userService.toRes(user);
     }
 
-    public  ResUser getInformationUserByUserId(Long userId) throws BadRequestException {
+    public  ResUser getInformationUserByUserId(Long userId, String name) throws BadRequestException {
         var user = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User ID", userId));
+        if(!user.getName().equalsIgnoreCase(name)){
+            throw new BadRequestException("Username does not match!");
+        }
         return this.userService.toRes(user);
     }
 

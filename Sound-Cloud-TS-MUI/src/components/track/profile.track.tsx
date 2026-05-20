@@ -780,7 +780,7 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                         startIcon={
                             isLove
                                 ? <FavoriteIcon fontSize="small" />
-                                : <HeartBroken fontSize="small" />
+                                : <FavoriteBorder fontSize="small" />
                         }                    >
                          {countLikes}
                     </Button>

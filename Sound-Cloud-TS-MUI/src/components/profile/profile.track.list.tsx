@@ -23,7 +23,7 @@ type TabKey = 'all' | 'myTracks' | 'liked' | 'history';
 
 const TAB_CONFIG: { key: TabKey; label: string; icon: React.ReactElement }[] = [
     { key: 'all', label: 'All', icon: <GridView sx={{ fontSize: 16 }} /> },
-    { key: 'myTracks', label: 'My Tracks', icon: <AudiotrackOutlined sx={{ fontSize: 16 }} /> },
+    { key: 'myTracks', label: 'Uploaded', icon: <AudiotrackOutlined sx={{ fontSize: 16 }} /> },
     { key: 'liked', label: 'Liked', icon: <FavoriteBorder sx={{ fontSize: 16 }} /> },
     { key: 'history', label: 'History', icon: <History sx={{ fontSize: 16 }} /> },
 ];
@@ -36,7 +36,10 @@ export default function ProfileTrackListPublic({
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const { data: session } = useSession();
-
+    let isOwner = false
+    if(session){
+         isOwner = Number(userId) === Number(session?.user.id);
+    }
     const [activeTab, setActiveTab] = useState<TabKey>('all');
 
     // Per-tab state cache

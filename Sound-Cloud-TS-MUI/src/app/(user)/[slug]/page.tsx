@@ -38,18 +38,18 @@ export async function generateMetadata(
 const UserProfilePage = async ({ params }: Props) => {
     const slug = params.slug;
     const userId = slug.split("-")[0];
-
+    const nameSlug = slug.split("-")[1]
     if (!userId || isNaN(Number(userId))) redirect("/");
 
     const session = await getServerSession(authOptions);
     const isOwnProfile = Number(session?.user?.id) === Number(userId);
-    console.log("owner???", isOwnProfile);
-
     // Parallel fetch: profile + initial tracks + follow stats
     const [profileRes, tracksRes, followingRes, followersRes] = await Promise.all([
         sendRequest<IBackendRes<any>>({
             url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/profiles/user/${userId}`,
             method: "GET",
+            queryParams: { name: nameSlug },
+
             headers: {
                 ...(session?.access_token && {
                     Authorization: `Bearer ${session.access_token}`,
@@ -67,7 +67,10 @@ const UserProfilePage = async ({ params }: Props) => {
                 }),
             },
             nextOption: { next: { tags: ["track-by-profile"] } },
+            // nextOption: { cache: "no-store" },
+
         }),
+
         sendRequest<IBackendRes<IModelPaginate<any>>>({
             url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/follows/followings`,
             method: "GET",
@@ -93,6 +96,7 @@ const UserProfilePage = async ({ params }: Props) => {
     ]);
 
     const profile = profileRes?.data;
+    if(Number((profileRes as IBackendRes<any>)?.statusCode) >= 400) redirect("/");
     if (!profile) redirect("/");
 
     const initialTracks = tracksRes?.data?.result ?? [];

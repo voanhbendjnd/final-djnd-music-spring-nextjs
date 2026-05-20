@@ -17,6 +17,7 @@ const ProfilePage = async ({ params }: { params: { slug: string } }) => {
     const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
         url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/users/${userId}`,
         method: "GET",
+
         queryParams: {
             page: 1,
             size: 5,

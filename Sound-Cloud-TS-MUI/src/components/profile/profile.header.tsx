@@ -511,26 +511,48 @@ export default function ProfileHeader({ profile, isOwnProfile, followStats, user
                                     disabled={mutationFollow.isPending}
                                     startIcon={isFollowed ? <PersonRemove sx={{ fontSize: '14px !important' }} /> : <PersonAdd sx={{ fontSize: '14px !important' }} />}
                                     sx={{
-                                        height: 34,
-                                        px: 2,
-                                        fontSize: '0.8rem',
-                                        fontWeight: 700,
+                                        height: 32,
+                                        px: 1.8,
+                                        minWidth: 90,
+
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
                                         textTransform: 'none',
-                                        borderRadius: '6px',
+
+                                        borderRadius: '4px',
                                         boxShadow: 'none',
-                                        transition: 'all 0.15s',
-                                        '& .MuiButton-startIcon': { mr: '5px' },
-                                        '&.Mui-disabled': { opacity: 0.45 },
-                                        ...(isFollowed ? {
-                                            bgcolor: '#242424',
-                                            color: '#999',
-                                            border: '1px solid #333',
-                                            '&:hover': { bgcolor: '#2e2e2e', color: '#ff5500', borderColor: '#3d3d3d' },
-                                        } : {
-                                            bgcolor: '#ff5500',
-                                            color: '#fff',
-                                            border: '1px solid transparent',
-                                            '&:hover': { bgcolor: '#cc4400' },
+
+                                        border: '1px solid #d3d3d3',
+
+                                        bgcolor: '#fff',
+                                        color: '#333',
+
+                                        transition: 'all 0.15s ease',
+
+                                        '& .MuiButton-startIcon': {
+                                            mr: '4px',
+                                        },
+
+                                        '&:hover': {
+                                            bgcolor: '#f7f7f7',
+                                            borderColor: '#bdbdbd',
+                                        },
+
+                                        '&.Mui-disabled': {
+                                            opacity: 0.5,
+                                            bgcolor: '#fff',
+                                            color: '#777',
+                                        },
+
+                                        ...(isFollowed && {
+                                            bgcolor: '#f3f3f3',
+                                            color: '#666',
+                                            border: '1px solid #cfcfcf',
+
+                                            '&:hover': {
+                                                bgcolor: '#ebebeb',
+                                                color: '#ff5500',
+                                            },
                                         }),
                                     }}
                                 >

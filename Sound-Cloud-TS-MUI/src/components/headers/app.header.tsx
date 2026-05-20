@@ -33,7 +33,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import Image from 'next/image';
 import SearchBar from '@/components/search/search-bar';
-import { generateProfileUrl } from "@/utils/generate.slug";
+import {generateProfileUrl, generateProfileUrlPublic} from "@/utils/generate.slug";
 import {DiscFull, Diversity1} from "@mui/icons-material";
 import UploaderHoverCard from "@/components/profile/uploader.hover.card";
 
@@ -286,7 +286,7 @@ const AppHeader = () => {
             )}
             {session && (
                 <MenuItem onClick={handleMenuClose}>
-                    <Link href={'/profile'} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <Link href={generateProfileUrlPublic(session.user.name, session.user.id)} style={{ textDecoration: 'none', color: 'inherit' }}>
                         Profile
                     </Link>
                 </MenuItem>
@@ -405,10 +405,13 @@ const AppHeader = () => {
                                 </Tooltip>
 
                                 {session?.user?.role === 'SUPER_ADMIN' && (
+                                    <Tooltip title="For Admin">
+
                                     <Typography onClick={() => handleProtectedNavigation('/dashboard/user')}
                                                 sx={{ cursor: 'pointer', fontSize: '0.9rem', '&:hover': { color: '#f50' }, transition: 'color 0.2s' }}>
                                         Dashboard
                                     </Typography>
+                                    </Tooltip>
                                 )}
 
                                 {session ? (
@@ -485,7 +488,7 @@ const AppHeader = () => {
                             <Box
                                 onClick={() => router.push(
                                     session
-                                        ? '/profile'
+                                        ? generateProfileUrlPublic(session.user.name, session.user.id)
                                         : '/auth/signin'
                                 )}
                                 sx={{

@@ -37,12 +37,13 @@ public class ProfileController {
 
     @GetMapping("/user/{userId}")
     @ApiMessage("Get data by userId")
-    public ResponseEntity<?> getDataProfileByUserId(@PathVariable("userId") String userIdStr, @RequestParam("name") String name) throws BadRequestException {
+    public ResponseEntity<?> getDataProfileByUserId(@PathVariable("userId") String userIdStr, @RequestParam(value = "name", required = false) String name) throws BadRequestException {
         try{
             var userId =  Long.parseLong(userIdStr);
             if(userId <= 0){
                 throw new BadRequestException("User ID must be positive number!");
             }
+
             return ResponseEntity.ok(this.profileService.getInformationUserByUserId(userId, name));
 
         }

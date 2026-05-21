@@ -319,7 +319,7 @@ const AppHeader = () => {
             <MenuItem onClick={() => { handleProtectedNavigation('/like'); handleMenuClose(); }}>
                 <FavoriteIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Liked Tracks
             </MenuItem>
-            <MenuItem onClick={() => { handleProtectedNavigation('/rooms'); handleMenuClose(); }}>
+            <MenuItem onClick={() => { handleProtectedNavigation('/room'); handleMenuClose(); }}>
                 <GroupsIcon sx={{ color: '#ff5500', mr: 1.5, fontSize: 18 }} /> Listening Room
             </MenuItem>
             <MenuItem onClick={() => { handleProtectedNavigation('/you/follow'); handleMenuClose(); }}>
@@ -415,7 +415,7 @@ const AppHeader = () => {
                                 )}
 
                                 {session ? (
-                                    <UploaderHoverCard uploader={session.user}>
+                                    // <UploaderHoverCard uploader={session.user}>
                                         <Avatar onClick={handleProfileMenuOpen}
                                                 sx={{ cursor: 'pointer', width: 40, height: 40, position: 'relative', overflow: 'hidden', border: '2px solid transparent', '&:hover': { borderColor: '#f50' }, transition: 'border-color 0.2s' }}>
                                             {session.user?.avatar ? (
@@ -423,7 +423,7 @@ const AppHeader = () => {
                                                        fill sizes="40px" style={{ objectFit: 'cover' }} />
                                             ) : session.user?.name?.charAt(0).toUpperCase()}
                                         </Avatar>
-                                    </UploaderHoverCard>
+                                    // </UploaderHoverCard>
 
                                 ) : (
                                     <Link href="/auth/signin" style={{ textDecoration: 'none', color: 'unset' }}>Login</Link>

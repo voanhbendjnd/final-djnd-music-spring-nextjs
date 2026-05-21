@@ -26,13 +26,13 @@ public class TrackResponse {
     Boolean isLiked;
     LocalDateTime createdAt, updatedAt;
 
+
+
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class Uploader {
         Long id;
-        // String email;
         String name;
-        // String role;
         String avatar;
         Integer countFollowers;
         Boolean isFollowed;

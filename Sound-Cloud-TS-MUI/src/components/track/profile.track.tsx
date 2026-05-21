@@ -32,7 +32,7 @@ import { useRouter } from "next/navigation";
 import { useTheme, useMediaQuery } from "@mui/material";
 import {generatePlaylistUrl, generateProfileUrl, generateTrackUrl, generateTrackUrlUp} from "@/utils/generate.slug";
 import Link from "next/link";
-import {FavoriteBorder, Hearing, HeartBroken} from "@mui/icons-material";
+import {Comment, FavoriteBorder, Hearing, HeartBroken} from "@mui/icons-material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import CloseIcon from "@mui/icons-material/Close";
 dayjs.extend(relativeTime);
@@ -72,6 +72,17 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
             });
         }
     }, [currentTrack.id, isLove, isMatched]);
+    const uploaders = useMemo(() => {
+        const map = new Map();
+
+        tracks?.forEach(track => {
+            if (!map.has(track.uploader.id)) {
+                map.set(track.uploader.id, track.uploader);
+            }
+        });
+
+        return Array.from(map.values());
+    }, [tracks]);
 // Thêm vào phần state declarations
     const momentAtFocusRef = useRef<number>(0);
     const [previewMoment, setPreviewMoment] = useState<number | null>(null);
@@ -284,7 +295,7 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
             waveColor: gradient || '#999',
             progressColor: progressGradient || '#ff5500',
 
-            height: isMobile ? 60 : 80, // 🔥 FIX
+            height: isMobile ? 60 : 60, // 🔥 FIX
             barWidth: isMobile ? 1.5 : 2,
             barGap: isMobile ? 0.8 : 1,
 
@@ -312,10 +323,10 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top:isMobile? 40: 57, left: 0 },          // Tier 0: center bottom
-            { top: isMobile? 40: 57, left: -4 },        // Tier 1: bottom-left
-            { top: isMobile? 40: 57, left: 4 },         // Tier 2: bottom-right
-            { top: isMobile? 40: 57, left: 0 },         // Tier 3: top
+            { top:isMobile? 40: 43, left: 0 },          // Tier 0: center bottom
+            { top: isMobile? 40: 43, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile? 40: 43, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile? 40: 43, left: 0 },         // Tier 3: top
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -526,6 +537,7 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
         <Box
             sx={{
                 display: 'flex',
+                alignItems:'flex-start',
                 flexDirection: { xs: 'column', md: 'row' },
                 gap: 2,
                 mb: 4,
@@ -550,10 +562,12 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
             </Box>
 
             {/* RIGHT */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column',
+                // height: !isMobile ? 160 : 'auto',
+            }}>
 
                 {/* HEADER */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width:!isMobile? 648 :'auto'  }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
 
                         {/* PLAY BUTTON */}
@@ -606,6 +620,7 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                     sx={{
                         position: 'relative',
                         my: 1,
+                        width:!isMobile? 648 :'auto',
                         minHeight: { xs: 60, md: 100 }
                     }}
                 >
@@ -758,7 +773,9 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                         display: 'flex',
                         flexWrap: 'wrap',
                         gap: 1,
-                        mt: 1
+                        mt: 1,
+                        width:!isMobile? 648 :'auto',
+                        // height:!isMobile?160:'auto',
                     }}
                 >
                     <Button
@@ -816,8 +833,8 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                         Share
                     </Button>
                     <Box sx={{ ml: 'auto', display: 'flex', gap: 2 }}>
-                        <span>▶ {track.countPlay}</span>
-                        <span>💬 {comments.length}</span>
+                        <span><PlayArrowIcon  sx={{ fontSize: 15 }}></PlayArrowIcon> {track.countPlay}</span>
+                        <span><Comment sx={{ fontSize: 13 }}></Comment> {comments.length}</span>
                     </Box>
                 </Box>
 

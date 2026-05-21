@@ -57,9 +57,12 @@ public class FollowService {
         return res;
     }
 
-    public ResultPaginationDTO getAllFollowing(Pageable pageable) throws BadRequestException {
-        var userId = SecurityUtils.getCurrentUserIdOrNull();
+    public ResultPaginationDTO getAllFollowing(Pageable pageable, Long publicUserId) throws BadRequestException {
+        var userId =publicUserId != null ? publicUserId : SecurityUtils.getCurrentUserIdOrNull();
         if(userId == null) throw new BadRequestException("Current user id is null");
+        if(!this.userRepository.existsById(userId)){
+            throw new BadRequestException("User ID not found");
+        }
         var res = new ResultPaginationDTO();
         var meta = new ResultPaginationDTO.Meta();
         var page = this.followRepository.fetchAllFollowingsByFollowerId(userId, pageable);
@@ -73,9 +76,12 @@ public class FollowService {
 
     }
 
-    public ResultPaginationDTO getAllFollowers(Pageable pageable) throws BadRequestException {
-        var followingId = SecurityUtils.getCurrentUserIdOrNull();
+    public ResultPaginationDTO getAllFollowers(Pageable pageable, Long publicUserId) throws BadRequestException {
+        var followingId = publicUserId != null ? publicUserId : SecurityUtils.getCurrentUserIdOrNull();
         if(followingId == null) throw new BadRequestException("Current user id is null");
+        if(!this.userRepository.existsById(followingId)) {
+            throw new BadRequestException("ID not found!");
+        }
         var res = new ResultPaginationDTO();
         var meta = new ResultPaginationDTO.Meta();
         var page = this.followRepository.fetchAllFollowerByFollowingId(pageable, followingId);

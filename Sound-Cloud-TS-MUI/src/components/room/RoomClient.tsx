@@ -14,8 +14,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import LogoutIcon from '@mui/icons-material/Logout';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import { ContentCopy, Tag, People, KeyboardArrowDown } from '@mui/icons-material';
+import SendIcon from '@mui/icons-material/Send';
+import ChatIcon from '@mui/icons-material/Chat';
+import { TextField, InputAdornment, Grid } from '@mui/material';
 import { Avatar } from '@mui/material';
-import { useMemo, useEffect, useState, useRef } from 'react';
+import { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import JoinRoomModal from './JoinRoomModal';
@@ -149,7 +152,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-    const { currentTrack, setCurrentTrack, audioRef, setIsRoomMode, setIsHost } = useTrackContext() as ITrackContext;
+    const { currentTrack, setCurrentTrack, audioRef, setIsRoomMode, setIsHost, setCustomNextTrack } = useTrackContext() as ITrackContext;
     const isSyncingRef = useRef(false);
 
     const [passwordVerified, setPasswordVerified] = useState(false);
@@ -157,6 +160,9 @@ export default function RoomClient({ roomId, initialData }: IProps) {
     const [activeTrackData, setActiveTrackData] = useState<ITrack | null>(null);
     const [queueData, setQueueData] = useState<ITrack[]>([]);
     const [queueDrawerOpen, setQueueDrawerOpen] = useState(false);
+    const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+    const [chatInput, setChatInput] = useState('');
+    const chatEndRef = useRef<HTMLDivElement>(null);
 
     const userId = session?.user?.id ? Number(session.user.id) : 0;
     const token = session?.access_token || '';
@@ -179,7 +185,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         return authReady && accessReady && !isNaN(roomId) && roomId > 0;
     }, [status, userId, token, roomId, initialData, passwordVerified]);
 
-    const { roomState, isConnected, play, pause, seek, addToQueue, removeFromQueue, clearQueue, leaveRoom } = useRoomSocket(
+    const { roomState, isConnected, play, pause, seek, addToQueue, removeFromQueue, clearQueue, leaveRoom, chatMessages, setChatMessages, sendChatMessage } = useRoomSocket(
         shouldConnect ? roomId : 0,
         shouldConnect ? (userId || 0) : 0,
         shouldConnect ? token : '',
@@ -190,6 +196,28 @@ export default function RoomClient({ roomId, initialData }: IProps) {
             }
         }
     );
+    
+    useEffect(() => {
+        if (!shouldConnect || !roomId) return;
+        axios.get(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/chats/history?roomId=${roomId}`)
+            .then(res => {
+                const history = res.data?.data || [];
+                if (Array.isArray(history)) {
+                    setChatMessages(history);
+                }
+            })
+            .catch(e => console.error('Failed to fetch chat history', e));
+    }, [shouldConnect, roomId, setChatMessages]);
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatMessages, chatDrawerOpen]);
+
+    const handleSendChat = () => {
+        if (!chatInput.trim()) return;
+        sendChatMessage(chatInput.trim(), session?.user?.name || 'Anonymous');
+        setChatInput('');
+    };
 
     const isHost = useMemo(() => {
         if (!userId) return false;
@@ -316,21 +344,41 @@ export default function RoomClient({ roomId, initialData }: IProps) {
         };
     }, [playbackState, activeTrackData, audioRef, isHost]);
 
+    const handleRoomNextTrack = useCallback(async () => {
+        if (!isHost || !activeTrackData) return;
+        const q = roomState?.queue ?? [];
+        if (q.length > 0) {
+            const nextId = Number(q[0]);
+            removeFromQueue(0);
+            setTimeout(() => play(nextId, 0), 100);
+        } else {
+            try {
+                const res = await axios.get(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/recommendations?category=${activeTrackData.category}&size=1&excludeIds=${activeTrackData.id}`);
+                const tracks = res.data?.data?.result || res.data?.result || [];
+                if (tracks.length > 0) {
+                    play(Number(tracks[0].id), 0);
+                } else {
+                    play(Number(activeTrackData.id), 0);
+                }
+            } catch(e) {
+                console.error('Failed to fetch recommendation', e);
+                play(Number(activeTrackData.id), 0);
+            }
+        }
+    }, [isHost, activeTrackData, roomState?.queue, play, removeFromQueue]);
+
+    useEffect(() => {
+        setCustomNextTrack(() => handleRoomNextTrack);
+        return () => setCustomNextTrack(null);
+    }, [setCustomNextTrack, handleRoomNextTrack]);
+
     // Auto-next track
     useEffect(() => {
         const footer = audioRef.current;
         if (!footer || !isHost || !activeTrackData) return;
-        const handleEnded = () => {
-            const q = roomState?.queue ?? [];
-            if (q.length > 0) {
-                const nextId = Number(q[0]);
-                removeFromQueue(0);
-                setTimeout(() => play(nextId, 0), 100);
-            } else { pause(); }
-        };
-        footer.addEventListener('ended', handleEnded);
-        return () => footer.removeEventListener('ended', handleEnded);
-    }, [isHost, activeTrackData, roomState?.queue, play, removeFromQueue, pause, audioRef]);
+        footer.addEventListener('ended', handleRoomNextTrack);
+        return () => footer.removeEventListener('ended', handleRoomNextTrack);
+    }, [isHost, activeTrackData, handleRoomNextTrack, audioRef]);
 
     // ─── Loading / Error states ───────────────────────────────────────────────
     if (status === 'loading') {
@@ -340,7 +388,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
             </Box>
         );
     }
-
+    // console.log(">>> chat message", chatMessages)
     if (!initialData) {
         return (
             <Box sx={{ minHeight: '100vh', bgcolor: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
@@ -442,6 +490,26 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                                 }}
                             >
                                 Queue {queueData.length > 0 && `(${queueData.length})`}
+                            </Button>
+                        )}
+
+                        {/* Mobile: chat badge button */}
+                        {isMobile && (
+                            <Button
+                                variant="outlined"
+                                onClick={() => setChatDrawerOpen(true)}
+                                startIcon={<ChatIcon />}
+                                size="small"
+                                sx={{
+                                    color: 'rgba(255,255,255,0.6)',
+                                    borderColor: '#2a2a2a',
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    position: 'relative',
+                                    '&:hover': { borderColor: '#ff5500', color: '#fff' },
+                                }}
+                            >
+                                Chat
                             </Button>
                         )}
 
@@ -567,15 +635,28 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                     </Paper>
                 )}
 
-                {/* ── QUEUE — desktop/tablet inline ─────────────────────── */}
+                {/* ── QUEUE AND CHAT — desktop/tablet inline ─────────────────────── */}
                 {!isMobile && (
-                    <QueueSection
-                        queueData={queueData}
-                        isHost={isHost}
-                        onPlay={(track, index) => { play(Number(track.id), 0); removeFromQueue(index); }}
-                        onRemove={removeFromQueue}
-                        onClear={clearQueue}
-                    />
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={8}>
+                            <QueueSection
+                                queueData={queueData}
+                                isHost={isHost}
+                                onPlay={(track, index) => { play(Number(track.id), 0); removeFromQueue(index); }}
+                                onRemove={removeFromQueue}
+                                onClear={clearQueue}
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <ChatSection 
+                                messages={chatMessages}
+                                chatInput={chatInput} 
+                                setChatInput={setChatInput} 
+                                handleSendChat={handleSendChat} 
+                                chatEndRef={chatEndRef} 
+                            />
+                        </Grid>
+                    </Grid>
                 )}
             </Container>
 
@@ -640,6 +721,90 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                     {/* Drag handle ở dưới — kéo lên để đóng */}
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
                         <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: '#2a2a2a' }} />
+                    </Box>
+                </Drawer>
+            )}
+
+            {/* ── CHAT DRAWER — mobile ──────────────────────────────────── */}
+            {isMobile && (
+                <Drawer
+                    anchor="bottom"
+                    open={chatDrawerOpen}
+                    onClose={() => setChatDrawerOpen(false)}
+                    ModalProps={{ keepMounted: false }}
+                    sx={{
+                        '& .MuiPaper-root': {
+                            height: '75vh',
+                            bgcolor: '#0f0f0f',
+                            borderRadius: '20px 20px 0 0',
+                            border: '1px solid #1e1e1e',
+                            borderBottom: 'none',
+                            zIndex: 1250,
+                            display: 'flex',
+                            flexDirection: 'column',
+                        },
+                    }}
+                >
+                    <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5 }}>
+                        <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: '#2a2a2a' }} />
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, pb: 1.5 }}>
+                        <Typography fontWeight={700} sx={{ fontSize: '1rem' }}>
+                            Live Chat
+                        </Typography>
+                        <IconButton size="small" onClick={() => setChatDrawerOpen(false)} sx={{ color: '#555' }}>
+                            <KeyboardArrowDown />
+                        </IconButton>
+                    </Box>
+                    <Divider sx={{ borderColor: '#1e1e1e' }} />
+
+                    <Box
+                        sx={{
+                            flexGrow: 1,
+                            overflowY: 'auto',
+                            p: 2,
+
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+
+                            '&::-webkit-scrollbar': {
+                                display: 'none',
+                            },
+                        }}
+                    >                        {chatMessages.length === 0 ? (
+                            <Typography color="rgba(255,255,255,0.2)" textAlign="center" mt={2} fontSize="0.875rem">No messages yet</Typography>
+                        ) : (
+                            chatMessages.map((msg: any, i: number) => (
+                                <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{msg.senderName}</Typography>
+                                    <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 1, borderRadius: 2 }}>
+                                        <Typography sx={{ fontSize: '0.85rem' }}>{msg.content}</Typography>
+                                    </Box>
+                                </Box>
+                            ))
+                        )}
+                        <div ref={chatEndRef} />
+                    </Box>
+                    <Divider sx={{ borderColor: '#1e1e1e' }} />
+                    <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', pb: 3 }}>
+                        <TextField 
+                            fullWidth 
+                            size="small" 
+                            placeholder="Say something..." 
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSendChat(); }}
+                            InputProps={{
+                                sx: { borderRadius: 3, bgcolor: '#1a1a1a', fontSize: '0.85rem' },
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton size="small" onClick={handleSendChat} sx={{ color: '#ff5500' }}>
+                                            <SendIcon fontSize="small" />
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
                     </Box>
                 </Drawer>
             )}
@@ -724,6 +889,78 @@ function QueueSection({
                 overflow: 'hidden', border: '1px solid #1e1e1e',
             }}>
                 <QueueList queueData={queueData} isHost={isHost} onPlay={onPlay} onRemove={onRemove} />
+            </Paper>
+        </Box>
+    );
+}
+
+// ─── Chat Section (desktop/tablet) ──────────────────────────────────────────
+function ChatSection({ messages, chatInput, setChatInput, handleSendChat, chatEndRef }: any) {
+    return (
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <ChatIcon sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 20 }} />
+                    <Typography fontWeight={700} sx={{ fontSize: { sm: '1rem', md: '1.1rem' } }}>
+                        Live Chat
+                    </Typography>
+                </Box>
+            </Box>
+
+            <Paper elevation={0} sx={{
+                flexGrow: 1,
+                bgcolor: '#0f0f0f', borderRadius: { sm: 3, md: 4 },
+                overflow: 'hidden', border: '1px solid #1e1e1e',
+                display: 'flex', flexDirection: 'column', height: 400
+            }}>
+                <Box
+                    sx={{
+                        flexGrow: 1,
+                        overflowY: 'auto',
+                        p: 2,
+
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+
+                        '&::-webkit-scrollbar': {
+                            display: 'none',
+                        },
+                    }}
+                >                    {messages.length === 0 ? (
+                        <Typography color="rgba(255,255,255,0.2)" textAlign="center" mt={2} fontSize="0.875rem">No messages yet</Typography>
+                    ) : (
+                        messages.map((msg: any, i: number) => (
+                            <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{msg.senderName}</Typography>
+                                <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 1, borderRadius: 2, wordBreak: 'break-word' }}>
+                                    <Typography sx={{ fontSize: '0.85rem' }}>{msg.content}</Typography>
+                                </Box>
+                            </Box>
+                        ))
+                    )}
+                    <div ref={chatEndRef} />
+                </Box>
+                <Divider sx={{ borderColor: '#1e1e1e' }} />
+                <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center' }}>
+                    <TextField 
+                        fullWidth 
+                        size="small" 
+                        placeholder="Say something..." 
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSendChat(); }}
+                        InputProps={{
+                            sx: { borderRadius: 3, bgcolor: '#1a1a1a', fontSize: '0.85rem' },
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton size="small" onClick={handleSendChat} sx={{ color: '#ff5500' }}>
+                                        <SendIcon fontSize="small" />
+                                    </IconButton>
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+                </Box>
             </Paper>
         </Box>
     );

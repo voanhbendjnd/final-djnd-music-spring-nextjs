@@ -21,6 +21,7 @@ import lombok.experimental.FieldDefaults;
 public class FollowController {
     FollowService followService;
 
+
     @PostMapping
     @ApiMessage("Change state follow")
     public ResponseEntity<?> updateFollowerAndCreateRecord(@RequestBody Map<String, String> mapRequest)
@@ -43,15 +44,37 @@ public class FollowController {
 
     @GetMapping("/followings")
     @ApiMessage("Get followings by follower")
-    public ResponseEntity<?>getFollowings(Pageable pageable) throws BadRequestException{
-        return ResponseEntity.ok(this.followService.getAllFollowing(pageable));
+    public ResponseEntity<?>getFollowings(Pageable pageable, @RequestParam(value = "userId", required = false)String userIdStr ) throws BadRequestException{
+        try{
+            var userId = Long.parseLong(userIdStr);
+            if(userId <= 0){
+                throw new BadRequestException("User ID must be positive number!");
+            }
+            return ResponseEntity.ok(this.followService.getAllFollowing(pageable, userId));
+
+
+        }
+        catch(NumberFormatException ne){
+            throw new BadRequestException("User ID must be number!");
+        }
     }
 
 
     @GetMapping("/followers")
     @ApiMessage("Get All followers by following")
-    public ResponseEntity<?> getFollowers(Pageable pageable) throws BadRequestException{
-        return ResponseEntity.ok(this.followService.getAllFollowers(pageable));
+    public ResponseEntity<?> getFollowers(Pageable pageable,  @RequestParam(value = "userId", required = false)String userIdStr) throws BadRequestException{
+        try{
+            var userId = Long.parseLong(userIdStr);
+            if(userId <= 0){
+                throw new BadRequestException("User ID must be positive number!");
+            }
+            return ResponseEntity.ok(this.followService.getAllFollowers(pageable, userId));
+
+
+        }
+        catch(NumberFormatException ne){
+            throw new BadRequestException("User ID must be number!");
+        }
     }
 
 }

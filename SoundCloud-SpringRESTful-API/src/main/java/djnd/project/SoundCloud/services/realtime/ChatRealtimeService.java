@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.security.Principal;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import static djnd.project.SoundCloud.services.realtime.RoomsConstants.REDIS_CHAT_ROOM_KEY;
 
@@ -47,5 +49,21 @@ public class ChatRealtimeService {
                 .build();
         this.saveContent(res);
         this.simpMessagingTemplate.convertAndSend("/topic/room/" + roomChatMessage.getRoomId() + "/chat", res);
+    }
+
+    public List<RoomChatMessage> getHistoryChatForUserJoin(Long roomId){
+        var key_chat_room = REDIS_CHAT_ROOM_KEY + ":" + roomId;
+        // 0 start point, -1 end point
+        var values = this.stringRedisTemplate.opsForList().range(key_chat_room, 0, -1);
+        if(values == null || values.isEmpty()){
+            return new ArrayList<>();
+        }
+        return values.stream().map(value -> {
+            try{
+                return this.objectMapper.readValue(value, RoomChatMessage.class);
+            }catch(Exception e){
+                throw new RuntimeException(e);
+            }
+        }).toList();
     }
 }

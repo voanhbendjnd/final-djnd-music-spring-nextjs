@@ -6,11 +6,11 @@ import {
 import {
     Box, Typography, Avatar, IconButton, Tooltip,
     Chip, CircularProgress, Snackbar, Alert, Button,
-    useTheme, useMediaQuery, Skeleton,
+    useTheme, useMediaQuery, Skeleton, TextField,
 } from '@mui/material';
 import {
     CameraAlt, Edit, Check, PersonAdd, PersonRemove,
-    MusicNote, People, PersonOutline,
+    MusicNote, People, PersonOutline, Close,
 } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -18,6 +18,8 @@ import Link from 'next/link';
 import axiosInstance from '@/utils/axios-instance';
 import { useFollowMutation } from '@/hooks/use.follow';
 import { useTrackContext } from '@/lib/track.wrapper';
+import {generateProfileUrlNi} from "@/utils/generate.slug";
+import {useRouter} from "next/navigation";
 
 interface ProfileData {
     id: number;
@@ -43,9 +45,10 @@ interface IProps {
     isOwnProfile: boolean;
     followStats: FollowStats;
     userId: string;
+    ownerName:string;
 }
 
-export default function ProfileHeader({ profile, isOwnProfile, followStats, userId }: IProps) {
+export default function ProfileHeader({ profile, isOwnProfile, followStats, userId,ownerName }: IProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const { data: session, update: updateSession } = useSession();
@@ -75,6 +78,9 @@ export default function ProfileHeader({ profile, isOwnProfile, followStats, user
     const [snack, setSnack] = useState<{ open: boolean; msg: string; severity: 'success' | 'error' }>({
         open: false, msg: '', severity: 'success',
     });
+    // Editable fields
+    const [editName, setEditName] = useState('');
+    const [isEditingName, setIsEditingName] = useState(false);
 
     // Follow state from context (reactive) or SSR data
     const idStr = String(userId);
@@ -151,6 +157,12 @@ export default function ProfileHeader({ profile, isOwnProfile, followStats, user
             setSavingBg(false);
         }
     };
+    const [hasChanges, setHasChanges] = useState(false);
+
+    useEffect(() => {
+        if (!profile) return;
+        setHasChanges(editName !== profile.name || avatarFile !== null);
+    }, [editName, profile]);
 
     // ── Follow toggle ─────────────────────────────────────────────────────────
     const handleFollow = () => {
@@ -170,8 +182,69 @@ export default function ProfileHeader({ profile, isOwnProfile, followStats, user
     // ── Banner height ─────────────────────────────────────────────────────────
     const bannerH = isMobile ? 200 : 300;
     const avatarSize = isMobile ? 88 : 130;
+    const [submitting, setSubmitting] = useState(false);
+    const router = useRouter();
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    const handleEditName = async () => {
+        if (!hasChanges || !editName.trim()) return;
 
-    return (
+        setSubmitting(true);
+
+        try {
+            const formData = new FormData();
+            formData.append('name', editName.trim());
+
+            const res: any = await axiosInstance.patch(
+                '/api/v1/profiles',
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
+
+            const updated: ProfileData = res.data;
+
+            setLocalProfile(prev => ({
+                ...prev,
+                name: updated.name,
+            }));
+
+            setEditName(updated.name);
+
+            setIsEditingName(false);
+
+            await updateSession({
+                user: {
+                    ...session?.user,
+                    name: updated.name,
+                },
+            });
+
+            // 🔥 refresh server components / SSR data
+            router.refresh();
+
+            setSnack({
+                open: true,
+                msg: 'Profile updated!',
+                severity: 'success',
+            });
+
+        } catch (e) {
+            console.error(e);
+
+            setSnack({
+                open: true,
+                msg: 'Failed to update profile',
+                severity: 'error',
+            });
+
+        } finally {
+            setSubmitting(false);
+        }
+    };
+     return (
         <>
             {/* ── BANNER ─────────────────────────────────────────────────────── */}
             <Box
@@ -295,16 +368,115 @@ export default function ProfileHeader({ profile, isOwnProfile, followStats, user
                     zIndex: 2,
                 }}>
                     <Typography sx={{
-                        fontSize: { xs: '1.4rem', sm: '2rem', md: '2.6rem' },
-                        fontWeight: 900,
-                        color: '#fff',
-                        letterSpacing: '-0.03em',
-                        lineHeight: 1,
-                        textShadow: '0 2px 12px rgba(0,0,0,0.6)',
-                        fontFamily: 'sans-serif',
+                        // fontSize: { xs: '1.4rem', sm: '2rem', md: '2.6rem' },
+                        // fontWeight: 900,
+                        // color: '#fff',
+                        // letterSpacing: '-0.03em',
+                        // lineHeight: 1,
+                        // textShadow: '0 2px 12px rgba(0,0,0,0.6)',
+                        // fontFamily: 'sans-serif',
+                        fontSize: '0.6rem',
+                        letterSpacing: '0.2em',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255,255,255,0.35)',
+                        mb: 1.5,
+                        fontWeight: 600,
                     }}>
-                        {localProfile.name}
+                        {/*{localProfile.name}*/}
                     </Typography>
+                    {isOwnProfile && isEditingName ? (
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Escape') { setEditName(profile.name); setIsEditingName(false); } }}
+                                autoFocus
+                                fullWidth
+                                variant="standard"
+                                inputProps={{ maxLength: 50 }}
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        color: '#fff',
+                                        fontSize: { xs: '1.6rem', sm: '2rem' },
+                                        fontWeight: 800,
+                                        letterSpacing: '-0.03em',
+                                        fontFamily: 'sans-serif',
+                                        pb: 0.5,
+                                    },
+                                    '& .MuiInput-underline:before': { borderBottomColor: '#2a2a2a' },
+                                    '& .MuiInput-underline:after': { borderBottomColor: '#ff5500' },
+                                }}
+                            />
+                            <Tooltip title="Done">
+                                <IconButton
+                                    size="small"
+                                    onClick={handleEditName}
+                                    disabled={submitting}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Escape') {
+                                            setEditName(profile.name);
+                                            setIsEditingName(false);
+                                        }
+
+                                        if (e.key === 'Enter') {
+                                            handleEditName();
+                                        }
+                                    }}
+                                    sx={{
+                                        color: '#4caf50',
+                                        '&:hover': {
+                                            bgcolor: 'rgba(76,175,80,0.1)'
+                                        }
+                                    }}
+                                >
+                                    {submitting ? (
+                                        <CircularProgress
+                                            size={16}
+                                            sx={{ color: '#4caf50' }}
+                                        />
+                                    ) : (
+                                        <Check fontSize="small" />
+                                    )}
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Cancel">
+                                <IconButton size="small"
+                                            onClick={() => { setEditName(profile.name); setIsEditingName(false); }}
+                                            sx={{ color: '#666', '&:hover': { color: '#f44336', bgcolor: 'rgba(244,67,54,0.08)' } }}>
+                                    <Close fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                    ) : (
+                        <Box
+                            onClick={() => setIsEditingName(true)}
+                            sx={{
+                                display: 'inline-flex', alignItems: 'center', gap: 1.5,
+                                cursor: 'text',
+                                '&:hover .edit-icon': { opacity: 1 },
+                                '&:hover': { '& .name-text': { color: 'rgba(255,255,255,0.85)' } },
+                            }}
+                        >
+                            <Typography className="name-text" sx={{
+                                fontSize: { xs: '1.8rem', sm: '2.4rem', md: '3rem' },
+                                fontWeight: 900,
+                                color: '#fff',
+                                letterSpacing: '-0.04em',
+                                lineHeight: 1,
+                                fontFamily: 'sans-serif',
+                                transition: 'color 0.15s',
+                            }}>
+                                {editName || profile.name}
+                            </Typography>
+                            <Edit className="edit-icon" sx={{
+                                fontSize: 16,
+                                color: '#ff5500',
+                                opacity: 0,
+                                transition: 'opacity 0.15s',
+                                mt: 0.5,
+                            }} />
+                        </Box>
+                    )}
                     {localProfile.status && (
                         <Typography sx={{
                             fontSize: { xs: '0.75rem', sm: '0.85rem' },
@@ -474,28 +646,69 @@ export default function ProfileHeader({ profile, isOwnProfile, followStats, user
                         {/* Stats row */}
                         <Box sx={{ display: 'flex', gap: { xs: 2.5, sm: 3.5 } }}>
                             {[
-                                { label: 'Followers', value: displayFollowers },
-                                { label: 'Following', value: localStats.following },
-                                { label: 'Tracks', value: localStats.tracks },
-                            ].map(({ label, value }) => (
-                                <Box key={label} sx={{ textAlign: 'center' }}>
-                                    <Typography sx={{
-                                        fontSize: { xs: '1.1rem', sm: '1.4rem' },
-                                        fontWeight: 900,
-                                        color: '#fff',
-                                        lineHeight: 1,
-                                        letterSpacing: '-0.03em',
-                                    }}>
+                                {
+                                    label: 'Followers',
+                                    value: displayFollowers,
+                                    href: '/you/follow',
+                                },
+                                {
+                                    label: 'Following',
+                                    value: localStats.following,
+                                    href: '/you/follow',
+                                },
+                                {
+                                    label: 'Tracks',
+                                    value: localStats.tracks,
+                                    href: generateProfileUrlNi(ownerName, userId),
+                                },
+                            ].map(({ label, value, href }) => (
+                                <Box
+
+                                    key={label}
+                                    component={Link}
+                                    href={href}
+                                    sx={{
+                                        textAlign: 'center',
+                                        textDecoration: 'none',
+                                        color: 'inherit',
+                                        cursor: 'pointer',
+                                        transition: '0.2s',
+                                        '&:hover': {
+                                            opacity: 0.8,
+                                            transform: 'translateY(-1px)',
+                                            color:'#ff5500'
+                                        },
+                                    }}
+                                >
+
+                                    <Typography
+                                        sx={{
+                                            fontSize: { xs: '1.1rem', sm: '1.4rem' },
+                                            fontWeight: 900,
+                                            color: '#fff',
+                                            lineHeight: 1,
+                                            letterSpacing: '-0.03em',
+                                            '&:hover': {
+                                                color:'#ff5500'
+                                            },
+                                        }}
+                                    >
                                         {(value ?? 0).toLocaleString()}
                                     </Typography>
-                                    <Typography sx={{
-                                        fontSize: '0.65rem',
-                                        color: 'rgba(255,255,255,0.4)',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.08em',
-                                        fontWeight: 600,
-                                        mt: 0.25,
-                                    }}>
+
+                                    <Typography
+                                        sx={{
+                                            fontSize: '0.65rem',
+                                            color: 'rgba(255,255,255,0.4)',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.08em',
+                                            fontWeight: 600,
+                                            mt: 0.25,
+                                            '&:hover': {
+                                                color:'#ff5500'
+                                            },
+                                        }}
+                                    >
                                         {label}
                                     </Typography>
                                 </Box>

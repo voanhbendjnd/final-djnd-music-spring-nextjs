@@ -14,9 +14,18 @@ interface RoomState {
     queue: number[]; // ✅ Thêm queue vào interface
 }
 
+export interface RoomChatMessage {
+    roomId: number;
+    content: string;
+    senderName: string;
+    senderId?: number;
+    sendAt?: number;
+}
+
 export const useRoomSocket = (roomId: number, userId: number, token: string, options?: { onRoomDeleted?: () => void }) => {
     const [roomState, setRoomState] = useState<RoomState | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [chatMessages, setChatMessages] = useState<RoomChatMessage[]>([]);
     const stompClientRef = useRef<Client | null>(null);
 
     // ✅ Stabilize callback để không gây re-render khi options object thay đổi
@@ -92,6 +101,15 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
                     }
                 } catch (error) {
                     console.error('❌ Parse error:', error);
+                }
+            });
+            
+            client.subscribe(`/topic/room/${roomId}/chat`, (message: IMessage) => {
+                try {
+                    const chatMsg = JSON.parse(message.body) as RoomChatMessage;
+                    setChatMessages(prev => [...prev, chatMsg]);
+                } catch (error) {
+                    console.error('❌ Parse chat error:', error);
                 }
             });
 
@@ -178,6 +196,18 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
             body: '',
         });
     }, [roomId]);
+    
+    const sendChatMessage = useCallback((content: string, senderName: string) => {
+        if (!stompClientRef.current?.connected) return;
+        const msg: RoomChatMessage = { roomId, content, senderName };
+        stompClientRef.current.publish({
+            destination: `/app/chat.send`,
+            body: JSON.stringify(msg),
+        });
+    }, [roomId]);
 
-    return { roomState, isConnected, play, pause, seek, addToQueue, removeFromQueue, clearQueue, leaveRoom };
+    return { 
+        roomState, isConnected, play, pause, seek, addToQueue, removeFromQueue, clearQueue, leaveRoom,
+        chatMessages, setChatMessages, sendChatMessage
+    };
 };

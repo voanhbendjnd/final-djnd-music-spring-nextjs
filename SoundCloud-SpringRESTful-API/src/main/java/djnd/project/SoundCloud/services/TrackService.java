@@ -6,6 +6,7 @@ import java.util.*;
 
 import djnd.project.SoundCloud.domain.entity.Category;
 import djnd.project.SoundCloud.domain.entity.User;
+import djnd.project.SoundCloud.domain.response.*;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -25,11 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 import djnd.project.SoundCloud.domain.entity.Track;
 import djnd.project.SoundCloud.domain.entity.TrackLike;
 import djnd.project.SoundCloud.domain.request.TrackDTO;
-import djnd.project.SoundCloud.domain.response.ResSearch;
-import djnd.project.SoundCloud.domain.response.ResTrackLike;
-import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
-import djnd.project.SoundCloud.domain.response.SearchFallbackResponse;
-import djnd.project.SoundCloud.domain.response.TrackResponse;
 import djnd.project.SoundCloud.repositories.CategoryRepository;
 import djnd.project.SoundCloud.repositories.FollowRepository;
 import djnd.project.SoundCloud.repositories.HistoryTrackRepository;
@@ -256,6 +252,7 @@ public class TrackService {
         return result;
     }
 
+
     public ResultPaginationDTO getMyTrackUploaded(Specification<Track> spec, Pageable pageable, Long userId) {
         var res = new ResultPaginationDTO();
         var meta = new ResultPaginationDTO.Meta();
@@ -365,9 +362,13 @@ public class TrackService {
         var resMyTracks = myTracks.getContent().stream().map(this::convertToResponse).toList();
         resMyTracks.forEach(x -> x.setIsLiked(true));
         this.setStateIsFollowed(resMyTracks, user.getId());
+        var bothData = new ResTrack();
+//        bothData.setTracks(resMyTracks);
+//        bothData.setUploaders(resMyTracks.stream().map(x -> this.userService.toOwner(x.getUploader())).toList());
         res.setResult(resMyTracks);
         return res;
     }
+
 
     protected void setStateIsLiked(List<TrackResponse> finalData, Long userLoginId) {
         var trackIds = finalData.stream().map(TrackResponse::getId).toList();

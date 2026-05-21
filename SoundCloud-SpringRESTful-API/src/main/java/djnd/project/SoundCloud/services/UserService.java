@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import djnd.project.SoundCloud.domain.response.ResOwner;
+import djnd.project.SoundCloud.domain.response.TrackResponse;
 import djnd.project.SoundCloud.utils.constains.ActionToken;
 import djnd.project.SoundCloud.utils.constains.LoginType;
 import djnd.project.SoundCloud.utils.error.PermissionException;
@@ -510,6 +512,11 @@ public class UserService {
     public ByteArrayInputStream exportUsers() {
         List<User> users = this.userRepository.findAll();
         return ExcelUtils.usersToExcel(users);
+    }
+
+    public ResOwner toOwner(TrackResponse.Uploader uploader) {
+        return ResOwner.builder().id(uploader.getId()).avatar(uploader.getAvatar()).countFollowers(uploader.getCountFollowers())
+                .name(uploader.getName()).build();
     }
 
     public Map<String, Object> importUsers(MultipartFile file) {

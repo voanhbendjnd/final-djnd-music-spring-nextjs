@@ -10,11 +10,11 @@ export const generateTrackUrl = (track: ITrack) =>
     `/track/${track.id}-${slugify(track.title || "track", slugOptions)}`;
 
 
-// export const generateProfileUrl = (name:string, id:string)=>{
-//     return (
-//         `/profile/${id}-${slugify(name || "noname", slugOptions)}`
-//     )
-// }
+export const generateProfileUrlNi = (name:string, id:string)=>{
+    return (
+        `/profile/${id}-${slugify(name || "noname", slugOptions)}`
+    )
+}
 export const generateProfileUrl = (name:string, id:string)=>{
     return (
         `/${id}-${slugify(name || "noname", slugOptions)}`

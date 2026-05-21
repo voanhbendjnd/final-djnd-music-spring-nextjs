@@ -14,14 +14,19 @@ export async function generateMetadata(
     { params }: Props,
     parent: ResolvingMetadata
 ): Promise<Metadata> {
-    const userId = params.slug.split("-")[0];
+    // const userId = params.slug.split("-")[0];
+    const [userId, ...slugParts] = params.slug.split("-");
+    const nameSlug = slugParts.join("-");
     const res = await sendRequest<IBackendRes<any>>({
         url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/profiles/user/${userId}`,
+        queryParams:{
+            name: nameSlug
+        },
         method: "GET",
     });
     const profile = res?.data;
     return {
-        title: profile?.name ? `${profile.name} — Profile` : "User Profile",
+        title: profile?.name ? `${profile.name} — Profile | DJND Music` : "User Profile",
         description: `Listen to tracks by ${profile?.name ?? "this artist"} on DJND Music`,
         openGraph: {
             title: profile?.name,
@@ -37,12 +42,12 @@ export async function generateMetadata(
 
 const UserProfilePage = async ({ params }: Props) => {
     const slug = params.slug;
-    const userId = slug.split("-")[0];
-    const nameSlug = slug.split("-")[1]
+    const [userId, ...slugParts] = params.slug.split("-");
+    const nameSlug = slugParts.join("-");
     if (!userId || isNaN(Number(userId))) redirect("/");
 
     const session = await getServerSession(authOptions);
-    
+
     let isOwnProfile = false
         if(session){
             isOwnProfile = Number(session.user.id) === Number(userId);
@@ -78,7 +83,7 @@ const UserProfilePage = async ({ params }: Props) => {
         sendRequest<IBackendRes<IModelPaginate<any>>>({
             url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/follows/followings`,
             method: "GET",
-            queryParams: { page: 1, size: 1 },
+            queryParams: { page: 1, size: 1, userId: !session ? userId : null },
             headers: {
                 ...(session?.access_token && {
                     Authorization: `Bearer ${session.access_token}`,
@@ -89,7 +94,7 @@ const UserProfilePage = async ({ params }: Props) => {
         sendRequest<IBackendRes<IModelPaginate<any>>>({
             url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/follows/followers`,
             method: "GET",
-            queryParams: { page: 1, size: 1 },
+            queryParams: { page: 1, size: 1, userId: !session ? userId : null },
             headers: {
                 ...(session?.access_token && {
                     Authorization: `Bearer ${session.access_token}`,
@@ -123,6 +128,7 @@ const UserProfilePage = async ({ params }: Props) => {
                     isOwnProfile={isOwnProfile}
                     followStats={followStats}
                     userId={userId}
+                    ownerName={nameSlug}
                 />
 
                 {/* Track list with tabs */}

@@ -73,6 +73,9 @@ export interface ITrackContext {
         isFollowed: boolean,
         countFollowers?: number
     ) => void;
+
+    customNextTrack: (() => void) | null;
+    setCustomNextTrack: React.Dispatch<React.SetStateAction<(() => void) | null>>;
 }
 
 export const TrackContext = createContext<ITrackContext | null>(null);
@@ -149,6 +152,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
         //@ts-ignore
         setPlayedTrackIds(prev => new Set([...prev, trackId]));
     }, []);
+    const [customNextTrack, setCustomNextTrack] = useState<(() => void) | null>(null);
 
     // ── Utilities ────────────────────────────────────────────────────────────
     const generateShuffledIndexes = useCallback((length: number, currentIndex: number) => {
@@ -195,6 +199,11 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
     currentIndexRef.current = currentTrackIndex;
 
     const playNextTrack = useCallback(async () => {
+        if (customNextTrack) {
+            customNextTrack();
+            return;
+        }
+
         if (repeatMode === 'one' && audioRef.current) {
             audioRef.current.currentTime = 0;
             audioRef.current.play().catch(e => console.log('Repeat play failed:', e));
@@ -249,7 +258,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
                 addToPlayedTracks(String(next.id));
             }
         }
-    }, [playlistTracks, isShuffle, shuffledIndexes, repeatMode, playMode, playedTrackIds]);
+    }, [playlistTracks, isShuffle, shuffledIndexes, repeatMode, playMode, playedTrackIds, customNextTrack]);
 
     const playPreviousTrack = useCallback(() => {
         if (audioRef.current && audioRef.current.currentTime > 3) {
@@ -321,6 +330,8 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
 
                 followedUploaders,
                 toggleFollowUploader,
+                customNextTrack,
+                setCustomNextTrack,
             }}
         >
             <HistoryTrackingProvider>

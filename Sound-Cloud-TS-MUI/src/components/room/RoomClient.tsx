@@ -154,7 +154,6 @@ export default function RoomClient({ roomId, initialData }: IProps) {
 
     const { currentTrack, setCurrentTrack, audioRef, setIsRoomMode, setIsHost, setCustomNextTrack } = useTrackContext() as ITrackContext;
     const isSyncingRef = useRef(false);
-
     const [passwordVerified, setPasswordVerified] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [activeTrackData, setActiveTrackData] = useState<ITrack | null>(null);
@@ -648,7 +647,8 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                             />
                         </Grid>
                         <Grid item xs={12} md={4}>
-                            <ChatSection 
+                            <ChatSection
+                                userId={userId}
                                 messages={chatMessages}
                                 chatInput={chatInput} 
                                 setChatInput={setChatInput} 
@@ -776,7 +776,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                         ) : (
                             chatMessages.map((msg: any, i: number) => (
                                 <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{msg.senderName}</Typography>
+                                    <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{Number(userId) === Number(msg.senderId)? msg.senderName +" (You)": msg.senderName}</Typography>
                                     <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 1, borderRadius: 2 }}>
                                         <Typography sx={{ fontSize: '0.85rem' }}>{msg.content}</Typography>
                                     </Box>
@@ -895,7 +895,8 @@ function QueueSection({
 }
 
 // ─── Chat Section (desktop/tablet) ──────────────────────────────────────────
-function ChatSection({ messages, chatInput, setChatInput, handleSendChat, chatEndRef }: any) {
+function ChatSection({ messages, chatInput, setChatInput, handleSendChat, chatEndRef, userId }: any) {
+
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
@@ -931,7 +932,7 @@ function ChatSection({ messages, chatInput, setChatInput, handleSendChat, chatEn
                     ) : (
                         messages.map((msg: any, i: number) => (
                             <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{msg.senderName}</Typography>
+                                <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{Number(userId) === Number(msg.senderId)? msg.senderName +" (You)": msg.senderName}</Typography>
                                 <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 1, borderRadius: 2, wordBreak: 'break-word' }}>
                                     <Typography sx={{ fontSize: '0.85rem' }}>{msg.content}</Typography>
                                 </Box>

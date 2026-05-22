@@ -1,8 +1,19 @@
 khi có transaction chỉ tự save entity nếu như nó update
-cascade hoạt động khi cấu hình dù update hay create thì cha cập  nhật thì con cũng vậy, transaction không ảnh hưởng
-nếu không có cascde mà có transaction thì vẫn tự save con nếu cha save nhưng chỉ áp dụng update
+cascade hoạt động khi cấu hình dù update hay create thì cha also thì con also, transaction không ảnh hưởng
+nếu không có cascde mà có transaction thì vẫn tự save con nếu cha save but chỉ áp dụng update
 map.putIfAbsent(id, room); concurrentMap tối ưu tốt cho nếu dùng many thread
 map.computeIfAbsent(
     roomId,
     roomId(key) -> new RoomRealtimeState() //
 ); // handle race condition
+
+// about check null
+// Nếu id bị null, nó auto throw ra NullPointerException included message của bạn
+this.id = Objects.requireNonNull(id, "Id not null");
+import org.springframework.util.Assert;
+
+public void updateUser(Long id) {
+    // Nếu sai điều kiện, tự động throw IllegalArgumentException
+    Assert.notNull(id, "Id can be not null");
+
+}

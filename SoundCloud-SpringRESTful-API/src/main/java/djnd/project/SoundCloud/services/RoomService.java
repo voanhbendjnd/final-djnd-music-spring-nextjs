@@ -36,10 +36,10 @@ public class RoomService {
     @Transactional
     public ResRoom createRoom(RoomDTO dto) {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
-        var user = this.userRepository.getReferenceById(userId);
-        if (user == null) {
-            throw new ResourceNotFoundException("User ID", userId);
+        if(userId == null){
+            throw new ResourceNotFoundException("User ID", null);
         }
+        var user = this.userRepository.getReferenceById(userId);
 
         var room = ListeningRoom.builder()
                 .name(dto.name())

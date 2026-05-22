@@ -14,7 +14,7 @@ public class RoomChatMessage {
     Long sendAt;
     String senderName;
     String content;
-
+    String senderAvatar;
 
 
 }

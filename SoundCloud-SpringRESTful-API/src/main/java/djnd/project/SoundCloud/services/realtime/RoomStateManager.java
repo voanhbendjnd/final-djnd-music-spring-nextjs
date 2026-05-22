@@ -31,7 +31,7 @@ public class RoomStateManager {
     private final RoomRepository roomRepository;
     // Local cache of room states active on THIS instance
     private final Map<Long, RoomRealtimeState> localRoomStates = new ConcurrentHashMap<>();
-
+    private final ChatRealtimeService chatRealtimeService;
 
 
     // @EventListener
@@ -65,8 +65,8 @@ public class RoomStateManager {
     /**
      * Get or initialize room state with a specific host
      */
-    public RoomRealtimeState getOrCreateState(Long roomId, Long initialHostId) {
-        return localRoomStates.computeIfAbsent(roomId, id -> {
+    public void getOrCreateState(Long roomId, Long initialHostId) {
+        localRoomStates.computeIfAbsent(roomId, id -> {
             Set<Long> initialUsers = new HashSet<>();
             initialUsers.add(initialHostId);
             return RoomRealtimeState.builder()
@@ -148,14 +148,12 @@ public class RoomStateManager {
                         .build();
 
                 broadcast(deleteEvent);
-
-                log.info("Room {} deleted by host {}", roomId, userId);
+                this.chatRealtimeService.deleteConversation(roomId);
 
                 return;
             }
 
             // websocket disconnect / refresh / reconnect
-            log.info("Host {} disconnected temporarily from room {}", userId, roomId);
 
             RoomEvent disconnectEvent = RoomEvent.builder()
                     .type(RoomEvent.Type.USER_LEAVE)

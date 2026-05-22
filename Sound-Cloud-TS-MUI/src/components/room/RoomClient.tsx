@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react';
-import { useRoomSocket } from '@/hooks/use-room-socket';
+import {RoomChatMessage, useRoomSocket} from '@/hooks/use-room-socket';
 import {
     Box, Container, Typography, Chip,
     IconButton, Paper, CircularProgress, Divider, List, ListItem,
@@ -28,7 +28,7 @@ import axios from 'axios';
 import { useTrackContext, ITrackContext } from '@/lib/track.wrapper';
 import { audioEngine } from '@/lib/audio-engine';
 import { toast } from 'react-toastify';
-
+import ChatMessage from "@/components/room/chat.message";
 interface IProps {
     roomId: number;
     initialData: IRoomMeta | undefined;
@@ -214,7 +214,7 @@ export default function RoomClient({ roomId, initialData }: IProps) {
 
     const handleSendChat = () => {
         if (!chatInput.trim()) return;
-        sendChatMessage(chatInput.trim(), session?.user?.name || 'Anonymous');
+        sendChatMessage(chatInput.trim(), session?.user?.name || 'Anonymous', session?.user?.avatar);
         setChatInput('');
     };
 
@@ -771,38 +771,78 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                                 display: 'none',
                             },
                         }}
-                    >                        {chatMessages.length === 0 ? (
-                            <Typography color="rgba(255,255,255,0.2)" textAlign="center" mt={2} fontSize="0.875rem">No messages yet</Typography>
-                        ) : (
-                            chatMessages.map((msg: any, i: number) => (
-                                <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{Number(userId) === Number(msg.senderId)? msg.senderName +" (You)": msg.senderName}</Typography>
-                                    <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 1, borderRadius: 2 }}>
-                                        <Typography sx={{ fontSize: '0.85rem' }}>{msg.content}</Typography>
-                                    </Box>
-                                </Box>
-                            ))
-                        )}
+                    >                     {chatMessages.length === 0 ? (
+                        <Box sx={{
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center',
+                            height: '100%', gap: 1.5, mt: 4,
+                        }}>
+                            <ChatIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.1)' }} />
+                            <Typography color="rgba(255,255,255,0.2)" fontSize="0.8rem">
+                                No messages yet
+                            </Typography>
+                        </Box>
+                    ) : (
+                        chatMessages.map((msg: RoomChatMessage, i: number) => (
+                            <ChatMessage
+                                key={i}
+                                msg={msg}
+                                isSelf={Number(userId) === Number(msg.senderId)}
+                            />
+                        ))
+                    )}
                         <div ref={chatEndRef} />
                     </Box>
                     <Divider sx={{ borderColor: '#1e1e1e' }} />
                     <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', pb: 3 }}>
-                        <TextField 
-                            fullWidth 
-                            size="small" 
-                            placeholder="Say something..." 
+                        <TextField
+                            fullWidth
+                            size="small"
+                            placeholder="Say something..."
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleSendChat(); }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSendChat();
+                            }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 3,
+                                    bgcolor: '#1a1a1a',
+                                    color: '#fff',
+
+                                    '& fieldset': {
+                                        borderColor: '#2a2a2a',
+                                    },
+
+                                    '&:hover fieldset': {
+                                        borderColor: '#ff5500',
+                                    },
+
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#ff5500',
+                                    },
+                                },
+
+                                '& .MuiInputBase-input::placeholder': {
+                                    color: 'rgba(255,255,255,0.35)',
+                                    opacity: 1,
+                                },
+                            }}
                             InputProps={{
-                                sx: { borderRadius: 3, bgcolor: '#1a1a1a', fontSize: '0.85rem' },
+                                sx: {
+                                    fontSize: '0.85rem',
+                                },
                                 endAdornment: (
                                     <InputAdornment position="end">
-                                        <IconButton size="small" onClick={handleSendChat} sx={{ color: '#ff5500' }}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={handleSendChat}
+                                            sx={{ color: '#ff5500' }}
+                                        >
                                             <SendIcon fontSize="small" />
                                         </IconButton>
                                     </InputAdornment>
-                                )
+                                ),
                             }}
                         />
                     </Box>
@@ -927,29 +967,61 @@ function ChatSection({ messages, chatInput, setChatInput, handleSendChat, chatEn
                             display: 'none',
                         },
                     }}
-                >                    {messages.length === 0 ? (
-                        <Typography color="rgba(255,255,255,0.2)" textAlign="center" mt={2} fontSize="0.875rem">No messages yet</Typography>
-                    ) : (
-                        messages.map((msg: any, i: number) => (
-                            <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <Typography sx={{ fontSize: '0.75rem', color: '#ff5500', fontWeight: 700, mb: 0.2 }}>{Number(userId) === Number(msg.senderId)? msg.senderName +" (You)": msg.senderName}</Typography>
-                                <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 1, borderRadius: 2, wordBreak: 'break-word' }}>
-                                    <Typography sx={{ fontSize: '0.85rem' }}>{msg.content}</Typography>
-                                </Box>
-                            </Box>
-                        ))
-                    )}
+                >                  {messages.length === 0 ? (
+                    <Box sx={{
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        height: '100%', gap: 1.5,
+                    }}>
+                        <ChatIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.1)' }} />
+                        <Typography color="rgba(255,255,255,0.2)" fontSize="0.8rem">
+                            No messages yet
+                        </Typography>
+                    </Box>
+                ) : (
+                    messages.map((msg: RoomChatMessage, i: number) => (
+                        <ChatMessage
+                            key={i}
+                            msg={msg}
+                            isSelf={Number(userId) === Number(msg.senderId)}
+                        />
+                    ))
+                )}
                     <div ref={chatEndRef} />
                 </Box>
                 <Divider sx={{ borderColor: '#1e1e1e' }} />
                 <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center' }}>
-                    <TextField 
-                        fullWidth 
-                        size="small" 
-                        placeholder="Say something..." 
+                    <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Say something..."
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleSendChat(); }}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: 3,
+                                bgcolor: '#1a1a1a',
+                                color: '#fff',
+
+                                '& fieldset': {
+                                    borderColor: '#2a2a2a',
+                                },
+
+                                '&:hover fieldset': {
+                                    borderColor: '#ff5500',
+                                },
+
+                                '&.Mui-focused fieldset': {
+                                    borderColor: '#ff5500',
+                                },
+                            },
+
+                            '& .MuiInputBase-input::placeholder': {
+                                color: 'rgba(255,255,255,0.35)',
+                                opacity: 1,
+                            },
+                        }}
                         InputProps={{
                             sx: { borderRadius: 3, bgcolor: '#1a1a1a', fontSize: '0.85rem' },
                             endAdornment: (

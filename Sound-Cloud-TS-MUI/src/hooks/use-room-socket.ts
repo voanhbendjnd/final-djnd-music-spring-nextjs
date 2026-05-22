@@ -20,6 +20,7 @@ export interface RoomChatMessage {
     senderName: string;
     senderId?: number;
     sendAt?: number;
+    senderAvatar:string;
 }
 
 export const useRoomSocket = (roomId: number, userId: number, token: string, options?: { onRoomDeleted?: () => void }) => {
@@ -197,9 +198,10 @@ export const useRoomSocket = (roomId: number, userId: number, token: string, opt
         });
     }, [roomId]);
     
-    const sendChatMessage = useCallback((content: string, senderName: string) => {
+    const sendChatMessage = useCallback((content: string, senderName: string, senderAvatar: string | undefined) => {
         if (!stompClientRef.current?.connected) return;
-        const msg: RoomChatMessage = { roomId, content, senderName };
+        // @ts-ignore
+        const msg: RoomChatMessage = { roomId, content, senderName, senderAvatar };
         stompClientRef.current.publish({
             destination: `/app/chat.send`,
             body: JSON.stringify(msg),

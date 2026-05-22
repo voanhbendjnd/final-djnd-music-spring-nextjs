@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 import java.util.Map;
+import java.util.Objects;
 
 @Controller
 @RequiredArgsConstructor
@@ -213,7 +214,7 @@ public class RoomWebSocketController {
 
     @MessageMapping("/room/{roomId}/leave")
     public void handleLeave(@DestinationVariable("roomId") Long roomId, SimpMessageHeaderAccessor headerAccessor) {
-        Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+        Long userId = (Long) Objects.requireNonNull(headerAccessor.getSessionAttributes()).get("userId"); //<> throw nep
         roomStateManager.removeUser(roomId, userId, true);
     }
 

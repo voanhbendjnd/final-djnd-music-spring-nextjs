@@ -3,8 +3,6 @@ package djnd.project.SoundCloud.services.realtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import djnd.project.SoundCloud.domain.realtime.RoomChatMessage;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
-import org.hibernate.annotations.CurrentTimestamp;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -46,6 +44,7 @@ public class ChatRealtimeService {
                 .sendAt(System.currentTimeMillis())
                 .senderName(roomChatMessage.getSenderName())
                 .senderId(userId)
+                .senderAvatar(roomChatMessage.getSenderAvatar())
                 .build();
         this.saveContent(res);
         this.simpMessagingTemplate.convertAndSend("/topic/room/" + roomChatMessage.getRoomId() + "/chat", res);
@@ -65,5 +64,9 @@ public class ChatRealtimeService {
                 throw new RuntimeException(e);
             }
         }).toList();
+    }
+
+    public void deleteConversation(Long roomId){
+        this.stringRedisTemplate.delete(REDIS_CHAT_ROOM_KEY + ":" + roomId);
     }
 }

@@ -30,6 +30,7 @@ public class RoomStateManager {
     private final SimpMessagingTemplate messagingTemplate;
     private final RoomRepository roomRepository;
     // Local cache of room states active on THIS instance
+    // chỉ nên dùng nếu có many action như update, access,
     private final Map<Long, RoomRealtimeState> localRoomStates = new ConcurrentHashMap<>();
     private final ChatRealtimeService chatRealtimeService;
 

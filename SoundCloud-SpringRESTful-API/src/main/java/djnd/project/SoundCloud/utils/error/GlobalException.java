@@ -151,4 +151,17 @@ public class GlobalException {
         res.setStatusCode(status);
         return ResponseEntity.badRequest().body(res);
     }
+
+    @ExceptionHandler(value ={
+            HandleIllegalArgumentException.class
+    })
+    public ResponseEntity<?> handleIllegalArgumentException(
+            HandleIllegalArgumentException ex) {
+        var res = new RestResponse<>();
+        var status =  HttpStatus.BAD_REQUEST.value();
+        res.setStatusCode(status);
+        res.setError(ex.getMessage());
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+            }
 }

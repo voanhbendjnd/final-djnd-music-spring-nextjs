@@ -6,9 +6,9 @@ import djnd.project.SoundCloud.domain.entity.User;
 import djnd.project.SoundCloud.domain.request.permissions.PermissionDTO;
 import djnd.project.SoundCloud.domain.request.roles.RoleDTO;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
-import djnd.project.SoundCloud.domain.response.permissions.ResPermission;
-import djnd.project.SoundCloud.domain.response.roles.ResRole;
-import djnd.project.SoundCloud.domain.response.users.ResUser;
+import djnd.project.SoundCloud.domain.response.ResPermission;
+import djnd.project.SoundCloud.domain.response.ResRole;
+import djnd.project.SoundCloud.domain.response.ResUser;
 
 public class convertUtils {
     public static ResUser toResUser(User user) {

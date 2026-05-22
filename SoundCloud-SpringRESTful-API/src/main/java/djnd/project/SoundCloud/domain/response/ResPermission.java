@@ -1,4 +1,4 @@
-package djnd.project.SoundCloud.domain.response.permissions;
+package djnd.project.SoundCloud.domain.response;
 
 import java.time.LocalDateTime;
 

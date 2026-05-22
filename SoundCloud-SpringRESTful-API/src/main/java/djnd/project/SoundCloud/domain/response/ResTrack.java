@@ -1,6 +1,5 @@
 package djnd.project.SoundCloud.domain.response;
 
-import djnd.project.SoundCloud.domain.response.users.ResUser;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;

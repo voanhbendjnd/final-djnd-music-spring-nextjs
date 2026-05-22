@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import djnd.project.SoundCloud.domain.entity.Role;
 import djnd.project.SoundCloud.domain.request.roles.RoleDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
-import djnd.project.SoundCloud.domain.response.roles.ResRole;
+import djnd.project.SoundCloud.domain.response.ResRole;
 import djnd.project.SoundCloud.repositories.PermissionRepository;
 import djnd.project.SoundCloud.repositories.RoleRepository;
 import djnd.project.SoundCloud.utils.convert.convertUtils;

@@ -21,7 +21,7 @@ import com.turkraft.springfilter.boot.Filter;
 import djnd.project.SoundCloud.domain.entity.User;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.domain.request.users.UserUpdateDTO;
-import djnd.project.SoundCloud.domain.response.users.ResUser;
+import djnd.project.SoundCloud.domain.response.ResUser;
 import djnd.project.SoundCloud.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.InputStreamResource;

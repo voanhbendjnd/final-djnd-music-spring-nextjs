@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import djnd.project.SoundCloud.domain.response.users.ResUser;
+import djnd.project.SoundCloud.domain.response.ResUser;
 import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;

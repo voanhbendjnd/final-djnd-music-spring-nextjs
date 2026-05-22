@@ -38,7 +38,9 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     Page<FollowingInterface> fetchAllFollowingsByFollowerId(@Param("followerId") Long followerId, Pageable pageable);
 
     @Query(value = "select u.id as id, u.name as name, u.avatar as avatar, u.countFollowers as countFollowers from Follow f join f.follower u where f.following.id = :followingId")
-    Page<FollowingInterface> fetchAllFollowerByFollowingId(Pageable pageable, Long followingId);
+    Page<FollowingInterface> fetchAllFollowerByFollowingId(Pageable pageable,@Param("followingId") Long followingId);
 
+    @Query(value = "select u.id from Follow f join f.follower u where f.following.id = :followingId")
+    List<Long> fetchAllIdFollowersByFollowingId(@Param("followingId")Long followingId);
 
 }

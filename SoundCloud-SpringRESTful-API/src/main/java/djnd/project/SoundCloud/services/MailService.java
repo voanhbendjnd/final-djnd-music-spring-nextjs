@@ -17,7 +17,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import djnd.project.SoundCloud.domain.entity.User;
-import djnd.project.SoundCloud.domain.response.users.ResUser;
+import djnd.project.SoundCloud.domain.response.ResUser;
 import djnd.project.SoundCloud.repositories.UserRepository;
 import jakarta.mail.MessagingException;
 import lombok.AccessLevel;

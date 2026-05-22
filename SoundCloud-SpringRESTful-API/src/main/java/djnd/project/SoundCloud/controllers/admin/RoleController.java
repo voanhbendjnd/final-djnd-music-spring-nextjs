@@ -18,7 +18,7 @@ import com.turkraft.springfilter.boot.Filter;
 import djnd.project.SoundCloud.domain.entity.Role;
 import djnd.project.SoundCloud.domain.request.roles.RoleDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
-import djnd.project.SoundCloud.domain.response.roles.ResRole;
+import djnd.project.SoundCloud.domain.response.ResRole;
 import djnd.project.SoundCloud.services.RoleService;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
 import lombok.AccessLevel;

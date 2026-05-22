@@ -5,4 +5,6 @@ public final class RoomsConstants {
     public static final String REDIS_ROOM_TOPIC = "room:events";
     // key
     public static final String REDIS_CHAT_ROOM_KEY = "room:chat";
+
+    public static final String WS_FOLLOWER_ACTIVITY_QUEUE = "queue/follower/activity";
 }

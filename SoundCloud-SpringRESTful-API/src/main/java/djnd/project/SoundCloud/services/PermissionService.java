@@ -10,7 +10,7 @@ import djnd.project.SoundCloud.domain.entity.Permission;
 import djnd.project.SoundCloud.domain.it.PermissionIdName;
 import djnd.project.SoundCloud.domain.request.permissions.PermissionDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
-import djnd.project.SoundCloud.domain.response.permissions.ResPermission;
+import djnd.project.SoundCloud.domain.response.ResPermission;
 import djnd.project.SoundCloud.repositories.PermissionRepository;
 import djnd.project.SoundCloud.utils.convert.convertUtils;
 import djnd.project.SoundCloud.utils.error.DuplicateResourceException;

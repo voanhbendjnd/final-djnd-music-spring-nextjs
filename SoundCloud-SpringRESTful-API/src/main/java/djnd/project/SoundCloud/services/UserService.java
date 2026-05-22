@@ -37,7 +37,7 @@ import djnd.project.SoundCloud.domain.request.users.UpdatePassword;
 import djnd.project.SoundCloud.domain.request.users.UserDTO;
 import djnd.project.SoundCloud.domain.request.users.UserUpdateDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
-import djnd.project.SoundCloud.domain.response.users.ResUser;
+import djnd.project.SoundCloud.domain.response.ResUser;
 import djnd.project.SoundCloud.repositories.RoleRepository;
 import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;

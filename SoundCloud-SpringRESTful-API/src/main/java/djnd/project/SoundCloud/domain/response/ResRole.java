@@ -1,4 +1,4 @@
-package djnd.project.SoundCloud.domain.response.roles;
+package djnd.project.SoundCloud.domain.response;
 
 import java.time.LocalDateTime;
 import java.util.List;

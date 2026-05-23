@@ -38,7 +38,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic")
+        config.enableSimpleBroker("/topic", "/queue")
                 .setHeartbeatValue(new long[] { 10000, 10000 }) // 10s heartbeat
                 .setTaskScheduler(taskScheduler());
         // FE send
@@ -91,7 +91,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             // return ra principal, UsernamePasswordAuthentication extend by Authentication, authentication
                             // extend by principal
                             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                                    userId, null, Collections.emptyList());
+                                    userId.toString(), null, Collections.emptyList());
                             // Store userId in session attributes for easy access
                             accessor.getSessionAttributes().put("userId", userId);
                             accessor.setUser(auth);

@@ -21,6 +21,7 @@ import { useTrackContext, mapToShareTrack } from "@/lib/track.wrapper";
 import { useRouter } from "next/navigation";
 import { useTracks } from "@/hooks/use-track";
 import UploaderHoverCard from "@/components/profile/uploader.hover.card";
+import ListeningStoryBar from "@/components/main/listening.story.bar";
 
 interface IProps {
     newTracks: ITrack[],
@@ -281,123 +282,127 @@ const MainSlider = (props: IProps) => {
     )
 
     return (
-        <Box sx={{ backgroundColor: '#121212', color: 'white', px: { xs: 2, sm: 3, md: 5 }, py: 2 }}>
-            <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: '70% 30%' },
-                gap: 2,
-                width: '100%',
-            }}>
-                {/* ── LEFT ─────────────────────────────────────────────── */}
-                <Box sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                    {/* Category chips */}
-                    <Box sx={{
-                        display: 'flex', gap: 1, mb: 3, overflowX: 'auto', pb: 1,
-                        '&::-webkit-scrollbar': { display: 'none' }
-                    }}>
-                        <Chip
-                            label="All"
-                            onClick={() => setActiveCategory('All')}
-                            sx={{
-                                bgcolor: activeCategory === 'All' ? '#ff5500' : '#333',
-                                color: activeCategory === 'All' ? '#000' : 'white',
-                                fontWeight: activeCategory === 'All' ? 'bold' : 'normal',
-                                '&:hover': { bgcolor: activeCategory === 'All' ? '#ff5500' : '#444' }
-                            }}
-                        />
-                        {categories.map((cat: any) => (
+        <>
+            <ListeningStoryBar/>
+            <Box sx={{ backgroundColor: '#121212', color: 'white', px: { xs: 2, sm: 3, md: 5 }, py: 2 }}>
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: '70% 30%' },
+                    gap: 2,
+                    width: '100%',
+                }}>
+                    {/* ── LEFT ─────────────────────────────────────────────── */}
+                    <Box sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                        {/* Category chips */}
+                        <Box sx={{
+                            display: 'flex', gap: 1, mb: 3, overflowX: 'auto', pb: 1,
+                            '&::-webkit-scrollbar': { display: 'none' }
+                        }}>
                             <Chip
-                                key={cat.id}
-                                label={cat.name}
-                                onClick={() => setActiveCategory(cat.name)}
+                                label="All"
+                                onClick={() => setActiveCategory('All')}
                                 sx={{
-                                    bgcolor: activeCategory === cat.name ? '#ff5500' : '#333',
-                                    color: activeCategory === cat.name ? '#000' : 'white',
-                                    fontWeight: activeCategory === cat.name ? 'bold' : 'normal',
-                                    '&:hover': { bgcolor: activeCategory === cat.name ? '#ff5500' : '#444' }
+                                    bgcolor: activeCategory === 'All' ? '#ff5500' : '#333',
+                                    color: activeCategory === 'All' ? '#000' : 'white',
+                                    fontWeight: activeCategory === 'All' ? 'bold' : 'normal',
+                                    '&:hover': { bgcolor: activeCategory === 'All' ? '#ff5500' : '#444' }
                                 }}
                             />
-                        ))}
+                            {categories.map((cat: any) => (
+                                <Chip
+                                    key={cat.id}
+                                    label={cat.name}
+                                    onClick={() => setActiveCategory(cat.name)}
+                                    sx={{
+                                        bgcolor: activeCategory === cat.name ? '#ff5500' : '#333',
+                                        color: activeCategory === cat.name ? '#000' : 'white',
+                                        fontWeight: activeCategory === cat.name ? 'bold' : 'normal',
+                                        '&:hover': { bgcolor: activeCategory === cat.name ? '#ff5500' : '#444' }
+                                    }}
+                                />
+                            ))}
+                        </Box>
+
+                        {activeCategory === 'All' ? (
+                            <>
+                                <TrackSection sectionTitle="New tracks" tracks={newTracks} />
+                                <Divider sx={{ my: 3, backgroundColor: '#333' }} />
+                                <TrackSection sectionTitle="Most popular" tracks={tracksMostListens} />
+                                <Divider sx={{ my: 3, backgroundColor: '#333' }} />
+                                <TrackSection sectionTitle="Most loved" tracks={tracksMostLikes} />
+                            </>
+                        ) : (
+                            <>
+                                <Typography variant="h5" mb={2} fontWeight={700}>{activeCategory} Tracks</Typography>
+                                {isLoadingFiltered ? (
+                                    <Typography variant="body2" color="gray">Loading...</Typography>
+                                ) : filteredTracks.length > 0 ? (
+                                    <Slider {...settings}>
+                                        {filteredTracks.map((track: any) => (
+                                            <TrackCard key={track.id} track={track} trackList={filteredTracks} />
+                                        ))}
+                                    </Slider>
+                                ) : (
+                                    <Typography variant="body2" color="gray">No tracks found for this category.</Typography>
+                                )}
+                            </>
+                        )}
+
+                        {/* Mobile list */}
+                        <Box sx={{ display: { xs: 'block', sm: 'none' }, mt: 4 }}>
+                            <Typography variant="caption" sx={{ color: '#a7a7a7' }}>
+                                Jump into a session based on your tastes
+                            </Typography>
+                            <Typography variant="h5" mb={2} fontWeight={700}>Start listening</Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {(activeCategory !== 'All' ? filteredTracks : newTracks).slice(0, 5).map((track: any) => (
+                                    <MobileTrackRow key={track.id} track={track} trackList={activeCategory !== 'All' ? filteredTracks : newTracks} />
+                                ))}
+                            </Box>
+                        </Box>
                     </Box>
 
-                    {activeCategory === 'All' ? (
-                        <>
-                            <TrackSection sectionTitle="New tracks" tracks={newTracks} />
-                            <Divider sx={{ my: 3, backgroundColor: '#333' }} />
-                            <TrackSection sectionTitle="Most popular" tracks={tracksMostListens} />
-                            <Divider sx={{ my: 3, backgroundColor: '#333' }} />
-                            <TrackSection sectionTitle="Most loved" tracks={tracksMostLikes} />
-                        </>
-                    ) : (
-                        <>
-                            <Typography variant="h5" mb={2} fontWeight={700}>{activeCategory} Tracks</Typography>
-                            {isLoadingFiltered ? (
-                                <Typography variant="body2" color="gray">Loading...</Typography>
-                            ) : filteredTracks.length > 0 ? (
-                                <Slider {...settings}>
-                                    {filteredTracks.map((track: any) => (
-                                        <TrackCard key={track.id} track={track} trackList={filteredTracks} />
-                                    ))}
-                                </Slider>
-                            ) : (
-                                <Typography variant="body2" color="gray">No tracks found for this category.</Typography>
-                            )}
-                        </>
-                    )}
+                    {/* ── RIGHT SIDEBAR ─────────────────────────────────────── */}
+                    <Box sx={{
+                        width: '100%', minWidth: 0,
+                        display: { xs: 'none', sm: 'block' },
+                        marginTop: isMobile ? 0 : 8,
+                        position: { md: 'sticky' },
+                        top: { md: 80 },
+                        height: 'fit-content',
+                        pr: 1,
+                    }}>
+                        <Box mb={3}>
+                            <Typography variant="h6" mb={2}>Likes</Typography>
+                            {likedTracks?.slice(0, 5).map((track: any) => (
+                                <SidebarTrackRow key={track.id} track={track} subtitle={track.uploader?.name} />
+                            ))}
+                        </Box>
 
-                    {/* Mobile list */}
-                    <Box sx={{ display: { xs: 'block', sm: 'none' }, mt: 4 }}>
-                        <Typography variant="caption" sx={{ color: '#a7a7a7' }}>
-                            Jump into a session based on your tastes
-                        </Typography>
-                        <Typography variant="h5" mb={2} fontWeight={700}>Start listening</Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {(activeCategory !== 'All' ? filteredTracks : newTracks).slice(0, 5).map((track: any) => (
-                                <MobileTrackRow key={track.id} track={track} trackList={activeCategory !== 'All' ? filteredTracks : newTracks} />
+                        <Divider sx={{ my: 2, backgroundColor: '#333' }} />
+
+                        <Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6">History</Typography>
+                                <Link href="/history" style={{ textDecoration: 'none' }}>
+                                    <Typography sx={{
+                                        color: '#a7a7a7', fontSize: '13px', fontWeight: 600,
+                                        transition: 'color 0.2s ease',
+                                        '&:hover': { color: '#ff5500' }
+                                    }}>
+                                        View all
+                                    </Typography>
+                                </Link>
+                            </Box>
+                            {historyTracks?.slice(0, 5).map((track: any) => (
+                                <SidebarTrackRow key={track.id} track={track} subtitle={track.uploader} />
                             ))}
                         </Box>
                     </Box>
                 </Box>
-
-                {/* ── RIGHT SIDEBAR ─────────────────────────────────────── */}
-                <Box sx={{
-                    width: '100%', minWidth: 0,
-                    display: { xs: 'none', sm: 'block' },
-                    marginTop: isMobile ? 0 : 8,
-                    position: { md: 'sticky' },
-                    top: { md: 80 },
-                    height: 'fit-content',
-                    pr: 1,
-                }}>
-                    <Box mb={3}>
-                        <Typography variant="h6" mb={2}>Likes</Typography>
-                        {likedTracks?.slice(0, 5).map((track: any) => (
-                            <SidebarTrackRow key={track.id} track={track} subtitle={track.uploader?.name} />
-                        ))}
-                    </Box>
-
-                    <Divider sx={{ my: 2, backgroundColor: '#333' }} />
-
-                    <Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6">History</Typography>
-                            <Link href="/history" style={{ textDecoration: 'none' }}>
-                                <Typography sx={{
-                                    color: '#a7a7a7', fontSize: '13px', fontWeight: 600,
-                                    transition: 'color 0.2s ease',
-                                    '&:hover': { color: '#ff5500' }
-                                }}>
-                                    View all
-                                </Typography>
-                            </Link>
-                        </Box>
-                        {historyTracks?.slice(0, 5).map((track: any) => (
-                            <SidebarTrackRow key={track.id} track={track} subtitle={track.uploader} />
-                        ))}
-                    </Box>
-                </Box>
             </Box>
-        </Box>
+
+        </>
     )
 }
 

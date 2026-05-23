@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.security.Principal;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE)

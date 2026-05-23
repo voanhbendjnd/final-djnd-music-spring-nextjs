@@ -236,7 +236,7 @@ const initTab = (): TabState => ({
 export default function FollowPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
+    const {data:session} = useSession();
     const [tab, setTab] = useState(0); // 0 = following, 1 = followers
     const [tabs, setTabs] = useState<[TabState, TabState]>([initTab(), initTab()]);
     const [search, setSearch] = useState('');
@@ -254,7 +254,7 @@ export default function FollowPage() {
         });
         try {
             const res = await axiosInstance.get<any, IBackendRes<IModelPaginate<IFollowUser>>>(
-                `${ENDPOINTS[tabIdx]}?page=${page}&size=${PAGE_SIZE}`
+                `${ENDPOINTS[tabIdx]}?page=${page}&size=${PAGE_SIZE}&userId=${session?.user?.id}`
             );
             setTabs(prev => {
                 const next: [TabState, TabState] = [{ ...prev[0] }, { ...prev[1] }];

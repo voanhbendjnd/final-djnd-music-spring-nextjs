@@ -7,4 +7,6 @@ public final class RoomsConstants {
     public static final String REDIS_CHAT_ROOM_KEY = "room:chat";
 
     public static final String WS_FOLLOWER_ACTIVITY_QUEUE = "queue/follower/activity";
+    public static final String WS_FOLLOWER_HOME_QUEUE = "queue/follower/home";
+
 }

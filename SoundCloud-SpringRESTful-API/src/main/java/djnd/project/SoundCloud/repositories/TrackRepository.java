@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.repositories;
 
 import java.util.List;
 
+import djnd.project.SoundCloud.domain.it.TrackHome;
 import io.micrometer.common.lang.NonNullApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -88,4 +89,21 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
     @Query(value = "select t from Track t where t.id not in :ids order by RAND()")
     List<Track> getTrackRandom(@Param("ids") List<Long> ids, Pageable pageable);
 
+    @Query(value = """
+    select
+                                      u.id as followingId,
+                                      u.name as followingName,
+                                      u.avatar as followingAvatar,
+                                      t.id as followingTrackId,
+                                      t.title as followingTrackTitle,
+                                      t.trackUrl as followingTrackUrl,
+                                      t.imgUrl as followingImgUrl,
+                                      t.createdAt as postedAt
+                                  from Follow f
+                                  join f.following u
+                                  join Track t on t.user.id = u.id
+                                  where f.follower.id = :followerId
+                                  order by t.createdAt desc
+""")
+    Page<TrackHome> getTrackHomeWithFollowerId(@Param("followerId") Long followerId, Pageable pageable);
 }

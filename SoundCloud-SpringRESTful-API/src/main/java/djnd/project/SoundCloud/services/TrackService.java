@@ -6,7 +6,10 @@ import java.util.*;
 
 import djnd.project.SoundCloud.domain.entity.Category;
 import djnd.project.SoundCloud.domain.entity.User;
+import djnd.project.SoundCloud.domain.realtime.ListeningActivityEvent;
 import djnd.project.SoundCloud.domain.response.*;
+import djnd.project.SoundCloud.services.realtime.ShareTrackRealtimeService;
+import djnd.project.SoundCloud.utils.error.HandleIllegalArgumentException;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -53,6 +56,7 @@ public class TrackService {
     final YouTubeService youtubeService;
     final HistoryTrackRepository historyTrackRepository;
     final FollowRepository followRepository;
+    final ShareTrackRealtimeService shareTrackRealtimeService;
     @Value("${djnd.soundcloud.location.folder.img}")
     private String imgFolder;
     @Value("${djnd.soundcloud.location.folder.temp}")
@@ -106,10 +110,22 @@ public class TrackService {
         track.setTrackUrl(cloudinaryUrl);
         track.setTrackPublicId(newPublicId);
 
-        this.trackRepository.save(track);
+        var saveTrack = this.trackRepository.save(track);
 
         // Generate peaks asynchronously
         this.waveformService.generatePeaksForTrack(track.getId());
+
+        // share for followers
+        this.shareTrackRealtimeService.postTrackForFollowers(user.getId(), ListeningActivityEvent.builder()
+                        .followingId(user.getId())
+                        .followingName(user.getName())
+                        .followingAvatar(user.getAvatar())
+                        .followingTrackId(saveTrack.getId())
+                        .followingImgUrl(track.getImgUrl())
+                        .followingTrackTitle(track.getTitle())
+                        .followingTrackUrl(track.getTrackUrl())
+                        .build()
+                );
     }
 
     public void update(TrackDTO dto, MultipartFile imgUrl, MultipartFile trackUrl)
@@ -478,6 +494,24 @@ public class TrackService {
         }
         return this.convertToResponse(track);
 
+    }
+
+
+    public ResultPaginationDTO getTrackAtHomeForFollowers(Pageable pageable) {
+        var followerId = SecurityUtils.getCurrentUserIdOrNull();
+        if(followerId == null){
+            throw new HandleIllegalArgumentException("Follower ID null!");
+        }
+        var res = new ResultPaginationDTO();
+        var meta = new ResultPaginationDTO.Meta();
+        var page = this.trackRepository.getTrackHomeWithFollowerId(followerId, pageable);
+        meta.setPage(pageable.getPageNumber() + 1);
+        meta.setPageSize(pageable.getPageSize());
+        meta.setPages(page.getTotalPages());
+        meta.setTotal(page.getTotalElements());
+        res.setMeta(meta);
+        res.setResult(page.getContent());
+        return res;
     }
 
 }

@@ -19,5 +19,6 @@ public class ListeningActivityEvent {
     String followingTrackUrl;
     String followingImgUrl;
     Long startedAt;
+    String activityId;
 
 }

@@ -226,4 +226,11 @@ public class TrackController {
     public ResponseEntity<?> getTrackRandom() throws BadRequestException {
         return ResponseEntity.ok(this.trackService.getTrackRandomForPlayer());
     }
+
+
+    @GetMapping("/following/post")
+    @ApiMessage("Fetch Track following post")
+    public ResponseEntity<?> getTrackFollowingPost(Pageable pageable) {
+        return ResponseEntity.ok(this.trackService.getTrackAtHomeForFollowers(pageable));
+    }
 }

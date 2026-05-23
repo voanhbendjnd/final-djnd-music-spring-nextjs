@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useTracks } from "@/hooks/use-track";
 import UploaderHoverCard from "@/components/profile/uploader.hover.card";
 import ListeningStoryBar from "@/components/main/listening.story.bar";
+import ListeningActivityFeed from "@/components/main/listening.activity.feed";
 
 interface IProps {
     newTracks: ITrack[],
@@ -401,7 +402,7 @@ const MainSlider = (props: IProps) => {
                     </Box>
                 </Box>
             </Box>
-
+    <ListeningActivityFeed/>
         </>
     )
 }
@@ -471,7 +472,8 @@ const MobileTrackRow = ({ track, trackList }: { track: any; trackList: any[] }) 
                     </Link>
                     <UploaderHoverCard uploader={track.uploader}>
                         <Link href={generateProfileUrl(track.uploader.name, track.uploader.id)} style={{ textDecoration: 'none', color: 'white' }}>
-                            <Typography variant="caption" sx={{ color: '#a7a7a7', display: 'block', overflow: 'hidden',  '&:hover': {
+                            <Typography variant="caption" sx={{ color: '#a7a7a7', display: 'block', overflow: 'hidden',
+                                '&:hover': {
                                     color: "#f50",
                                 },textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {track.uploader?.name || "no name"}

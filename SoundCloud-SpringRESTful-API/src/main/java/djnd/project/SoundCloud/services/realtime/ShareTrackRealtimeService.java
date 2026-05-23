@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.security.Principal;
+import java.util.UUID;
 
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -22,17 +23,8 @@ public class ShareTrackRealtimeService {
     final FollowRepository followRepository;
     public void postStateByFollowing(ListeningActivityEvent event, Principal principal) {
         var followingId = Long.valueOf(principal.getName());
-        var followerIds = this.followRepository.fetchAllIdFollowersByFollowingId(event.getFollowingId());
-        var payload = ListeningActivityEvent.builder()
-                        .followingId(event.getFollowingId())
-                                .followingAvatar(event.getFollowingAvatar())
-                                        .followingName(event.getFollowingName())
-                                                .followingTrackId(event.getFollowingTrackId())
-                                                        .followingImgUrl(event.getFollowingImgUrl())
-                                                                .followingTrackTitle(event.getFollowingTrackTitle())
-                                                                        .followingTrackUrl(event.getFollowingTrackUrl())
-                                                                                .startedAt(System.currentTimeMillis())
-                                                                                        .build();
+        var followerIds = this.followRepository.fetchAllIdFollowersByFollowingId(followingId);
+        var payload = this.getPayloadListeningEvent(event);
         followerIds.forEach(followerId -> {
                 this.simpMessagingTemplate.convertAndSendToUser(
                         followerId.toString(),
@@ -41,5 +33,33 @@ public class ShareTrackRealtimeService {
                 );
         });
         log.info("{} posted state by following {}", event.getFollowingId(), followerIds);
+    }
+
+    public void postTrackForFollowers(Long userId, ListeningActivityEvent event) {
+        var followerIds = this.followRepository.fetchAllIdFollowersByFollowingId(userId);
+        var payload = this.getPayloadListeningEvent(event);
+        this.simpMessagingTemplate.convertAndSendToUser(userId.toString(), RoomsConstants.WS_FOLLOWER_HOME_QUEUE, payload);
+        followerIds.forEach(followerId -> {
+            this.simpMessagingTemplate.convertAndSendToUser(
+                    followerId.toString(),
+                    RoomsConstants.WS_FOLLOWER_HOME_QUEUE,
+                    payload
+            );
+        });
+
+    }
+
+    private ListeningActivityEvent getPayloadListeningEvent(ListeningActivityEvent event) {
+        return ListeningActivityEvent.builder()
+                .activityId(UUID.randomUUID().toString())
+                .followingId(event.getFollowingId())
+                .followingAvatar(event.getFollowingAvatar())
+                .followingName(event.getFollowingName())
+                .followingTrackId(event.getFollowingTrackId())
+                .followingImgUrl(event.getFollowingImgUrl())
+                .followingTrackTitle(event.getFollowingTrackTitle())
+                .followingTrackUrl(event.getFollowingTrackUrl())
+                .startedAt(System.currentTimeMillis())
+                .build();
     }
 }

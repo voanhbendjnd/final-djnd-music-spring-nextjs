@@ -100,7 +100,7 @@ axiosInstance.interceptors.request.use(
         ];
 
         const isPublicEndpoint = publicEndpoints.some(endpoint =>
-            config.url?.startsWith(endpoint.url) &&
+            config.url === endpoint.url &&
             config.method === endpoint.method
         );
 
@@ -124,7 +124,7 @@ axiosInstance.interceptors.request.use(
             } else {
                 config.headers.Authorization = `Bearer ${session.access_token}`;
             }
-        } else {
+        } else if (!config.headers.Authorization) {
             delete config.headers.Authorization;
         }
 

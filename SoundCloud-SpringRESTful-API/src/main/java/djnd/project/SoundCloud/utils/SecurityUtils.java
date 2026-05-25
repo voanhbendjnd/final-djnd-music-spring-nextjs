@@ -119,10 +119,7 @@ public class SecurityUtils {
 
     public static Long getCurrentUserIdOrNull() {
         var userId = getCurrentUserId();
-        if (userId.isPresent()) {
-            return userId.get();
-        }
-        return null;
+        return userId.orElse(null);
     }
 
     private static String extractPrincipal(Authentication authentication) {

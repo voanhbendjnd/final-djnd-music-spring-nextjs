@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
+@Setter
 public class ListeningActivityEvent {
     // information following
     Long followingId;
@@ -20,5 +21,7 @@ public class ListeningActivityEvent {
     String followingImgUrl;
     Long startedAt;
     String activityId;
+    Boolean isLiked;
+    Boolean isFollowed;
 
 }

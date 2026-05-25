@@ -9,6 +9,7 @@ import djnd.project.SoundCloud.domain.entity.Category;
 import djnd.project.SoundCloud.domain.entity.User;
 import djnd.project.SoundCloud.domain.realtime.ListeningActivityEvent;
 import djnd.project.SoundCloud.domain.response.*;
+import djnd.project.SoundCloud.repositories.*;
 import djnd.project.SoundCloud.services.realtime.ShareTrackRealtimeService;
 import djnd.project.SoundCloud.utils.error.HandleIllegalArgumentException;
 import jakarta.persistence.criteria.Join;
@@ -17,6 +18,7 @@ import jakarta.persistence.criteria.Predicate;
 
 import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,11 +32,6 @@ import org.springframework.web.multipart.MultipartFile;
 import djnd.project.SoundCloud.domain.entity.Track;
 import djnd.project.SoundCloud.domain.entity.TrackLike;
 import djnd.project.SoundCloud.domain.request.TrackDTO;
-import djnd.project.SoundCloud.repositories.CategoryRepository;
-import djnd.project.SoundCloud.repositories.FollowRepository;
-import djnd.project.SoundCloud.repositories.HistoryTrackRepository;
-import djnd.project.SoundCloud.repositories.TrackLikeRepository;
-import djnd.project.SoundCloud.repositories.TrackRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.error.PermissionException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
@@ -57,6 +54,7 @@ public class TrackService {
     final YouTubeService youtubeService;
     final HistoryTrackRepository historyTrackRepository;
     final FollowRepository followRepository;
+    final UserRepository userRepository;
     final ShareTrackRealtimeService shareTrackRealtimeService;
     @Value("${djnd.soundcloud.location.folder.img}")
     private String imgFolder;
@@ -320,6 +318,41 @@ public class TrackService {
         res.setCountLikes(this.trackRepository.getCountLike(trackId));
         res.setIsLiked(!isCurrentlyLiked);
 
+        return res;
+    }
+    @Transactional
+    public ResTrackLike toggleLikeTrack(Long trackId){
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if (userId == null) {
+            throw new HandleIllegalArgumentException("User ID invalid!");
+        }
+        var deleted = this.trackLikeRepository.deleteByUserIdAndTrackId(userId, trackId);
+        boolean isLiked;
+        if(deleted > 0){
+            this.trackRepository.decrementCountLikes(trackId);
+            isLiked = false;
+        }
+        else{
+            var track = this.trackRepository.findById(trackId)
+                    .orElseThrow(() ->
+                            new HandleIllegalArgumentException("Track not found!")
+                    );
+            try{
+                var trackLike = new TrackLike();
+                trackLike.setTrack(track);
+                trackLike.setUser(this.userRepository.getReferenceById(userId));
+                this.trackLikeRepository.saveAndFlush(trackLike);
+                this.trackRepository.incrementCountLikes(trackId);
+                isLiked = true;
+            }
+            catch(DataIntegrityViolationException ex){
+                isLiked = true;
+            }
+
+        }
+        var res = new ResTrackLike();
+        res.setCountLikes(this.trackRepository.getCountLike(trackId));
+        res.setIsLiked(isLiked);
         return res;
     }
 

@@ -26,15 +26,13 @@ public interface TrackLikeRepository extends JpaRepository<TrackLike, Long> {
     TrackLike findByUserIdAndTrackId(Long userId, Long trackId);
 
     /**
-     * flushAuto delete done call db tức thời
+     * flushAuto delete done call db
      * 
-     * @param userId
-     * @param trackId
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("DELETE FROM TrackLike tl WHERE tl.user.id = :userId AND tl.track.id = :trackId")
-    void deleteByUserIdAndTrackId(@Param("userId") Long userId, @Param("trackId") Long trackId);
+    @Query(value = "DELETE FROM TrackLike tl WHERE tl.user.id = :userId AND tl.track.id = :trackId")
+    int deleteByUserIdAndTrackId(@Param("userId") Long userId, @Param("trackId") Long trackId);
 
     @Query(value = "select tl.track from TrackLike tl join tl.track t where tl.user.id = :userId", countQuery = "select count(DISTINCT tl.track) from TrackLike tl where tl.user.id = :userId")
     Page<Track> getMyLikeTrack(@Param("userId") Long userId, Pageable pageable);

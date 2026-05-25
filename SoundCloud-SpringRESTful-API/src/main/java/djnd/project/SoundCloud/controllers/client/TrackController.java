@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
+import djnd.project.SoundCloud.services.realtime.ShareTrackRealtimeService;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -35,7 +36,7 @@ import lombok.experimental.FieldDefaults;
 public class TrackController {
     TrackService trackService;
     CommentService commentService;
-
+    ShareTrackRealtimeService shareTrackRealtimeService;
     @GetMapping("/users/{id}")
     public ResponseEntity<?> getMyTrackUploaded(@Filter Specification<Track> spec, Pageable pageable,
             @PathVariable("id") String userIdStr) {
@@ -166,7 +167,7 @@ public class TrackController {
     @PostMapping("/likes")
     @ApiMessage("Handle count likes track")
     public ResponseEntity<?> handleCountLikesTrack(@RequestBody Map<String, Long> request)
-            throws PermissionException {
+    {
         var trackId = request.get("trackId");
         if (trackId == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Track ID invalid");
@@ -176,7 +177,7 @@ public class TrackController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Track ID must be positive!");
 
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.trackService.handleCountLikeTrack(trackId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.trackService.toggleLikeTrack(trackId));
     }
 
     @PatchMapping("/view/increase")
@@ -235,5 +236,11 @@ public class TrackController {
         var trackId = (Long) mapRequest.get("trackId");
         var cursor = (String) mapRequest.get("cursor");
         return ResponseEntity.ok(this.trackService.getTrackAtHomeForFollowers(size, cursor, trackId));
+    }
+
+    @GetMapping("/following/activity")
+    @ApiMessage("Get following activity")
+    public ResponseEntity<?> getFollowingActivity() {
+        return ResponseEntity.ok(this.shareTrackRealtimeService.getAllFollowingActivity());
     }
 }

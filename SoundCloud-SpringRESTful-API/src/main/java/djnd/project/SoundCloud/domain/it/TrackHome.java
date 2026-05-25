@@ -12,5 +12,6 @@ public interface TrackHome {
     String getFollowingTrackTitle();
     String getFollowingTrackUrl();
     String getFollowingImgUrl();
+    Boolean getIsLiked();
     LocalDateTime getPostedAt();
 }

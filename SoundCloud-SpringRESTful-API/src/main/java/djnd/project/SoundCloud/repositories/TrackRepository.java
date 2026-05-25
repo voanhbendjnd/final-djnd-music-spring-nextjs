@@ -99,7 +99,15 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
                                       t.title as followingTrackTitle,
                                       t.trackUrl as followingTrackUrl,
                                       t.imgUrl as followingImgUrl,
-                                      t.createdAt as postedAt
+                                      t.createdAt as postedAt,
+                                      case
+                                        when exists(
+                                        select 1 from TrackLike tl
+                                        where tl.user.id = :followerId and tl.track.id = t.id
+                                        )
+                                        then true
+                                        else false
+                                       end as isLiked
                                   from Follow f
                                   join f.following u
                                   join Track t on t.user.id = u.id

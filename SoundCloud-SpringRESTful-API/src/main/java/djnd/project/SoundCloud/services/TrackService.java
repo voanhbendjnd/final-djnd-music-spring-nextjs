@@ -503,7 +503,7 @@ public class TrackService {
         if(followerId == null){
             throw new HandleIllegalArgumentException("Follower ID null!");
         }
-        LocalDateTime  parsedCursor = null;
+        LocalDateTime parsedCursor = null;
         try{
             if(cursor != null && !cursor.isBlank()){
                 parsedCursor = LocalDateTime.parse(cursor);

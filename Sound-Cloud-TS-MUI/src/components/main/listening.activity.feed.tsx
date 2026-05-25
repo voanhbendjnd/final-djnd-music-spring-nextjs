@@ -23,42 +23,65 @@ import GraphicEqIcon from '@mui/icons-material/GraphicEq';
 
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { useSession } from 'next-auth/react';
-import Image from 'next/image';
 
-import { useTrackContext, ITrackContext } from '@/lib/track.wrapper';
-import axiosInstance from "@/utils/axios-instance";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import {generateProfileUrl, generateTrackUrlUp} from "@/utils/generate.slug";
-import Link from "next/link";
-import UploaderHoverCard from "@/components/profile/uploader.hover.card";
+import { useSession } from 'next-auth/react';
+
+import Image from 'next/image';
+import Link from 'next/link';
+
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+import axiosInstance from '@/utils/axios-instance';
+
+import {
+    useTrackContext,
+    ITrackContext,
+} from '@/lib/track.wrapper';
+
+import {
+    generateProfileUrl,
+    generateTrackUrlUp,
+} from '@/utils/generate.slug';
+
 dayjs.extend(relativeTime);
 
+// ─────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────
+
 export interface ListeningActivityEvent {
+
     activityId?: string;
 
     followingId: number;
+
     followingName: string;
+
     followingAvatar: string;
 
     followingTrackId: number;
+
     followingTrackTitle: string;
+
     followingTrackUrl: string;
+
     followingImgUrl: string;
 
     startedAt?: number;
+
     postedAt?: string;
 }
 
-interface IBackendPagination<T> {
-    meta: {
-        page: number;
-        pageSize: number;
-        pages: number;
-        total: number;
-    };
-    result: T[];
+interface IFeedPagination {
+
+    result: ListeningActivityEvent[];
+
+    nextCursor: string | null;
+
+    trackId: number | null;
+
+    hasMore: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -74,17 +97,23 @@ export default function ListeningActivityFeed() {
         setCurrentTrack,
     } = useTrackContext() as ITrackContext;
 
-    const [feeds, setFeeds] = useState<ListeningActivityEvent[]>([]);
+    // ─────────────────────────────────────────────────────────
+    // STATE
+    // ─────────────────────────────────────────────────────────
 
-    const [connected, setConnected] = useState(false);
+    const [feeds, setFeeds] = useState<ListeningActivityEvent[]>([]);
 
     const [loading, setLoading] = useState(true);
 
-    const [page, setPage] = useState(1);
+    const [fetchingMore, setFetchingMore] = useState(false);
 
     const [hasMore, setHasMore] = useState(true);
 
-    const [fetchingMore, setFetchingMore] = useState(false);
+    const [connected, setConnected] = useState(false);
+
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+
+    const [nextTrackId, setNextTrackId] = useState<number | null>(null);
 
     const stompRef = useRef<Client | null>(null);
 
@@ -93,59 +122,77 @@ export default function ListeningActivityFeed() {
     const userId = session?.user?.id;
 
     // ─────────────────────────────────────────────────────────
-    // FETCH INITIAL POSTS
+    // MERGE FEEDS
+    // ─────────────────────────────────────────────────────────
+
+    const mergeFeeds = useCallback((
+        oldFeeds: ListeningActivityEvent[],
+        newFeeds: ListeningActivityEvent[],
+    ) => {
+
+        const map = new Map<string, ListeningActivityEvent>();
+
+        [...oldFeeds, ...newFeeds].forEach(feed => {
+
+            const key =
+                feed.activityId
+                || `${feed.followingTrackId}-${feed.postedAt}`;
+
+            if (!map.has(key)) {
+                map.set(key, feed);
+            }
+        });
+
+        return Array.from(map.values());
+
+    }, []);
+
+    // ─────────────────────────────────────────────────────────
+    // FETCH POSTS
     // ─────────────────────────────────────────────────────────
 
     const fetchPosts = useCallback(async (
-        targetPage = 1,
         append = false
     ) => {
 
         try {
 
-            if (targetPage === 1) {
-                setLoading(true);
-            } else {
+            if (append) {
                 setFetchingMore(true);
+            } else {
+                setLoading(true);
             }
 
-            const res = await axiosInstance.get(
-                `/api/v1/tracks/following/post?page=${targetPage}&size=10`,
-                {
-                    headers: {
-                        ...(session?.access_token && {
-                            Authorization: `Bearer ${session.access_token}`
-                        }),
-                    },
-                }
+            const body = {
+                size: 10,
+                cursor: nextCursor,
+                trackId: nextTrackId,
+            };
+
+            const res = await axiosInstance.post<
+                any,
+                IFeedPagination
+            >(
+                '/api/v1/tracks/following/post',
+                body
             );
-
-            const data: IBackendPagination<ListeningActivityEvent> =
-                res?.data;
-
-            const items = data?.result || [];
-
-            setHasMore(targetPage < data.meta.pages);
+            //@ts-ignore
+            const items = res?.data.result || [];
 
             setFeeds(prev => {
 
-                const current = append ? [...prev] : [];
+                if (!append) {
+                    return items;
+                }
 
-                items.forEach(item => {
-
-                    const existed = current.find(
-                        x =>
-                            String(x.followingTrackId)
-                            === String(item.followingTrackId)
-                    );
-
-                    if (!existed) {
-                        current.push(item);
-                    }
-                });
-
-                return current;
+                return mergeFeeds(prev, items);
             });
+
+            setHasMore(Boolean(res?.hasMore));
+
+            setNextCursor(res?.nextCursor || null);
+
+            setNextTrackId(res?.trackId || null);
 
         } catch (error) {
 
@@ -158,22 +205,26 @@ export default function ListeningActivityFeed() {
             setFetchingMore(false);
         }
 
-    }, []);
+    }, [
+        nextCursor,
+        nextTrackId,
+        mergeFeeds,
+    ]);
 
     // ─────────────────────────────────────────────────────────
-    // INITIAL LOAD
+    // INITIAL FETCH
     // ─────────────────────────────────────────────────────────
 
     useEffect(() => {
 
         if (!session) return;
 
-        fetchPosts(1);
+        fetchPosts(false);
 
-    }, [session, fetchPosts]);
+    }, [session]);
 
     // ─────────────────────────────────────────────────────────
-    // WEBSOCKET CONNECTION
+    // WEBSOCKET
     // ─────────────────────────────────────────────────────────
 
     useEffect(() => {
@@ -200,20 +251,16 @@ export default function ListeningActivityFeed() {
 
         client.onConnect = () => {
 
-            console.log('CONNECTED FEED SOCKET');
-
             setConnected(true);
 
             client.subscribe(
-                `/user/queue/follower/home`,
+                '/user/queue/follower/home',
                 (message: IMessage) => {
 
                     try {
 
                         const payload: ListeningActivityEvent =
                             JSON.parse(message.body);
-
-                        console.log('NEW FEED POST', payload);
 
                         setFeeds(prev => {
 
@@ -223,13 +270,13 @@ export default function ListeningActivityFeed() {
                                     payload.activityId
                                     && item.activityId
                                 ) {
-                                    return item.activityId === payload.activityId;
+                                    return (
+                                        item.activityId
+                                        === payload.activityId
+                                    );
                                 }
 
-                                return (
-                                    String(item.followingTrackId)
-                                    === String(payload.followingTrackId)
-                                );
+                                return false;
                             });
 
                             if (existed) return prev;
@@ -237,7 +284,9 @@ export default function ListeningActivityFeed() {
                             return [
                                 {
                                     ...payload,
-                                    startedAt: payload.startedAt || Date.now(),
+                                    postedAt:
+                                        payload.postedAt
+                                        || new Date().toISOString(),
                                 },
                                 ...prev,
                             ];
@@ -253,10 +302,6 @@ export default function ListeningActivityFeed() {
 
         client.onDisconnect = () => {
             setConnected(false);
-        };
-
-        client.onStompError = (frame) => {
-            console.error(frame);
         };
 
         client.activate();
@@ -280,18 +325,16 @@ export default function ListeningActivityFeed() {
 
         if (!hasMore || fetchingMore) return;
 
-        const nextPage = page + 1;
-
-        setPage(nextPage);
-
-        await fetchPosts(nextPage, true);
+        await fetchPosts(true);
     };
 
     // ─────────────────────────────────────────────────────────
     // PLAY TRACK
     // ─────────────────────────────────────────────────────────
 
-    const handlePlay = useCallback((feed: ListeningActivityEvent) => {
+    const handlePlay = useCallback((
+        feed: ListeningActivityEvent
+    ) => {
 
         const isCurrent =
             String(currentTrack?.id)
@@ -335,7 +378,6 @@ export default function ListeningActivityFeed() {
                 width: '100%',
                 mt: 5,
                 mb: 20,
-                // marginBottom:10
             }}
         >
 
@@ -365,7 +407,7 @@ export default function ListeningActivityFeed() {
 
             </Box>
 
-            {/* STATUS */}
+            {/* SOCKET STATUS */}
 
             <Box
                 sx={{
@@ -381,22 +423,24 @@ export default function ListeningActivityFeed() {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        // bgcolor: connected
-                        //     ? '#1DB954'
-                        //     : '#ff4444',
+                        bgcolor: connected
+                            ? '#1DB954'
+                            : '#ff4444',
                     }}
                 />
 
-                {/*<Typography*/}
-                {/*    sx={{*/}
-                {/*        fontSize: '0.78rem',*/}
-                {/*        color: 'rgba(255,255,255,0.45)',*/}
-                {/*    }}*/}
-                {/*>*/}
-                {/*    {connected*/}
-                {/*        ? 'Realtime connected'*/}
-                {/*        : 'Connecting realtime...'}*/}
-                {/*</Typography>*/}
+                <Typography
+                    sx={{
+                        fontSize: '0.78rem',
+                        color: 'rgba(255,255,255,0.45)',
+                    }}
+                >
+                    {
+                        connected
+                            ? 'Realtime connected'
+                            : 'Connecting realtime...'
+                    }
+                </Typography>
 
             </Box>
 
@@ -449,7 +493,7 @@ export default function ListeningActivityFeed() {
                 </Card>
             )}
 
-            {/* FEEDS */}
+            {/* FEED LIST */}
 
             <Box
                 sx={{
@@ -467,13 +511,14 @@ export default function ListeningActivityFeed() {
                         && currentTrack?.isPlaying;
 
                     const isMine =
-                        Number(userId) === feed.followingId;
+                        Number(userId)
+                        === feed.followingId;
 
                     return (
 
                         <Fade
                             in
-                            timeout={400}
+                            timeout={300}
                             key={
                                 feed.activityId
                                 || `${feed.followingTrackId}-${feed.postedAt}`
@@ -483,10 +528,7 @@ export default function ListeningActivityFeed() {
                             <Card
                                 sx={{
                                     bgcolor: '#181818',
-
                                     borderRadius: 4,
-
-                                    overflow: 'hidden',
 
                                     border:
                                         '1px solid rgba(255,255,255,0.04)',
@@ -495,7 +537,6 @@ export default function ListeningActivityFeed() {
 
                                     '&:hover': {
                                         transform: 'translateY(-2px)',
-
                                         borderColor:
                                             'rgba(255,85,0,0.25)',
                                     },
@@ -512,7 +553,15 @@ export default function ListeningActivityFeed() {
                                         gap: 1.5,
                                     }}
                                 >
-                                    <Link href={generateProfileUrl(feed.followingName,String(feed.followingId))}>
+
+                                    <Link
+                                        href={
+                                            generateProfileUrl(
+                                                feed.followingName,
+                                                String(feed.followingId)
+                                            )
+                                        }
+                                    >
                                         <Avatar
                                             src={feed.followingAvatar}
                                             sx={{
@@ -527,9 +576,19 @@ export default function ListeningActivityFeed() {
                                         />
                                     </Link>
 
-
                                     <Box sx={{ flex: 1 }}>
-                                        <Link href={generateProfileUrl(feed.followingName,String(feed.followingId))} style={{textDecoration: 'none'}}>
+
+                                        <Link
+                                            href={
+                                                generateProfileUrl(
+                                                    feed.followingName,
+                                                    String(feed.followingId)
+                                                )
+                                            }
+                                            style={{
+                                                textDecoration: 'none',
+                                            }}
+                                        >
                                             <Typography
                                                 sx={{
                                                     fontWeight: 700,
@@ -539,26 +598,25 @@ export default function ListeningActivityFeed() {
                                                         isMine
                                                             ? '#4facfe'
                                                             : '#fff',
+
                                                     '&:hover': {
-                                                        color: "#f50",
-                                                    }
+                                                        color: '#ff5500',
+                                                    },
                                                 }}
-
                                             >
-                                                {isMine
-                                                    ? 'You'
-                                                    : feed.followingName}
+                                                {
+                                                    isMine
+                                                        ? 'You'
+                                                        : feed.followingName
+                                                }
                                             </Typography>
-
                                         </Link>
 
                                         <Typography
                                             sx={{
                                                 fontSize: '0.75rem',
-
                                                 color:
                                                     'rgba(255,255,255,0.4)',
-
                                                 mt: 0.2,
                                             }}
                                         >
@@ -570,11 +628,13 @@ export default function ListeningActivityFeed() {
                                     <Typography
                                         sx={{
                                             fontSize: '0.72rem',
-                                            color: 'rgba(255,255,255,0.25)',
+                                            color:
+                                                'rgba(255,255,255,0.25)',
                                         }}
                                     >
-                                        {dayjs(feed.postedAt).fromNow()}
-
+                                        {
+                                            dayjs(feed.postedAt).fromNow()
+                                        }
                                     </Typography>
 
                                 </Box>
@@ -591,9 +651,7 @@ export default function ListeningActivityFeed() {
                                     <Box
                                         sx={{
                                             display: 'flex',
-
                                             alignItems: 'center',
-
                                             gap: 2,
 
                                             bgcolor: '#121212',
@@ -609,15 +667,10 @@ export default function ListeningActivityFeed() {
                                         <Box
                                             sx={{
                                                 width: 72,
-
                                                 height: 72,
-
                                                 borderRadius: 2,
-
                                                 overflow: 'hidden',
-
                                                 position: 'relative',
-
                                                 flexShrink: 0,
                                             }}
                                         >
@@ -651,34 +704,44 @@ export default function ListeningActivityFeed() {
                                                 minWidth: 0,
                                             }}
                                         >
-                                            <Link href={generateTrackUrlUp(feed.followingTrackId, feed.followingTrackTitle)}  style={{textDecoration: 'none'}}>
+
+                                            <Link
+                                                href={
+                                                    generateTrackUrlUp(
+                                                        feed.followingTrackId,
+                                                        feed.followingTrackTitle
+                                                    )
+                                                }
+                                                style={{
+                                                    textDecoration: 'none',
+                                                }}
+                                            >
                                                 <Typography
                                                     noWrap
                                                     sx={{
                                                         fontWeight: 700,
-
                                                         fontSize: '0.98rem',
 
                                                         color:
                                                             isPlaying
                                                                 ? '#ff5500'
                                                                 : '#fff',
+
                                                         '&:hover': {
-                                                            color: "#f50",
-                                                        }
+                                                            color: '#ff5500',
+                                                        },
                                                     }}
                                                 >
-                                                    {feed.followingTrackTitle}
+                                                    {
+                                                        feed.followingTrackTitle
+                                                    }
                                                 </Typography>
                                             </Link>
-
 
                                             <Typography
                                                 sx={{
                                                     mt: 0.5,
-
                                                     fontSize: '0.78rem',
-
                                                     color:
                                                         'rgba(255,255,255,0.4)',
                                                 }}
@@ -697,7 +760,6 @@ export default function ListeningActivityFeed() {
 
                                             sx={{
                                                 bgcolor: '#ff5500',
-
                                                 color: '#fff',
 
                                                 '&:hover': {
@@ -705,14 +767,15 @@ export default function ListeningActivityFeed() {
                                                 },
 
                                                 width: 42,
-
                                                 height: 42,
                                             }}
                                         >
 
-                                            {isPlaying
-                                                ? <PauseIcon />
-                                                : <PlayArrowIcon />}
+                                            {
+                                                isPlaying
+                                                    ? <PauseIcon />
+                                                    : <PlayArrowIcon />
+                                            }
 
                                         </IconButton>
 
@@ -742,11 +805,15 @@ export default function ListeningActivityFeed() {
 
                     <Box
                         onClick={handleLoadMore}
+
                         sx={{
                             px: 3,
                             py: 1.2,
+
                             borderRadius: 999,
+
                             bgcolor: '#1f1f1f',
+
                             cursor: 'pointer',
 
                             border:

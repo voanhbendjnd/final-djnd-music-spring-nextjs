@@ -8,7 +8,6 @@ import lombok.Setter;
 public class ResultPaginationDTO {
     private Meta meta;
     private Object result;
-
     @Getter
     @Setter
     public static class Meta {

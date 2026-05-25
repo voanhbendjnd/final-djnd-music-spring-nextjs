@@ -228,9 +228,12 @@ public class TrackController {
     }
 
 
-    @GetMapping("/following/post")
+    @PostMapping("/following/post")
     @ApiMessage("Fetch Track following post")
-    public ResponseEntity<?> getTrackFollowingPost(Pageable pageable) {
-        return ResponseEntity.ok(this.trackService.getTrackAtHomeForFollowers(pageable));
+    public ResponseEntity<?> getTrackFollowingPost(@RequestBody Map<String, Object> mapRequest) {
+        var size = (Integer) mapRequest.get("size");
+        var trackId = (Long) mapRequest.get("trackId");
+        var cursor = (String) mapRequest.get("cursor");
+        return ResponseEntity.ok(this.trackService.getTrackAtHomeForFollowers(size, cursor, trackId));
     }
 }

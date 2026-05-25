@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.services;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import djnd.project.SoundCloud.domain.entity.Category;
@@ -497,20 +498,40 @@ public class TrackService {
     }
 
 
-    public ResultPaginationDTO getTrackAtHomeForFollowers(Pageable pageable) {
+    public ResultPaginationHome getTrackAtHomeForFollowers(int size, String cursor, Long trackId) {
         var followerId = SecurityUtils.getCurrentUserIdOrNull();
         if(followerId == null){
             throw new HandleIllegalArgumentException("Follower ID null!");
         }
-        var res = new ResultPaginationDTO();
-        var meta = new ResultPaginationDTO.Meta();
-        var page = this.trackRepository.getTrackHomeWithFollowerId(followerId, pageable);
-        meta.setPage(pageable.getPageNumber() + 1);
-        meta.setPageSize(pageable.getPageSize());
-        meta.setPages(page.getTotalPages());
-        meta.setTotal(page.getTotalElements());
-        res.setMeta(meta);
-        res.setResult(page.getContent());
+        LocalDateTime  parsedCursor = null;
+        try{
+            if(cursor != null && !cursor.isBlank()){
+                parsedCursor = LocalDateTime.parse(cursor);
+            }
+        }
+        catch(Exception e){
+            throw new HandleIllegalArgumentException("Invalid cursor format");
+        }
+
+        var pageable = PageRequest.of(0, size + 1);
+
+        var tracks = this.trackRepository.getTrackHomeWithFollowerId(followerId, parsedCursor,trackId,pageable);
+
+        var hasMore = tracks.size() > size;
+        if(hasMore){
+            tracks.removeLast();
+        }
+        var res = new ResultPaginationHome();
+        String nextCursor = null;
+        Long nextTrackId = null;
+        if(!tracks.isEmpty()){
+            nextCursor = tracks.getLast().getPostedAt().toString();
+            nextTrackId = tracks.getLast().getFollowingTrackId();
+        }
+        res.setNextCursor(nextCursor);
+        res.setTrackId(nextTrackId);
+        res.setHasMore(hasMore);
+        res.setResult(tracks);
         return res;
     }
 

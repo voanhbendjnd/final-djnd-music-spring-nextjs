@@ -1,5 +1,6 @@
 package djnd.project.SoundCloud.repositories;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import djnd.project.SoundCloud.domain.it.TrackHome;
@@ -103,7 +104,8 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
                                   join f.following u
                                   join Track t on t.user.id = u.id
                                   where f.follower.id = :followerId
-                                  order by t.createdAt desc
+                                  and (:cursor is null or t.createdAt < :cursor or (t.createdAt = :cursor and t.id < :trackId))
+                                  order by t.createdAt desc, t.id desc
 """)
-    Page<TrackHome> getTrackHomeWithFollowerId(@Param("followerId") Long followerId, Pageable pageable);
+    List<TrackHome> getTrackHomeWithFollowerId(@Param("followerId") Long followerId, @Param("cursor") LocalDateTime cursor , @Param("trackId") Long trackId,Pageable pageable);
 }

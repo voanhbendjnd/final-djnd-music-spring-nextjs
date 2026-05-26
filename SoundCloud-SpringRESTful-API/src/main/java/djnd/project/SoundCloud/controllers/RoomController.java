@@ -6,9 +6,12 @@ import djnd.project.SoundCloud.domain.request.RoomDTO;
 import djnd.project.SoundCloud.services.RoomService;
 import djnd.project.SoundCloud.services.realtime.RoomStateManager;
 import djnd.project.SoundCloud.utils.SecurityUtils;
+import djnd.project.SoundCloud.utils.annotation.ApiMessage;
+import djnd.project.SoundCloud.utils.error.HandleIllegalArgumentException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
@@ -116,5 +119,21 @@ public class RoomController {
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+
+    @PatchMapping("/edit/active/{roomId}")
+    @ApiMessage("Edit state active room")
+    public ResponseEntity<?> editStateActiveRoom(@PathVariable("roomId") String roomIdStr,@RequestBody Map<String, Object> request) throws BadRequestException {
+        try{
+            var roomId = Long.parseLong(roomIdStr);
+            if(roomId <= 0){
+                throw new BadRequestException("Invalid room id");
+            }
+            var isActive = (Boolean)request.get("isActive");
+            this.roomService.editStateActiveRoom(roomId, isActive);
+        } catch (Exception e) {
+            throw new BadRequestException("Room ID must be number!");
+        }
+        return ResponseEntity.ok("Change state active room successfully!");
     }
 }

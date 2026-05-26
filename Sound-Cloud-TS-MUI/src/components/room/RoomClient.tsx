@@ -13,7 +13,14 @@ import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LogoutIcon from '@mui/icons-material/Logout';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
-import { ContentCopy, Tag, People, KeyboardArrowDown } from '@mui/icons-material';
+import {
+    ContentCopy,
+    Tag,
+    People,
+    KeyboardArrowDown,
+    RadioButtonChecked,
+    RadioButtonUnchecked
+} from '@mui/icons-material';
 import SendIcon from '@mui/icons-material/Send';
 import ChatIcon from '@mui/icons-material/Chat';
 import { TextField, InputAdornment, Grid } from '@mui/material';
@@ -29,6 +36,7 @@ import { useTrackContext, ITrackContext } from '@/lib/track.wrapper';
 import { audioEngine } from '@/lib/audio-engine';
 import { toast } from 'react-toastify';
 import ChatMessage from "@/components/room/chat.message";
+import axiosInstance from "@/utils/axios-instance";
 interface IProps {
     roomId: number;
     initialData: IRoomMeta | undefined;
@@ -247,7 +255,23 @@ export default function RoomClient({ roomId, initialData }: IProps) {
             if (currentTrack.id) setCurrentTrack({ ...currentTrack, isPlaying: false });
         };
     }, [shouldConnect, isHost, setIsRoomMode, setIsHost]);
+    const [isActive, setIsActive] = useState<boolean>(initialData?.isActive ?? true);
+    const [togglingActive, setTogglingActive] = useState(false);
 
+    const handleToggleActive = async () => {
+        setTogglingActive(true);
+        try {
+            await axiosInstance.patch(`/api/v1/rooms/edit/active/${roomId}`, {
+                isActive: !isActive,
+            });
+            setIsActive(prev => !prev);
+            toast.dark(!isActive ? 'Room is now active' : 'Room is now paused');
+        } catch (e) {
+            toast.error('Failed to change room state');
+        } finally {
+            setTogglingActive(false);
+        }
+    };
     // Fetch active track
     useEffect(() => {
         let isCancelled = false;
@@ -511,7 +535,48 @@ export default function RoomClient({ roomId, initialData }: IProps) {
                                 Chat
                             </Button>
                         )}
-
+                        {/* Toggle active — host only */}
+                        {isHost && (
+                            <Button
+                                variant="outlined"
+                                size={isMobile ? 'small' : 'medium'}
+                                onClick={handleToggleActive}
+                                disabled={togglingActive}
+                                startIcon={
+                                    togglingActive
+                                        ? <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                                        : isActive
+                                            ? <RadioButtonChecked />    // đang active → icon đang bật
+                                            : <RadioButtonUnchecked />  // đang inactive → icon đang tắt
+                                }
+                                sx={{
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    transition: 'all 0.2s',
+                                    ...(isActive ? {
+                                        borderColor: 'rgba(76,175,80,0.4)',
+                                        color: 'rgba(76,175,80,0.9)',
+                                        '&:hover': {
+                                            borderColor: '#4caf50',
+                                            color: '#4caf50',
+                                            bgcolor: 'rgba(76,175,80,0.06)',
+                                        },
+                                    } : {
+                                        borderColor: 'rgba(255,152,0,0.4)',
+                                        color: 'rgba(255,152,0,0.9)',
+                                        '&:hover': {
+                                            borderColor: '#ff9800',
+                                            color: '#ff9800',
+                                            bgcolor: 'rgba(255,152,0,0.06)',
+                                        },
+                                    }),
+                                    '&.Mui-disabled': { opacity: 0.45 },
+                                }}
+                            >
+                                {isActive ? 'Active' : 'Paused'}
+                            </Button>
+                        )}
                         <Button
                             variant="outlined"
                             color="error"

@@ -185,4 +185,9 @@ public class RoomService {
             this.roomRepository.deleteById(id);
         }
     }
+
+    @Transactional
+    public void editStateActiveRoom(Long roomId, Boolean active){
+       this.roomRepository.editStateActiveRoom(roomId, active);
+    }
 }

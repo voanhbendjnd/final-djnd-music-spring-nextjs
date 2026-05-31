@@ -6,6 +6,7 @@ import djnd.project.SoundCloud.domain.entity.TrackLike;
 import djnd.project.SoundCloud.domain.realtime.ListeningActivityEvent;
 import djnd.project.SoundCloud.repositories.FollowRepository;
 import djnd.project.SoundCloud.repositories.TrackLikeRepository;
+import djnd.project.SoundCloud.services.NotificationAsyncService;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.error.HandleIllegalArgumentException;
 import lombok.AccessLevel;
@@ -14,6 +15,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -32,21 +34,17 @@ public class ShareTrackRealtimeService {
     final ObjectMapper objectMapper;
     final StringRedisTemplate stringRedisTemplate;
     final TrackLikeRepository trackLikeRepository;
+    final NotificationAsyncService notificationAsyncService;
     public void postStateByFollowing(ListeningActivityEvent event, Principal principal)throws JsonProcessingException {
         var followingId = Long.valueOf(principal.getName());
         var followerIds = this.followRepository.fetchAllIdFollowersByFollowingId(followingId);
         var payload = this.getPayloadListeningEvent(event);
-        followerIds.forEach(followerId -> {
-                this.simpMessagingTemplate.convertAndSendToUser(
-                        followerId.toString(),
-                        RoomsConstants.WS_FOLLOWER_ACTIVITY_QUEUE,
-                        payload
-                );
-        });
+        this.notificationAsyncService.sendNotificationToFollowersAsync(followerIds, payload);
         this.saveKeyFollowingActivity(payload, followingId);
 
         log.info("{} posted state by following {}", event.getFollowingId(), followerIds);
     }
+
 
     public void saveKeyFollowingActivity(ListeningActivityEvent event, Long userId) throws JsonProcessingException {
         var key = RoomsConstants.REDIS_FOLLOWING_ACTIVITY_KEY + ":" + userId;

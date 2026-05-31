@@ -1,11 +1,8 @@
 package djnd.project.SoundCloud.services;
 
-import djnd.project.SoundCloud.domain.entity.User;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
-import djnd.project.SoundCloud.utils.error.PermissionException;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

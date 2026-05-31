@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import djnd.project.SoundCloud.domain.entity.HistoryTrack;
 import djnd.project.SoundCloud.domain.entity.Track;
-import djnd.project.SoundCloud.domain.it.ResHistoryInter;
+import djnd.project.SoundCloud.domain.projection.ResHistoryInter;
 
 @Repository
 public interface HistoryTrackRepository

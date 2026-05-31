@@ -1,4 +1,4 @@
-package djnd.project.SoundCloud.domain.it;
+package djnd.project.SoundCloud.domain.projection;
 
 import java.time.LocalDateTime;
 

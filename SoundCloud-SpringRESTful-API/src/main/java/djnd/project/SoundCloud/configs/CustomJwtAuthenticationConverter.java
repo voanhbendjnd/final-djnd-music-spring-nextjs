@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.Setter;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,25 +27,21 @@ import djnd.project.SoundCloud.services.SessionManager;
 public class CustomJwtAuthenticationConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
     private final SessionManager sessionManager;
+    /**
+     * -- SETTER --
+     *  Set prefix cho authorities (ví dụ: "ROLE_")
+     */
+    @Setter
     private String authorityPrefix = ""; // Prefix cho authorities (mặc định rỗng)
+    /**
+     * -- SETTER --
+     *  Set tên claim trong JWT chứa danh sách permissions
+     */
+    @Setter
     private String authoritiesClaimName = "permission"; // Tên claim chứa permissions
 
     public CustomJwtAuthenticationConverter(SessionManager sessionManager) {
         this.sessionManager = sessionManager;
-    }
-
-    /**
-     * Set prefix cho authorities (ví dụ: "ROLE_")
-     */
-    public void setAuthorityPrefix(String authorityPrefix) {
-        this.authorityPrefix = authorityPrefix;
-    }
-
-    /**
-     * Set tên claim trong JWT chứa danh sách permissions
-     */
-    public void setAuthoritiesClaimName(String authoritiesClaimName) {
-        this.authoritiesClaimName = authoritiesClaimName;
     }
 
     /**

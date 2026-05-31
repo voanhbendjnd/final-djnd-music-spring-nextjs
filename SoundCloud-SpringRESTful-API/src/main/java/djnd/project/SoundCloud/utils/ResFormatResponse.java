@@ -18,7 +18,7 @@ import org.springframework.core.io.support.ResourceRegion;
 import java.util.Collection;
 
 @ControllerAdvice
-public class FormatRestRestponse implements ResponseBodyAdvice<Object> {
+public class ResFormatResponse implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(@NonNull MethodParameter returnType, Class converterType) {

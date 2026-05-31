@@ -1,4 +1,4 @@
-package djnd.project.SoundCloud.domain.it;
+package djnd.project.SoundCloud.domain.projection;
 
 public interface ResHistoryInter {
     Long getId();

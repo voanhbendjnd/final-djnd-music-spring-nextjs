@@ -4,7 +4,7 @@ import djnd.project.SoundCloud.domain.response.CategoryResponse;
 import org.springframework.stereotype.Service;
 
 import djnd.project.SoundCloud.domain.entity.Category;
-import djnd.project.SoundCloud.domain.it.CategoryIdName;
+import djnd.project.SoundCloud.domain.projection.CategoryIdName;
 import djnd.project.SoundCloud.domain.request.CategoryDTO;
 import djnd.project.SoundCloud.repositories.CategoryRepository;
 import djnd.project.SoundCloud.utils.error.DuplicateResourceException;

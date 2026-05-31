@@ -2,6 +2,7 @@ package djnd.project.SoundCloud.repositories;
 
 import java.util.Optional;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -30,10 +31,16 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     @EntityGraph(attributePaths = { "role", "role.permissions" })
     @Query(value = "select u from User u where lower(u.email) = lower(:email)")
+//    @Cacheable(
+//            cacheNames = "user-detail", // name
+//            key = "#email",  // data save
+//            unless = "#result == null" // save null if not found
+//    )
     Optional<User> findWithDetailByEmail(@Param("email") String email);
 
     @EntityGraph(attributePaths = { "role", "role.permissions" })
     @Query(value = "select u from User u where u.id = :id")
+
     Optional<User> findWithDetailById(@Param("id") Long id);
 
     @Modifying

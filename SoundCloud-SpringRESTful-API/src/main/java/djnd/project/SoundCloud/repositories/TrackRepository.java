@@ -3,8 +3,7 @@ package djnd.project.SoundCloud.repositories;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import djnd.project.SoundCloud.domain.it.TrackHome;
-import io.micrometer.common.lang.NonNullApi;
+import djnd.project.SoundCloud.domain.projection.TrackHome;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -18,9 +17,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import djnd.project.SoundCloud.domain.entity.Track;
-import djnd.project.SoundCloud.domain.it.ResHistoryInter;
-import djnd.project.SoundCloud.domain.it.SearchInterface;
-import djnd.project.SoundCloud.domain.it.TrackUploader;
+import djnd.project.SoundCloud.domain.projection.ResHistoryInter;
+import djnd.project.SoundCloud.domain.projection.SearchInterface;
+import djnd.project.SoundCloud.domain.projection.TrackUploader;
 
 @Repository
 public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecificationExecutor<Track> {

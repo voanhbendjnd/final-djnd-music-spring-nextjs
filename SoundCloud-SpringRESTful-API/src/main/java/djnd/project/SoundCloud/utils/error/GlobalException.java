@@ -2,10 +2,8 @@ package djnd.project.SoundCloud.utils.error;
 
 import java.nio.file.AccessDeniedException;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.coyote.BadRequestException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -131,14 +129,25 @@ public class GlobalException {
         return ResponseEntity.status(status).body(res);
     }
 
-    @ExceptionHandler(value = { PermissionException.class })
+    @ExceptionHandler(value = { AccessToResourceException.class })
     public ResponseEntity<RestResponse<Object>> handlePermissionException(Exception ex) {
         var res = new RestResponse<>();
         var status = HttpStatus.FORBIDDEN.value();
         res.setStatusCode(status);
-        res.setError("FORBIDDEN!");
+        res.setError("Forbidden!");
         res.setMessage(ex.getMessage());
         return ResponseEntity.status(status).body(res);
+    }
+
+
+    @ExceptionHandler(value = { UnauthorizedException.class })
+    public ResponseEntity<RestResponse<Object>> handleNotLoginException(UnauthorizedException ne) {
+        var statusCode = HttpStatus.UNAUTHORIZED.value();
+        var res = new RestResponse<>();
+        res.setStatusCode(statusCode);
+        res.setError("Not logged in!");
+        res.setMessage(ne.getMessage());
+        return ResponseEntity.status(statusCode).body(res);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -164,4 +173,17 @@ public class GlobalException {
         res.setMessage(ex.getMessage());
         return ResponseEntity.status(status).body(res);
             }
+
+    @ExceptionHandler(value ={
+            ObjectNotFoundException.class
+    })
+    public ResponseEntity<?> handleObjectNotFoudException(
+            ObjectNotFoundException ex) {
+        var res = new RestResponse<>();
+        var status =  HttpStatus.NOT_FOUND.value();
+        res.setStatusCode(status);
+        res.setError(ex.getMessage());
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
 }

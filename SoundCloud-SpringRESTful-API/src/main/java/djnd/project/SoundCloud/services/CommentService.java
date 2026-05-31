@@ -11,7 +11,7 @@ import djnd.project.SoundCloud.domain.request.CommentDTO;
 import djnd.project.SoundCloud.domain.response.ResComment;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.repositories.CommentRepository;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class CommentService {
     TrackService trackService;
     UserService userService;
 
-    public void create(CommentDTO dto) throws PermissionException {
+    public void create(CommentDTO dto) throws AccessToResourceException {
         var comment = new Comment();
         comment.setContent(dto.content());
         comment.setMoment(dto.moment());

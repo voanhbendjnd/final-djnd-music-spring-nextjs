@@ -23,8 +23,9 @@ public class ChatRealtimeService {
     public void saveContent(RoomChatMessage roomChatMessage) {
         try{
             var key_chat_room = REDIS_CHAT_ROOM_KEY + ":" + roomChatMessage.getRoomId();
+            // convert object to json
             String value = this.objectMapper.writeValueAsString(roomChatMessage);
-            this.stringRedisTemplate.opsForList().rightPush(key_chat_room,value);
+            this.stringRedisTemplate.opsForList().rightPush(key_chat_room,value); // add last
             // save maximum 30 contents
             this.stringRedisTemplate.opsForList().trim(key_chat_room, -30, -1);
             this.stringRedisTemplate.expire(key_chat_room, Duration.ofMinutes(30));

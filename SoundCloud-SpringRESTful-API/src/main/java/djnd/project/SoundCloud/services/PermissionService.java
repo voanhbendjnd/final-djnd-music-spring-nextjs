@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import djnd.project.SoundCloud.domain.entity.Permission;
-import djnd.project.SoundCloud.domain.it.PermissionIdName;
+import djnd.project.SoundCloud.domain.projection.PermissionIdName;
 import djnd.project.SoundCloud.domain.request.permissions.PermissionDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.domain.response.ResPermission;

@@ -14,8 +14,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import djnd.project.SoundCloud.domain.entity.Playlist;
-import djnd.project.SoundCloud.domain.it.PlaylistFindAll;
-import djnd.project.SoundCloud.domain.it.PlaylistTrackInterface;
+import djnd.project.SoundCloud.domain.projection.PlaylistFindAll;
+import djnd.project.SoundCloud.domain.projection.PlaylistTrackInterface;
 import org.springframework.data.repository.query.Param;
 
 @Repository

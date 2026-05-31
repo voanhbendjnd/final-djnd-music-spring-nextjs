@@ -27,7 +27,7 @@ import djnd.project.SoundCloud.domain.request.AddTrackToPlaylistDTO;
 import djnd.project.SoundCloud.domain.request.PlaylistDTO;
 import djnd.project.SoundCloud.services.PlayListService;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -41,7 +41,7 @@ public class PlayListController {
 
     @PostMapping
     @ApiMessage("Create new play list with tracks")
-    public ResponseEntity<?> createNewPlaylist(@RequestBody PlaylistDTO dto) throws PermissionException {
+    public ResponseEntity<?> createNewPlaylist(@RequestBody PlaylistDTO dto) throws AccessToResourceException {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.playListService.createNewPlaylist(dto));
     }
 
@@ -54,14 +54,14 @@ public class PlayListController {
 
     @GetMapping("/exists")
     @ApiMessage("Get all playlist and track id")
-    public ResponseEntity<?> getDataPlaylist() throws PermissionException {
+    public ResponseEntity<?> getDataPlaylist() throws AccessToResourceException {
         return ResponseEntity.ok(this.playListService.getAllPlaylistAccount());
     }
 
     @GetMapping("/users")
     @ApiMessage("Get playlist with pagination")
     public ResponseEntity<?> getAllPlayListWithUserId(@Filter Specification<Playlist> spec, Pageable pageable,
-            @RequestParam(value = "title", required = false) String title) throws PermissionException {
+            @RequestParam(value = "title", required = false) String title) throws AccessToResourceException {
         return ResponseEntity
                 .ok(this.playListService.getAllPlaylistWithPagination(spec, pageable, title != null ? title : ""));
     }

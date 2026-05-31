@@ -24,7 +24,7 @@ import djnd.project.SoundCloud.domain.request.TrackDTO;
 import djnd.project.SoundCloud.services.CommentService;
 import djnd.project.SoundCloud.services.TrackService;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -59,7 +59,7 @@ public class TrackController {
     public ResponseEntity<?> createTrackByUser(@Valid @ModelAttribute TrackDTO dto,
             @RequestPart(value = "img", required = false) MultipartFile img,
             @RequestParam(value = "trackUrl", required = false) String trackFileName)
-            throws URISyntaxException, Exception, PermissionException {
+            throws URISyntaxException, Exception, AccessToResourceException {
         this.trackService.createByUser(dto, img, trackFileName);
         return ResponseEntity.status(HttpStatus.CREATED).body("Create new track success");
     }
@@ -68,7 +68,7 @@ public class TrackController {
     public ResponseEntity<?> createTrackByAdmin(@Valid @ModelAttribute TrackDTO dto,
             @RequestPart(value = "img", required = false) MultipartFile img,
             @RequestParam(value = "trackUrl", required = false) MultipartFile trackUrl)
-            throws URISyntaxException, IOException, PermissionException {
+            throws URISyntaxException, IOException, AccessToResourceException {
         this.trackService.createTrackByAdmin(dto, img, trackUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body("Create new track success");
     }
@@ -78,7 +78,7 @@ public class TrackController {
     public ResponseEntity<?> update(@Valid @ModelAttribute TrackDTO dto,
             @RequestPart(value = "img", required = false) MultipartFile img,
             @RequestPart(value = "track", required = false) MultipartFile track)
-            throws URISyntaxException, IOException, PermissionException {
+            throws URISyntaxException, IOException, AccessToResourceException {
         this.trackService.update(dto, img, track);
         return ResponseEntity.ok("Update track success");
     }
@@ -105,7 +105,7 @@ public class TrackController {
 
     @GetMapping("/{id}/isLiked")
     @ApiMessage("User must be login for like track and comment")
-    public ResponseEntity<?> checkIsLikedWhenLogin(@PathVariable("id") String strId) throws PermissionException {
+    public ResponseEntity<?> checkIsLikedWhenLogin(@PathVariable("id") String strId) throws AccessToResourceException {
         try {
             Long id = Long.parseLong(strId);
             if (id <= 0) {
@@ -191,7 +191,7 @@ public class TrackController {
     @GetMapping("/likes")
     @ApiMessage("Get track my like")
     public ResponseEntity<?> getMyLikeTrack(@Filter Specification<Track> spec, Pageable pageable)
-            throws PermissionException {
+            throws AccessToResourceException {
         return ResponseEntity.ok(this.trackService.getMyLikeTrack(spec, pageable));
     }
 

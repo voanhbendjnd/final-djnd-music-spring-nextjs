@@ -18,7 +18,7 @@ import djnd.project.SoundCloud.domain.entity.Comment;
 import djnd.project.SoundCloud.domain.request.CommentDTO;
 import djnd.project.SoundCloud.services.CommentService;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -32,7 +32,7 @@ public class CommentController {
 
     @PostMapping
     @ApiMessage("Create new comment for track")
-    public ResponseEntity<?> create(@RequestBody CommentDTO dto) throws PermissionException {
+    public ResponseEntity<?> create(@RequestBody CommentDTO dto) throws AccessToResourceException {
         this.commentService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Create new comment success!");
     }

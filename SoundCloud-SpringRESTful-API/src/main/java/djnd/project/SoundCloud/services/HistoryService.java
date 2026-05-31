@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import djnd.project.SoundCloud.domain.entity.Track;
-import djnd.project.SoundCloud.domain.it.ResHistoryInter;
+import djnd.project.SoundCloud.domain.projection.ResHistoryInter;
 import djnd.project.SoundCloud.domain.request.HistoryDTO;
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
 import djnd.project.SoundCloud.repositories.HistoryTrackRepository;

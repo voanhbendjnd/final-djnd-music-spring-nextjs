@@ -38,7 +38,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic", "/queue")
+        config.enableSimpleBroker("/topic", "/queue") // topic: 1 gửi cho tất cả, queue : 1 gửi 1 (đổi key tùy thích)
                 // in 10s sẽ gửi 1 lần nếu detect user disconnected or turn off wifi => disconnect
                 .setHeartbeatValue(new long[] { 10000, 10000 }) // 10s heartbeat
                 .setTaskScheduler(taskScheduler());

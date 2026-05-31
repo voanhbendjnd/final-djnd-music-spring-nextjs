@@ -33,7 +33,7 @@ import djnd.project.SoundCloud.domain.entity.Track;
 import djnd.project.SoundCloud.domain.entity.TrackLike;
 import djnd.project.SoundCloud.domain.request.TrackDTO;
 import djnd.project.SoundCloud.utils.SecurityUtils;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -82,7 +82,7 @@ public class TrackService {
     }
 
     public void createTrackByAdmin(TrackDTO dto, MultipartFile imgUrl, MultipartFile trackUrl)
-            throws URISyntaxException, IOException, PermissionException {
+            throws URISyntaxException, IOException, AccessToResourceException {
         var track = this.toTrack(dto);
         var user = this.userService.getUserLoggedOrThrow();
         track.setUser(user);
@@ -97,7 +97,7 @@ public class TrackService {
     }
 
     public void createByUser(TrackDTO dto, MultipartFile imgUrl, String trackFileName)
-            throws URISyntaxException, Exception, PermissionException {
+            throws URISyntaxException, Exception, AccessToResourceException {
         var track = this.toTrack(dto);
         var user = this.userService.getUserLoggedOrThrow();
         track.setUser(user);
@@ -128,7 +128,7 @@ public class TrackService {
     }
 
     public void update(TrackDTO dto, MultipartFile imgUrl, MultipartFile trackUrl)
-            throws URISyntaxException, IOException, PermissionException {
+            throws URISyntaxException, IOException, AccessToResourceException {
         var track = this.trackRepository.findById(dto.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Track ID", "#" + dto.getId()));
 
@@ -180,12 +180,12 @@ public class TrackService {
 
     }
 
-    public boolean isLikedWhenLogin(Long id) throws PermissionException {
+    public boolean isLikedWhenLogin(Long id) throws AccessToResourceException {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
         if (userId != null) {
             return this.trackLikeRepository.existsByUserIdAndTrackId(userId, id);
         }
-        throw new PermissionException("You do not have permission!");
+        throw new AccessToResourceException("You do not have permission!");
     }
 
     public SearchFallbackResponse<?> fetchAllWithPagination(Specification<Track> spec, Pageable pageable,
@@ -297,7 +297,7 @@ public class TrackService {
     }
 
     @Transactional
-    public ResTrackLike handleCountLikeTrack(Long trackId) throws PermissionException {
+    public ResTrackLike handleCountLikeTrack(Long trackId) throws AccessToResourceException {
         var user = this.userService.getUserLoggedOrThrow();
 
         boolean isCurrentlyLiked = this.trackLikeRepository.existsByUserIdAndTrackId(user.getId(), trackId);
@@ -379,7 +379,7 @@ public class TrackService {
         this.countPlayTrack.deleteCountViewTrack();
     }
 
-    public ResultPaginationDTO getMyLikeTrack(Specification<Track> spec, Pageable pageable) throws PermissionException {
+    public ResultPaginationDTO getMyLikeTrack(Specification<Track> spec, Pageable pageable) throws AccessToResourceException {
         var res = new ResultPaginationDTO();
         var meta = new ResultPaginationDTO.Meta();
         var user = this.userService.getUserLoggedOrThrow();

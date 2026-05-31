@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import djnd.project.SoundCloud.domain.entity.Playlist;
 import djnd.project.SoundCloud.domain.entity.PlaylistTrack;
-import djnd.project.SoundCloud.domain.it.PlaylistKey;
+import djnd.project.SoundCloud.domain.projection.PlaylistKey;
 import djnd.project.SoundCloud.domain.request.AddTrackToPlaylistDTO;
 import djnd.project.SoundCloud.domain.request.PlaylistDTO;
 import djnd.project.SoundCloud.domain.response.ResAddToPlaylist;
@@ -26,7 +26,7 @@ import djnd.project.SoundCloud.repositories.PlaylistRepository;
 import djnd.project.SoundCloud.repositories.PlaylistTrackRepository;
 import djnd.project.SoundCloud.repositories.TrackRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +44,7 @@ public class PlayListService {
     @Value("${djnd.soundcloud.location.folder.img}")
     private String imgFolder;
 
-    public ResPlaylist createNewPlaylist(PlaylistDTO dto) throws PermissionException {
+    public ResPlaylist createNewPlaylist(PlaylistDTO dto) throws AccessToResourceException {
         var playlist = new Playlist();
         var currentUserLogin = this.userService.getUserLoggedOrThrow();
         playlist.setIsPublic(dto.getIsPublic());
@@ -116,7 +116,7 @@ public class PlayListService {
         return res;
     }
 
-    public List<ResAllPlaylist> getAllPlaylistAccount() throws PermissionException {
+    public List<ResAllPlaylist> getAllPlaylistAccount() throws AccessToResourceException {
         Long userId = SecurityUtils.getCurrentUserIdOrNull();
         if (userId != null) {
             return this.playlistRepository.getAllPlaylistExistsByUserId(userId).stream()
@@ -129,16 +129,16 @@ public class PlayListService {
                                 trackIds, entry.getKey().imgUrl(), entry.getKey().isPublic());
                     }).toList();
         }
-        throw new PermissionException("You do not have permission!");
+        throw new AccessToResourceException("You do not have permission!");
 
     }
 
     public ResultPaginationDTO getAllPlaylistWithPagination(Specification<Playlist> spec, Pageable pageable,
 
-            String title) throws PermissionException {
+            String title) throws AccessToResourceException {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
         if (userId == null) {
-            throw new PermissionException("You do not have access!");
+            throw new AccessToResourceException("You do not have access!");
         }
         var res = new ResultPaginationDTO();
         var meta = new ResultPaginationDTO.Meta();

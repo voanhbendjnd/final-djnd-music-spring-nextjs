@@ -14,7 +14,7 @@ import djnd.project.SoundCloud.domain.response.ResOwner;
 import djnd.project.SoundCloud.domain.response.TrackResponse;
 import djnd.project.SoundCloud.utils.constains.ActionToken;
 import djnd.project.SoundCloud.utils.constains.LoginType;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.*;
 import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
@@ -42,9 +42,6 @@ import djnd.project.SoundCloud.repositories.RoleRepository;
 import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.convert.convertUtils;
-import djnd.project.SoundCloud.utils.error.DuplicateResourceException;
-import djnd.project.SoundCloud.utils.error.PasswordMismatchException;
-import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import djnd.project.SoundCloud.utils.excel.ExcelUtils;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -69,14 +66,14 @@ public class UserService {
 
     // private final UserMapper userMapper;
 
-    public User getUserLoggedOrThrow() throws PermissionException {
+    public User getUserLoggedOrThrow() throws AccessToResourceException {
         var emailOptional = SecurityUtils.getCurrentUserLogin();
         if (emailOptional.isPresent()) {
             var email = emailOptional.get();
             return this.userRepository.findWithDetailByEmail(email)
                     .orElseThrow(() -> new ResourceNotFoundException("User Email", email));
         }
-        throw new PermissionException("You do not have permission!");
+        throw new AccessToResourceException("You do not have permission!");
     }
 
     public Long create(UserDTO dto) {
@@ -193,6 +190,7 @@ public class UserService {
     /*
      * condition: delete (delete refresh token), refresh (update res login dto)
      */
+    @Cacheable(cacheNames = "user-detail")
     public ResLoginDTO handleRefreshTokenWithCondition(String refreshToken, ActionToken action) {
         var res = new ResLoginDTO();
         var claims = this.securityUtils.parseRefreshTokenIgnoreExpired(refreshToken);
@@ -213,14 +211,7 @@ public class UserService {
         }
 
         var user = userOptional.get();
-        // boolean isCurrentToken = refreshToken.equals(user.getRefreshToken());
-        // boolean isPreviousToken =
-        // refreshToken.equals(user.getPreviousRefreshToken());
-        // boolean isWithinGracePeriod = isPreviousToken &&
-        // user.getLastRefreshTime() != null &&
-        // Math.abs(System.currentTimeMillis() - user.getLastRefreshTime().getTime()) <
-        // 30000;
-        // if (isCurrentToken || isWithinGracePeriod) {
+
         if (action == ActionToken.DELETE) {
             this.sessionManager.invalidateSession(email);
             updateRefreshTokenByEmail(email, null);
@@ -264,17 +255,21 @@ public class UserService {
     // rotated!");
     // }
 
-    @CacheEvict(value = "userAccount", key = "'USER_ACCOUNT_' + #email")
+//    @CacheEvict(value = "userAccount", key = "'USER_ACCOUNT_' + #email")
+    @CacheEvict(
+            cacheNames = "user-detail"
+    )
     public void logout(String email) {
-        var user = this.userRepository.findByEmail(email);
-        if (user != null) {
+        var user = this.userRepository.findByEmailIgnoreCase(email);
+        if(user == null){
+            throw new ObjectNotFoundException("User not found!");
+        }
             user.setRefreshToken(null);
             user.setSessionId(null);
             this.userRepository.save(user);
-        }
     }
 
-    @Cacheable(value = "userAccount", key = "'USER_ACCOUNT_' + #email")
+//    @Cacheable(value = "userAccount", key = "'USER_ACCOUNT_' + #email")
     public ResLoginDTO.UserGetAccount getAccount() {
         var email = SecurityUtils.getCurrentUserLogin()
                 .orElseThrow(() -> new BadCredentialsException("You do not have access!"));

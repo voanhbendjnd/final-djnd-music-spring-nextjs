@@ -29,7 +29,7 @@ import djnd.project.SoundCloud.utils.SecurityUtils;
 import djnd.project.SoundCloud.utils.annotation.ApiMessage;
 import djnd.project.SoundCloud.utils.constains.ActionToken;
 import djnd.project.SoundCloud.utils.error.PasswordMismatchException;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import djnd.project.SoundCloud.domain.request.SocialLoginDTO;
 import jakarta.validation.Valid;
@@ -122,11 +122,10 @@ public class AuthController {
 
     @PostMapping("/logout")
     @ApiMessage("Logout Account")
-    public ResponseEntity<Void> logoutWithCookie() throws PermissionException {
-        var email = SecurityUtils.getCurrentUserLogin()
-                .orElseThrow(() -> new PermissionException("You do not have permission!"));
-        if (email.equals("")) {
-            throw new BadCredentialsException("Account Invalid");
+    public ResponseEntity<Void> logoutWithCookie() {
+        var email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if(email == null || email.isEmpty()){
+            throw new AccessToResourceException("You are not logged in!");
         }
         this.userService.logout(email);
         var cookie = ResponseCookie.from("refresh_token", "").httpOnly(true).secure(true).path("/").maxAge(0).build();

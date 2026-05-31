@@ -2,7 +2,7 @@ package djnd.project.SoundCloud.repositories;
 
 import java.util.List;
 
-import djnd.project.SoundCloud.domain.it.FollowingInterface;
+import djnd.project.SoundCloud.domain.projection.FollowingInterface;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

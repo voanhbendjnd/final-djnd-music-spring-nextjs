@@ -8,7 +8,7 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import djnd.project.SoundCloud.repositories.UserRepository;
 import djnd.project.SoundCloud.utils.SecurityUtils;
-import djnd.project.SoundCloud.utils.error.PermissionException;
+import djnd.project.SoundCloud.utils.error.AccessToResourceException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -36,10 +36,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
                 var isAllow = permissions.stream()
                         .anyMatch(p -> p.getApiPath().equals(apiPath) && p.getMethod().equals(httpMethod));
                 if (!isAllow) {
-                    throw new PermissionException("You do not have permission to access this endpoint!");
+                    throw new AccessToResourceException("You do not have permission to access this endpoint!");
                 }
             } else {
-                throw new PermissionException("You do not have permission to access this endpoint!");
+                throw new AccessToResourceException("You do not have permission to access this endpoint!");
             }
         }
         return true;

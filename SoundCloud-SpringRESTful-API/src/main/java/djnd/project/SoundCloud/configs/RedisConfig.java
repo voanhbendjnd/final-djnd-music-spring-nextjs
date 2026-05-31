@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
 
 import java.time.Duration;
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -38,8 +39,9 @@ public class RedisConfig {
                 JsonTypeInfo.As.PROPERTY);
 
         Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(mapper, Object.class);
-
+        // nếu không có thì nó sẽ serialize Java object thành byte -> khó debug
         template.setKeySerializer(new StringRedisSerializer());
+        // object user -> {"id": 1, "name": "djnd"}
         template.setValueSerializer(serializer);
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(serializer);
@@ -51,8 +53,9 @@ public class RedisConfig {
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
-
+        // java object -> json
         ObjectMapper mapper = new ObjectMapper();
+        // convert lại object được nhờ {"@class:"package.entity.User", "id": 1"} thay vì chỉ có {"id": 1}"
         mapper.activateDefaultTyping(
                 LaissezFaireSubTypeValidator.instance,
                 ObjectMapper.DefaultTyping.NON_FINAL,

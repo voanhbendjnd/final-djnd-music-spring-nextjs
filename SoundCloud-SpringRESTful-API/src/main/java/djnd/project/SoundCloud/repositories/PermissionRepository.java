@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import djnd.project.SoundCloud.domain.entity.Permission;
-import djnd.project.SoundCloud.domain.it.PermissionIdName;
+import djnd.project.SoundCloud.domain.projection.PermissionIdName;
 
 public interface PermissionRepository extends JpaRepository<Permission, Long>, JpaSpecificationExecutor<Permission> {
     List<Permission> findByIdIn(List<Long> ids);

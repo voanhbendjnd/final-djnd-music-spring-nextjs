@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import djnd.project.SoundCloud.domain.entity.Category;
-import djnd.project.SoundCloud.domain.it.CategoryIdName;
+import djnd.project.SoundCloud.domain.projection.CategoryIdName;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSpecificationExecutor<Category> {

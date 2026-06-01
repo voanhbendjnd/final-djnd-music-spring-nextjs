@@ -1,7 +1,9 @@
 package djnd.project.SoundCloud.services;
 
 import djnd.project.SoundCloud.domain.response.ResultPaginationDTO;
+import djnd.project.SoundCloud.utils.error.UnauthorizedException;
 import org.apache.coyote.BadRequestException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,30 +29,36 @@ public class FollowService {
     @Transactional
     public ResFollower toggleFollow(Long followingId) throws BadRequestException {
         var userId = SecurityUtils.getCurrentUserIdOrNull();
-        if(userId == null) throw new BadRequestException("Current user id is null");
+        if(userId == null) throw new UnauthorizedException("You are not logged in!");
         if (userId.equals(followingId)) {
             throw new BadRequestException("Follower ID must be not equal following ID");
         }
         var deleted = this.followRepository.deleteFollower(userId, followingId);
-
+        boolean isLiked = false;
         if (deleted > 0) {
             this.userRepository.decreaseCountMyFollowers(followingId, 1);
-
         } else {
-            var follow = new Follow();
-            var you = this.userRepository.getReferenceById(userId);
-            var userYouWantToFollow = this.userRepository.getReferenceById(followingId);
+            try{
+                var follow = new Follow();
+                var you = this.userRepository.getReferenceById(userId);
+                var userYouWantToFollow = this.userRepository.getReferenceById(followingId);
 
-            follow.setFollower(you);
-            follow.setFollowing(userYouWantToFollow);
-            this.followRepository.save(follow);
-            this.userRepository.increaseCountMyFollowers(followingId, 1);
+                follow.setFollower(you);
+                follow.setFollowing(userYouWantToFollow);
+                this.followRepository.save(follow);
+                this.userRepository.increaseCountMyFollowers(followingId, 1);
+                isLiked =true;
+            }
+            catch(DataIntegrityViolationException e){
+                isLiked = true;
+            }
+
 
         }
         var res = new ResFollower();
         res.setUploaderId(followingId);
         res.setCountFollowers(this.userRepository.getCountFollowers(followingId));
-        res.setIsFollowed(deleted <= 0);
+        res.setIsFollowed(isLiked);
         return res;
     }
 

@@ -51,9 +51,15 @@ const DetailTrackPage = async ({ params, searchParams }: {
     if (isNaN(id)) {
         redirect('/');
     }
+    const session = await getServerSession(authOptions);
     const resComments = await sendRequest<IBackendRes<IModelPaginate<IComment>>>({
         url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/comments`,
         method: "GET",
+        headers: {
+            ...(session?.access_token && {
+                Authorization: `Bearer ${session.access_token}`
+            }),
+        },
         queryParams: {
             page: 1,
             size: 20,
@@ -65,7 +71,6 @@ const DetailTrackPage = async ({ params, searchParams }: {
         },
 
     })
-    const session = await getServerSession(authOptions);
     const resDataTrack = await sendRequest<IBackendRes<ITrack>>({
         url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${id}`,
         method: "GET",

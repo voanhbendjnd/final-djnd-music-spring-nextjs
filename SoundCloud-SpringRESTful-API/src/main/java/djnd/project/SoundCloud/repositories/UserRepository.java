@@ -49,11 +49,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     void updateNameAndAvatarUser(@Param("name") String name, @Param("avatar") String avatar,
             @Param("userId") Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(value = "update User u set u.countFollowers = GREATEST(u.countFollowers + :numberFollow, 0) where u.id = :userId")
     void increaseCountMyFollowers(@Param("userId") Long userId, @Param("numberFollow") Integer numberFollow);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(value = "update User u set u.countFollowers =GREATEST(u.countFollowers - :numberFollow, 0) where u.id = :userId")
     void decreaseCountMyFollowers(@Param("userId") Long userId, @Param("numberFollow") Integer numberFollow);
 

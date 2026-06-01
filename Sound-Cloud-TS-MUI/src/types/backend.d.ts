@@ -108,6 +108,8 @@ declare global{
         likes_count: number;
         content: string;
         moment: number;
+        isLiked:boolean;
+        countLikes: number;
         user:{
             id: number;
             // role:string;

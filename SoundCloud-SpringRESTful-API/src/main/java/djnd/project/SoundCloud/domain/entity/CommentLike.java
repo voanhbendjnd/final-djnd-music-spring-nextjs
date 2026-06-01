@@ -1,17 +1,13 @@
 package djnd.project.SoundCloud.domain.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Entity
-@Table(name = "comment_likes")
+@Table(name = "comment_likes", uniqueConstraints =@UniqueConstraint(columnNames = {"user_id", "comment_id"}))
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)

@@ -22,10 +22,13 @@ public class ResComment {
     String userEmail;
     @JsonProperty("likes_count")
     Integer likesCount;
+    Integer countLikes;
     String content;
     Integer moment;
+    Boolean isLiked;
     UserComment user;
     TrackComment track;
+
 
     @Getter
     @Setter

@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ResTrackLike extends ResLike{
-
-    private Long countPlays;
+public class ResLike {
+    private Boolean isLiked;
+    private Integer countLikes;
 }

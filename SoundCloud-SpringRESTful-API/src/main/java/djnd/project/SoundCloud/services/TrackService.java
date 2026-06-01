@@ -12,6 +12,7 @@ import djnd.project.SoundCloud.domain.response.*;
 import djnd.project.SoundCloud.repositories.*;
 import djnd.project.SoundCloud.services.realtime.ShareTrackRealtimeService;
 import djnd.project.SoundCloud.utils.error.HandleIllegalArgumentException;
+import djnd.project.SoundCloud.utils.error.ObjectNotFoundException;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -326,16 +327,19 @@ public class TrackService {
         if (userId == null) {
             throw new HandleIllegalArgumentException("User ID invalid!");
         }
+
         var deleted = this.trackLikeRepository.deleteByUserIdAndTrackId(userId, trackId);
         boolean isLiked;
+
         if(deleted > 0){
             this.trackRepository.decrementCountLikes(trackId);
             isLiked = false;
         }
+
         else{
             var track = this.trackRepository.findById(trackId)
                     .orElseThrow(() ->
-                            new HandleIllegalArgumentException("Track not found!")
+                            new ObjectNotFoundException("Track not found!")
                     );
             try{
                 var trackLike = new TrackLike();

@@ -1,5 +1,7 @@
 package djnd.project.SoundCloud.controllers.admin;
 
+import djnd.project.SoundCloud.domain.response.ResLike;
+import jakarta.validation.constraints.Positive;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -54,5 +56,12 @@ public class CommentController {
     public ResponseEntity<?> deleteById(@PathVariable("id") Long id) {
         this.commentService.deleteById(id);
         return ResponseEntity.ok("Delete comment success!");
+    }
+
+
+    @PostMapping("/{id}/like")
+    @ApiMessage("Toggle like comment")
+    public ResponseEntity<ResLike> toggleLikeComment(@Positive @PathVariable("id") Long id) {
+        return ResponseEntity.ok(this.commentService.toggleLike(id));
     }
 }

@@ -42,7 +42,6 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
      * 
      */
     @Modifying(clearAutomatically = true)
-    @Transactional
     @Query(value = "update Track t set t.countLike = t.countLike - 1 where t.id = :trackId")
     void decrementCountLikes(@Param("trackId") Long trackId);
 
@@ -50,7 +49,6 @@ public interface TrackRepository extends JpaRepository<Track, Long>, JpaSpecific
     Integer getCountLike(@Param("trackId") Long id);
 
     @Modifying(clearAutomatically = true)
-    @Transactional
     @Query(value = "update Track t set t.countPlay = t.countPlay + 1 where t.id = :trackId")
     void incrementCountPlay(@Param("trackId") Long trackId);
 

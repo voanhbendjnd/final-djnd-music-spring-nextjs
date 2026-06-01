@@ -1,7 +1,16 @@
 package djnd.project.SoundCloud.services;
 
+import djnd.project.SoundCloud.domain.entity.CommentLike;
+import djnd.project.SoundCloud.domain.response.ResLike;
+import djnd.project.SoundCloud.repositories.CommentLikeRepository;
+import djnd.project.SoundCloud.repositories.UserRepository;
+import djnd.project.SoundCloud.utils.SecurityUtils;
+import djnd.project.SoundCloud.utils.error.ObjectNotFoundException;
+import djnd.project.SoundCloud.utils.error.UnauthorizedException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import jakarta.persistence.criteria.Join;
 
@@ -16,8 +25,10 @@ import djnd.project.SoundCloud.utils.error.ResourceNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.List;
 
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -26,7 +37,8 @@ public class CommentService {
     CommentRepository commentRepository;
     TrackService trackService;
     UserService userService;
-
+    CommentLikeRepository commentLikeRepository;
+    UserRepository userRepository;
     public void create(CommentDTO dto) throws AccessToResourceException {
         var comment = new Comment();
         comment.setContent(dto.content());
@@ -74,8 +86,25 @@ public class CommentService {
         meta.setPages(totalPages);
         meta.setTotal(page.getTotalElements());
         res.setMeta(meta);
-        res.setResult(page.getContent().stream().map(this::toRes).toList());
+        var resComments = page.getContent().stream().map(this::toRes).toList();
+
+        // set state liked comment
+        this.stateIsLikedComment(resComments);
+
+        res.setResult(resComments);
         return res;
+    }
+
+    public void stateIsLikedComment(List<ResComment> resComments) {
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId != null){
+            var listCommentIds = resComments.stream().map(ResComment::getId).toList();
+            var isLikedComments = this.commentLikeRepository.getIsLikedComments(userId, listCommentIds);
+            resComments.forEach(comment ->{
+                comment.setIsLiked(isLikedComments.contains(comment.getId()));
+            });
+        }
+
     }
 
     private ResComment toRes(Comment comment) {
@@ -90,6 +119,7 @@ public class CommentService {
         res.setUpdatedBy(comment.getUpdatedBy());
         res.setCreatedBy(comment.getCreatedBy());
         res.setMoment(comment.getMoment());
+        res.setCountLikes(comment.getLikesCount());
         var userComment = new ResComment.UserComment();
         var trackComment = new ResComment.TrackComment();
         var user = comment.getUser();
@@ -114,5 +144,41 @@ public class CommentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Comment ID", id));
         this.commentRepository.delete(comment);
     }
+    @Transactional
+    public ResLike toggleLike(Long commentId){
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null){
+            throw new UnauthorizedException("You are not logged in!");
+        }
+        boolean isLiked = false;
+
+        // check comment
+        var deleted = this.commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+        if(deleted > 0){
+             commentRepository.decrementCountLikeComment(commentId);
+        }
+        else{
+            try{
+                var comment = this.commentRepository.findById(commentId).orElseThrow(()-> new ObjectNotFoundException("Comment not found!"));
+                var commentLike = new CommentLike();
+                commentLike.setComment(comment);
+                commentLike.setUser(this.userRepository.getReferenceById(userId));
+                this.commentLikeRepository.saveAndFlush(commentLike);
+                commentRepository.incrementCountLikeComment(commentId);
+                isLiked = true;
+            }
+            catch(DataIntegrityViolationException div){
+                isLiked = true;
+            }
+        }
+        var res = new ResLike();
+        res.setCountLikes(this.commentRepository.countByCommentId(commentId));
+        res.setIsLiked(isLiked);
+        return res;
+
+
+    }
+
+
 
 }

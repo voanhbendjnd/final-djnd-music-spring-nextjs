@@ -1,7 +1,9 @@
 package djnd.project.SoundCloud.utils.error;
 
 import java.nio.file.AccessDeniedException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,17 +23,7 @@ import djnd.project.SoundCloud.domain.response.RestResponse;
 @RestControllerAdvice
 public class GlobalException {
 
-    // @ExceptionHandler(value = { HttpMessageNotReadableException.class })
-    // public ResponseEntity<?>
-    // handleHttpNotReadable(HttpMessageNotReadableException ex) {
-    // var status = HttpStatus.METHOD_NOT_ALLOWED.value();
-    // var res = new RestResponse<>();
-    // res.setMessage(ex.getMessage());
-    // res.setError("Method not allowed");
-    // res.setStatusCode(status);
-    // return ResponseEntity.status(status).body(res);
 
-    // }
 
     @ExceptionHandler(value = {
             BadCredentialsException.class
@@ -57,20 +49,31 @@ public class GlobalException {
         return ResponseEntity.status(status).body(res);
     }
 
-    @ExceptionHandler(value = {
-            MethodArgumentNotValidException.class
-    })
-    public ResponseEntity<RestResponse<Object>> handleEntityException(MethodArgumentNotValidException ex) {
-        var result = ex.getBindingResult();
-        final List<FieldError> fieldErrors = result.getFieldErrors();
-        var res = new RestResponse<>();
-        var status = HttpStatus.BAD_REQUEST.value();
-        res.setStatusCode(status);
-        res.setError(ex.getBody().getDetail());
-        var errors = fieldErrors.stream().map(f -> f.getDefaultMessage()).collect(Collectors.toList());
-        res.setMessage(errors.size() > 1 ? errors : errors.get(0));
-        return ResponseEntity.status(status).body(res);
 
+    /**
+     * Handle exception for valid request
+     *
+     * @param ex
+     * @return bad request 400
+     **/
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<RestResponse<Object>> handleValidation(
+            MethodArgumentNotValidException ex) {
+
+        Map<String, String> errors = new HashMap<>();
+        var res = new RestResponse<>();
+
+        ex.getBindingResult()
+                .getFieldErrors()
+                .forEach(error -> {
+                    errors.put(
+                            error.getField(),
+                            error.getDefaultMessage());
+                });
+        res.setError("Bad request data!");
+        res.setMessage(errors);
+        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
     }
 
     @ExceptionHandler(value = {
@@ -181,6 +184,20 @@ public class GlobalException {
             ObjectNotFoundException ex) {
         var res = new RestResponse<>();
         var status =  HttpStatus.NOT_FOUND.value();
+        res.setStatusCode(status);
+        res.setError(ex.getMessage());
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(status).body(res);
+    }
+
+
+    @ExceptionHandler(value ={
+            DataRequestInvalidException.class
+    })
+    public ResponseEntity<?> handleBadRequestException(DataRequestInvalidException ex
+            ) {
+        var res = new RestResponse<>();
+        var status =  HttpStatus.BAD_REQUEST.value();
         res.setStatusCode(status);
         res.setError(ex.getMessage());
         res.setMessage(ex.getMessage());

@@ -5,8 +5,10 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import djnd.project.SoundCloud.domain.entity.Role;
 
+import java.util.Optional;
+
 public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificationExecutor<Role> {
-    Role findByName(String name);
+    Optional<Role> findByName(String name);
 
     Role findByNameIgnoreCase(String name);
 

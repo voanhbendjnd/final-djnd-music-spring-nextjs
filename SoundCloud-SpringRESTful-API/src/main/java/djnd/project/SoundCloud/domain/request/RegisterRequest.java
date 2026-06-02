@@ -1,21 +1,22 @@
 package djnd.project.SoundCloud.domain.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class LoginDTO {
-    @NotBlank(message = "Field empty!")
+public class RegisterRequest {
+    @NotBlank(message = "Name null")
+    String name;
     String email;
-    @NotBlank(message = "Password cannot be Empty!")
+    String username;
+    @NotBlank(message = "Password null")
     String password;
-
+    @NotBlank(message = "Confirm password null")
+    String confirmPassword;
 }

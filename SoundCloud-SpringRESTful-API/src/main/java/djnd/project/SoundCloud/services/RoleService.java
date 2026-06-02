@@ -1,5 +1,6 @@
 package djnd.project.SoundCloud.services;
 
+import djnd.project.SoundCloud.domain.request.permissions.PermissionIdDTO;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -29,8 +30,8 @@ public class RoleService {
             throw new DuplicateResourceException("Role Name", dto.name());
         }
         var permissions = dto.permissions();
-        var permissionsExists = this.permissionRepository.findByIdIn(permissions);
-        if (!permissionsExists.isEmpty() && permissionsExists != null) {
+        var permissionsExists = this.permissionRepository.findByIdIn(permissions.stream().map(PermissionIdDTO::id).toList());
+        if (permissionsExists != null) {
             var role = new Role();
             role.setPermissions(permissionsExists);
             role.setDescription(dto.description());
@@ -44,8 +45,8 @@ public class RoleService {
         if (this.roleRepository.existsByNameAndIdNot(dto.name(), dto.id())) {
             throw new DuplicateResourceException("Role Name", dto.name());
         }
-        var permissions = this.permissionRepository.findByIdIn(dto.permissions());
-        if (permissions != null && !permissions.isEmpty()) {
+        var permissions = this.permissionRepository.findByIdIn(dto.permissions().stream().map(PermissionIdDTO::id).toList());
+        if (permissions != null) {
             var role = this.roleRepository.findById(dto.id())
                     .orElseThrow(() -> new ResourceNotFoundException("Role ID", "" + dto.id()));
             role.setDescription(dto.description());

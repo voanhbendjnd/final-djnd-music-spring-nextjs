@@ -3,6 +3,7 @@ package djnd.project.SoundCloud.configs;
 import java.util.ArrayList;
 import java.util.List;
 
+import djnd.project.SoundCloud.utils.error.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -85,15 +86,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             User admin = new User();
             admin.setName("ADMIN");
             admin.setEmail("admin@gmail.com");
-            admin.setRole(this.roleRepository.findByName(adminValue));
+            admin.setRole(this.roleRepository.findByName(adminValue).orElseThrow(()-> new ObjectNotFoundException("Role admin not found!")));
             admin.setPassword(this.passwordEncoder.encode("123123"));
-            admin.setType(LoginType.SYSTEM.toString());
+            admin.setType(LoginType.SYSTEM);
             this.userRepoRepository.save(admin);
         }
         if (permissionCnt != 0 && roleCnt != 0 && userCnt != 0) {
-            System.out.println(">>> SKIP PROCESSING INITIALIER <<<");
+            System.out.println(">>> SKIP PROCESSING INITIALIZE <<<");
         } else {
-            System.out.println(">>> INIT DATABASE SUCCESSFULL");
+            System.out.println(">>> INIT DATABASE SUCCESSFULLY");
         }
     }
 }

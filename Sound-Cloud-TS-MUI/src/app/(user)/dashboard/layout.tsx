@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { 
-  Box, Drawer, List, ListItem, ListItemButton, 
-  ListItemIcon, ListItemText, Divider, Toolbar 
+import {
+  Box, Drawer, List, ListItem, ListItemButton,
+  ListItemIcon, ListItemText, Divider, Toolbar
 } from '@mui/material';
 import {
     People as PeopleIcon,
@@ -14,7 +14,8 @@ import {
     Dashboard as DashboardIcon, Lyrics
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import {redirect, usePathname} from 'next/navigation';
+import {useSession} from "next-auth/react";
 
 const drawerWidth = 240;
 
@@ -30,7 +31,10 @@ const menuItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
+const {data:session} = useSession();
+if(session?.user.role !== 'SUPER_ADMIN'){
+    redirect('/')
+}
   return (
     <Box sx={{ display: 'flex' }}>
       <Drawer

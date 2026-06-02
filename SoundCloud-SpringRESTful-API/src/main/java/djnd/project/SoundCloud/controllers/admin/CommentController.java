@@ -39,9 +39,9 @@ public class CommentController {
         return ResponseEntity.status(HttpStatus.CREATED).body("Create new comment success!");
     }
 
-    @GetMapping("/{id:[0-9]+}")
+    @GetMapping("/{id}")
     @ApiMessage("Get comment by ID")
-    public ResponseEntity<?> getById(@PathVariable("id") Long id) {
+    public ResponseEntity<?> getById(@Positive @PathVariable("id") Long id) {
         return ResponseEntity.ok(this.commentService.fetchById(id));
     }
 

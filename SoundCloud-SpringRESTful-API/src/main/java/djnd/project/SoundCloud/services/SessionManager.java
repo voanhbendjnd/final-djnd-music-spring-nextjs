@@ -45,12 +45,12 @@ public class SessionManager {
      * - So sánh với sessionId trong JWT token
      * - Return false nếu session đã bị invalidate (login từ nơi khác)
      * 
-     * @param email     Email của user
      * @param sessionId Session ID cần kiểm tra (từ JWT token)
      * @return true nếu session hợp lệ, false nếu session đã bị invalidate
      */
-    public boolean isValidSession(String email, String sessionId) {
-        User user = userRepository.findByEmail(email);
+    public boolean isValidSession(String username, String sessionId) {
+        username = username.toLowerCase();
+        User user = userRepository.findOneByUsernameEmail(username, username);
 
         // Kiểm tra user tồn tại và có sessionId
         if (user == null || user.getSessionId() == null) {
@@ -68,10 +68,11 @@ public class SessionManager {
      * - Set sessionId = null trong database
      * - Session sẽ không còn hợp lệ
      * 
-     * @param email Email của user
+     * @param username username by user
      */
-    public void invalidateSession(String email) {
-        User user = userRepository.findByEmail(email);
+    public void invalidateSession(String username) {
+        username = username.toLowerCase();
+        User user = userRepository.findOneByUsernameEmail(username, username);
         if (user != null) {
             user.setSessionId(null); // Xóa sessionId
             userRepository.save(user);

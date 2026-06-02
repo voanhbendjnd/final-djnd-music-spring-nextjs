@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import djnd.project.SoundCloud.domain.request.RegisterRequest;
+import djnd.project.SoundCloud.domain.request.SocialLoginDTO;
 import djnd.project.SoundCloud.domain.response.ResOwner;
 import djnd.project.SoundCloud.domain.response.TrackResponse;
 import djnd.project.SoundCloud.utils.constains.ActionToken;
@@ -19,6 +21,7 @@ import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpEntity;
@@ -28,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -63,6 +67,8 @@ public class UserService {
     private String userFolder;
     @Value("${djnd.jwt.access-token-validity-in-seconds}")
     private Long expiresIn;
+    @Value("${djnd.soundcloud.role.customer.name}")
+    private String userRole;
 
     // private final UserMapper userMapper;
 
@@ -70,7 +76,7 @@ public class UserService {
         var emailOptional = SecurityUtils.getCurrentUserLogin();
         if (emailOptional.isPresent()) {
             var email = emailOptional.get();
-            return this.userRepository.findWithDetailByEmail(email)
+            return this.userRepository.findWithDetailByEmail(email, email)
                     .orElseThrow(() -> new ResourceNotFoundException("User Email", email));
         }
         throw new AccessToResourceException("You do not have permission!");
@@ -89,7 +95,7 @@ public class UserService {
 
         user.setAccept(false);
         user.setPassword(dto.getManagementPassword().getPassword());
-        user.setType(LoginType.SYSTEM.toString());
+        user.setType(LoginType.SYSTEM);
         var lastUser = this.userRepository.save(user);
         return lastUser.getId();
     }
@@ -150,42 +156,55 @@ public class UserService {
         return res;
     }
 
-    public void updateRefreshTokenByEmail(String email, String refreshToken) {
-        var user = this.userRepository.findByEmail(email);
+    public void updateRefreshTokenByEmail(String username, String refreshToken) {
+        username = username.toLowerCase();
+        var user = this.userRepository.findOneByUsernameEmail(username, username);
         if (user != null) {
             user.setRefreshToken(refreshToken);
             this.userRepository.save(user);
         }
     }
-
-    public long register(UserDTO dto) {
-        if (this.userRepository.existsByEmail(dto.getEmail().toLowerCase())) {
-            throw new DuplicateResourceException("Email User", dto.getEmail());
+    @Transactional
+    public void register(RegisterRequest request) {
+        var email = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : "";
+        var username = request.getUsername() != null ? request.getUsername().trim().toLowerCase() : "";
+        if(email.isEmpty() && username.isEmpty()) {
+            throw new DataRequestInvalidException("Email or username required!");
         }
+        // check unique email or user
         var user = new User();
-        user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
-        user.setAccept(false);
-        user.setPassword(this.passwordEncoder.encode(dto.getManagementPassword().getConfirmPassword()));
-        user.setRole(this.roleRepository.findByName("USER_NORMAL"));
-        user.setType("SYSTEM");
-        var lastUser = this.userRepository.save(user);
-        return lastUser.getId();
+        if(username.isEmpty()) {
+            if(this.userRepository.existsByEmail(email.toLowerCase())){
+                throw new DuplicateResourceException("Registration invalid", email.toLowerCase());
+            }
+            user.setEmail(email.toLowerCase());
+        }
+        if(email.isEmpty()) {
+            if(this.userRepository.existsByUsername(username.toLowerCase())){
+                throw new DuplicateResourceException("Registration invalid", username.toLowerCase());
+            }
+            user.setUsername(username.toLowerCase());
+        }
+
+        this.setUserFromRegister(user, request);
+        try{
+            this.userRepository.saveAndFlush(user);
+
+        }
+        catch(DataIntegrityViolationException dve){
+            throw new DuplicateResourceException("Registration invalid","The credential is already taken.");
+        }
+    }
+    public void setUserFromRegister(User user, RegisterRequest request) {
+        var role = this.roleRepository.findByName(userRole).orElseThrow(()-> new ObjectNotFoundException("Role not found!"));
+        user.setPassword(this.passwordEncoder.encode(request.getPassword()));
+        user.setAccept(true);
+        user.setRole(role);
+        user.setType(LoginType.SYSTEM);
+
     }
 
-    public User socialLogin(djnd.project.SoundCloud.domain.request.SocialLoginDTO dto) {
-        var user = this.userRepository.findByEmail(dto.getEmail());
-        if (user == null) {
-            user = new User();
-            user.setEmail(dto.getEmail());
-            user.setName(dto.getName());
-            user.setType(dto.getType());
-            user.setAvatar(dto.getAvatar());
-            user.setRole(this.roleRepository.findByName("USER_NORMAL"));
-            user = this.userRepository.save(user);
-        }
-        return user;
-    }
+
 
     /*
      * condition: delete (delete refresh token), refresh (update res login dto)
@@ -200,12 +219,12 @@ public class UserService {
             throw new BadCredentialsException("Refresh token expired");
         }
 
-        var email = claims.getSubject();
-        if (email == null) {
+        var username = claims.getSubject();
+        if (username == null) {
             throw new BadCredentialsException("Email get from refresh token null!");
         }
 
-        var userOptional = this.userRepository.findWithDetailByEmail(email);
+        var userOptional = this.userRepository.findWithDetailByEmail(username, username);
         if (userOptional.isEmpty()) {
             throw new BadCredentialsException("User not found!");
         }
@@ -213,36 +232,33 @@ public class UserService {
         var user = userOptional.get();
 
         if (action == ActionToken.DELETE) {
-            this.sessionManager.invalidateSession(email);
-            updateRefreshTokenByEmail(email, null);
+            this.sessionManager.invalidateSession(username);
+            updateRefreshTokenByEmail(username, null);
             return new ResLoginDTO();
         }
 
         if (action == ActionToken.REFRESH) {
             var userLogin = new ResLoginDTO.UserLogin();
-            userLogin.setEmail(email);
+            if(user.getEmail() != null){
+                userLogin.setEmail(username);
+
+            }
             userLogin.setId(user.getId());
             userLogin.setName(user.getName());
             userLogin.setRole(user.getRole().getName());
-            userLogin.setType(user.getType() != null ? user.getType() : LoginType.SYSTEM.toString());
+            userLogin.setType(user.getType() != null ? user.getType().toString() : LoginType.SYSTEM.toString());
             userLogin.setAvatar(user.getAvatar());
-            userLogin.setUsername(user.getUsername());
+            if(user.getUsername() != null){
+                userLogin.setUsername(username);
+            }
             res.setUser(userLogin);
-
             var sessionID = this.sessionManager.createNewSession(user);
-            var accessToken = this.securityUtils.createAccessToken(email, res, sessionID, user.getRole());
+            var accessToken = this.securityUtils.createAccessToken(username, res, sessionID, user.getRole());
             res.setAccessToken(accessToken);
             res.setExpiresIn(expiresIn);
-
-            var newRefreshToken = this.securityUtils.createRefreshToken(email, res);
-
-            // if (isCurrentToken) {
-            // user.setPreviousRefreshToken(refreshToken);
-            // user.setLastRefreshTime(new Date());
-            // }
+            var newRefreshToken = this.securityUtils.createRefreshToken(username, res);
             user.setRefreshToken(newRefreshToken);
             this.userRepository.save(user);
-
             res.setRefreshToken(newRefreshToken);
             return res;
         } else {
@@ -271,13 +287,12 @@ public class UserService {
 
 //    @Cacheable(value = "userAccount", key = "'USER_ACCOUNT_' + #email")
     public ResLoginDTO.UserGetAccount getAccount() {
-        var email = SecurityUtils.getCurrentUserLogin()
-                .orElseThrow(() -> new BadCredentialsException("You do not have access!"));
-        var user = this.userRepository.findByEmail(email);
-        if (user != null) {
-            return getUserGetAccount(user);
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null){
+            throw new UnauthorizedException("You are not logged in!");
         }
-        throw new ResourceNotFoundException("Account", email);
+        var user = this.userRepository.findById(userId).orElseThrow(()-> new ObjectNotFoundException("User not found!"));
+            return getUserGetAccount(user);
     }
 
     @Nonnull
@@ -288,7 +303,7 @@ public class UserService {
         userLogin.setName(user.getName());
         userLogin.setId(user.getId());
         userLogin.setRole(user.getRole().getName());
-        userLogin.setType(user.getType() != null ? user.getType() : "SYSTEM");
+        userLogin.setType(user.getType() != null ? user.getType().toString() : "SYSTEM");
         userLogin.setAvatar(user.getAvatar());
         userLogin.setUsername(user.getUsername());
         res.setUser(userLogin);
@@ -297,8 +312,8 @@ public class UserService {
 
     public boolean updatePassword(UpdatePassword dto) {
         var email = SecurityUtils.getCurrentUserLogin()
-                .orElseThrow(() -> new BadCredentialsException("You do not have permission!"));
-        var user = this.userRepository.findByEmail(email);
+                .orElseThrow(() -> new BadCredentialsException("You do not have permission!")).toLowerCase();
+        var user = this.userRepository.findOneByUsernameEmail(email, email);
         if (user != null) {
             if (this.passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
                 if (dto.getManagementPassword().getPassword()
@@ -319,7 +334,7 @@ public class UserService {
     }
 
     public void forgotPassword(UserDTO dto) {
-        var user = this.userRepository.findByEmail(dto.getEmail());
+        var user = this.userRepository.findOneByUsernameEmail(dto.getEmail().toLowerCase(), dto.getEmail().toLowerCase());
         if (user != null) {
             this.mailService.sendOTPToEmail(user, " Là Mã Khôi Phục Mật Khẩu Sound Clound Account Của Bạn", true);
         } else {
@@ -328,7 +343,7 @@ public class UserService {
     }
 
     public boolean verifyOTP(UserDTO dto) {
-        var user = this.userRepository.findByEmail(dto.getEmail());
+        var user = this.userRepository.findOneByUsernameEmail(dto.getEmail().toLowerCase(), dto.getEmail().toLowerCase());
         if (user != null) {
             if (!user.isOTPRequired()) {
                 throw new BadCredentialsException("OTP expires!");
@@ -346,7 +361,7 @@ public class UserService {
     }
 
     public boolean updatePassword(UserDTO dto) {
-        var user = this.userRepository.findByEmail(dto.getEmail());
+        var user = this.userRepository.findOneByUsernameEmail(dto.getEmail().toLowerCase(), dto.getEmail().toLowerCase());
         if (user != null) {
             if (user.isAccept()) {
                 if (dto.getManagementPassword().getConfirmPassword()
@@ -376,8 +391,11 @@ public class UserService {
         var email = SecurityUtils.getCurrentUserLogin()
                 .orElseThrow(() -> new BadCredentialsException("You cannot upload avatar!"));
 
-        var user = this.userRepository.findByEmail(email);
-        if (user != null) {
+        var userId = SecurityUtils.getCurrentUserIdOrNull();
+        if(userId == null){
+            throw new UnauthorizedException("You are not logged in!");
+        }
+        var user = this.userRepository.findById(userId).orElseThrow(()-> new ObjectNotFoundException("User not found!"));
             if (file != null && !file.isEmpty()) {
                 var allowFile = Arrays.asList("jpg", "jpeg", "png");
                 if (allowFile.stream().anyMatch(x -> file.getOriginalFilename().toLowerCase().endsWith(x))) {
@@ -389,7 +407,6 @@ public class UserService {
                 return false;
             }
 
-        }
         return false;
     }
 
@@ -474,7 +491,7 @@ public class UserService {
             user.setAvatar(avatar);
             user.setEmail(email);
             user.setName(name != null ? name : "No Name");
-            user.setType(type);
+            user.setType(LoginType.valueOf(type));
             var saveUser = this.userRepository.save(user);
             return this.getUserLoginWhenAfterLogin(this.userRepository.findWithDetailById(saveUser.getId()).get());
 
@@ -484,21 +501,28 @@ public class UserService {
     public ResLoginDTO getUserLoginWhenAfterLogin(User user) {
         var res = new ResLoginDTO();
         var userLogin = new ResLoginDTO.UserLogin();
-        var email = user.getEmail();
-        userLogin.setEmail(email);
+        String username = "";
+        if(user.getEmail() != null){
+            username= user.getEmail();
+            userLogin.setEmail(user.getEmail());
+        }
+        if(user.getUsername() != null){
+            username= user.getUsername();
+            userLogin.setUsername(user.getUsername());
+        }
         userLogin.setId(user.getId());
         userLogin.setName(user.getName());
         userLogin.setRole(user.getRole().getName());
-        userLogin.setType(user.getType() != null ? user.getType() : "SYSTEM");
+        userLogin.setType(user.getType() != null ? user.getType().toString() : "SYSTEM");
         userLogin.setAvatar(user.getAvatar());
         userLogin.setUsername(user.getUsername());
         userLogin.setCountFollowers(user.getCountFollowers());
         res.setUser(userLogin);
         var sessionID = this.sessionManager.createNewSession(user);
-        var accessToken = this.securityUtils.createAccessToken(email, res, sessionID, user.getRole());
+        var accessToken = this.securityUtils.createAccessToken(username, res, sessionID, user.getRole());
         res.setAccessToken(accessToken);
-        var newRefreshToken = this.securityUtils.createRefreshToken(email, res);
-        updateRefreshTokenByEmail(email, newRefreshToken);
+        var newRefreshToken = this.securityUtils.createRefreshToken(username, res);
+        updateRefreshTokenByEmail(username, newRefreshToken);
         res.setExpiresIn(expiresIn);
         res.setRefreshToken(newRefreshToken);
         return res;
@@ -521,12 +545,13 @@ public class UserService {
             for (User user : users) {
                 if (user.getEmail() != null && !this.userRepository.existsByEmail(user.getEmail())) {
                     user.setPassword(this.passwordEncoder.encode("123456")); // Default password
-                    user.setRole(this.roleRepository.findByName("USER_NORMAL"));
-                    user.setType("SYSTEM");
+                    var role = this.roleRepository.findByName(userRole).orElseThrow(()-> new ObjectNotFoundException("Role not found!"));
+                    user.setRole(role);
+                    user.setType(LoginType.SYSTEM);
                     this.userRepository.save(user);
                 }
             }
-            return Map.of("message", "Import successfull", "count", users.size());
+            return Map.of("message", "Import successfully", "count", users.size());
         } catch (IOException e) {
             throw new RuntimeException("fail to store excel data: " + e.getMessage());
         }

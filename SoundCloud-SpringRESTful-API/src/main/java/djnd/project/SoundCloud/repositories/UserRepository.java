@@ -17,7 +17,9 @@ import djnd.project.SoundCloud.domain.entity.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     boolean existsByEmail(String Email);
-
+    boolean existsByUsername(String username);
+    @Query(value = "select u from User u where u.email = :email or u.username = :username")
+    User findOneByUsernameEmail(@Param("email") String email, @Param("username") String username);
     User findByEmail(String email);
 
     User findByEmailIgnoreCase(String email);
@@ -30,13 +32,13 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     boolean existsByEmailAndIdNot(String email, Long id);
 
     @EntityGraph(attributePaths = { "role", "role.permissions" })
-    @Query(value = "select u from User u where lower(u.email) = lower(:email)")
+    @Query(value = "select u from User u where u.email = :email or u.username = :username")
 //    @Cacheable(
 //            cacheNames = "user-detail", // name
 //            key = "#email",  // data save
 //            unless = "#result == null" // save null if not found
 //    )
-    Optional<User> findWithDetailByEmail(@Param("email") String email);
+    Optional<User> findWithDetailByEmail(@Param("email") String email, @Param("username") String username);
 
     @EntityGraph(attributePaths = { "role", "role.permissions" })
     @Query(value = "select u from User u where u.id = :id")

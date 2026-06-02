@@ -27,8 +27,8 @@ public class PermissionInterceptor implements HandlerInterceptor {
         String apiPath = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         String httpMethod = request.getMethod();
         var email = SecurityUtils.getCurrentUserLogin()
-                .orElseThrow(() -> new BadCredentialsException("You do not have permission!"));
-        var user = this.userRepository.findByEmail(email);
+                .orElseThrow(() -> new BadCredentialsException("You do not have permission!")).toLowerCase();
+        var user = this.userRepository.findOneByUsernameEmail(email, email);
         if (user != null) {
             var role = user.getRole();
             if (role != null) {

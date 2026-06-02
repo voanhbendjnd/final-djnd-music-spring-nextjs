@@ -3,15 +3,10 @@ package djnd.project.SoundCloud.domain.entity;
 import java.util.Date;
 import java.util.List;
 
+import djnd.project.SoundCloud.utils.constains.LoginType;
+import jakarta.persistence.*;
 import org.hibernate.annotations.BatchSize;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,7 +27,8 @@ public class User extends BaseEntity {
     String email;
     String password;
     // GITHUB, GOOGLE
-    String type;
+    @Enumerated(EnumType.STRING)
+    LoginType type;
     @Column(name = "session_id")
     String sessionId;
     @ManyToOne

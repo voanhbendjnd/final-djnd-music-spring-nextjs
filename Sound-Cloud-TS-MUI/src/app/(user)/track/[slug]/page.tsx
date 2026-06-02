@@ -1,10 +1,6 @@
-// import WaveTrackClient from '@/components/track/wave.track.client';
-import { Container } from "@mui/material";
 import { sendRequest } from "@/utils/api";
-import CommentSection from "@/components/track/comment.section";
 import { redirect } from "next/navigation";
 import type { Metadata, ResolvingMetadata } from 'next'
-import WaveTrack from "@/components/track/wave.track";
 import {getServerSession} from "next-auth";
 import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 import TrackDetailClient from "@/components/track/track.detail.client";

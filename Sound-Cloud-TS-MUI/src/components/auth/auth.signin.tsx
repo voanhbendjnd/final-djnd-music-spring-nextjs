@@ -143,13 +143,13 @@ const AuthSignIn = (props: any) => {
                 </Button>
 
                 <Typography sx={{ color: "#aaa", mb: 1 }}>
-                    Sign in with email
+                    Sign in with email or username
                 </Typography>
 
                 {/* INPUT */}
                 <TextField
                     fullWidth
-                    placeholder="Your email address"
+                    placeholder="Your email or username"
                     variant="outlined"
                     sx={{
                         mb: 2,
@@ -263,6 +263,7 @@ const AuthSignIn = (props: any) => {
 
                 <Typography sx={{ mt: 2, color: "#4ea1ff", fontSize: 13 }}>
                     <Link href={'/'} style={{textDecoration:'none', color:'white'}}>Back to home?</Link>
+                    <Link href={'/register'} style={{textDecoration:'none', color:'white'}}>Register</Link>
                 </Typography>
             </Box>
         </Box>

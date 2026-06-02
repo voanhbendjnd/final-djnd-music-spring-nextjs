@@ -9,9 +9,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,24 +50,32 @@ public class SecurityConfig {
     // PublicEndpointFilter publicEndpointFilter
     ) throws Exception {
         String[] whiteList = {
-                "/**",
-                "/api/v1/**",
                 "/storage/**",
-                "/ws/**"
+                "/api/v1/search/**",
+                "/api/v1/auth/**",
+                "/api/v1/tracks/view/increase",
+                "/ws/**",
+
         };
         http
                 .cors(cors -> cors.configurationSource(corsConfig))
-                .csrf(c -> c.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 // .addFilterBefore(publicEndpointFilter,
                 // org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
                 .authorizeHttpRequests(
-                        authz -> authz
+                        auth -> auth
+                                .requestMatchers(HttpMethod.GET, "/api/v1/categories").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/tracks/users/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/tracks").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/tracks/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/comments/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/comments").permitAll()
                                 .requestMatchers(whiteList).permitAll()
                                 .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(publicEndpointJwtAuthenticationTokenConverter()))
                         .authenticationEntryPoint(sap))
-                .formLogin(f -> f.disable())
+                .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
         return http.build();
     }

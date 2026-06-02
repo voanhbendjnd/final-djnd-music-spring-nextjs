@@ -1,9 +1,11 @@
 package djnd.project.SoundCloud.controllers.client;
 
+import djnd.project.SoundCloud.domain.request.RegisterRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -87,11 +89,12 @@ public class AuthController {
 
     @PostMapping("/register")
     @ApiMessage("Sign in account with email")
-    public ResponseEntity<Long> register(@RequestBody @Valid UserDTO dto) {
-        if (!dto.getManagementPassword().getConfirmPassword().equals(dto.getManagementPassword().getPassword())) {
+    public ResponseEntity<String> register(@RequestBody @Valid RegisterRequest request) {
+        if (!request.getConfirmPassword().equals(request.getPassword())) {
             throw new PasswordMismatchException("Password and Confirm Password not the same!");
         }
-        return ResponseEntity.ok(this.userService.register(dto));
+        this.userService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Register successfully!");
 
     }
 

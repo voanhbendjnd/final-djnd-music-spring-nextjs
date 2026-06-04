@@ -50,7 +50,7 @@ public interface HistoryTrackRepository
                         duration_listened = GREATEST(duration_listened, :duration),
                         listened_at = NOW()
                         """, nativeQuery = true)
-        void upsertHistory(Long userId, Long trackId, Integer duration);
+        void upsertHistory(@Param("userId") Long userId,@Param("trackId") Long trackId,@Param("duration") Integer duration);
 
         @Query(value = """
                         select

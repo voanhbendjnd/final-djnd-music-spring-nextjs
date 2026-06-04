@@ -17,7 +17,7 @@ public class CorsConfig {
                                 "http://localhost:3000",
                                 "http://localhost:3001", "http://localhost:4173", "http://localhost:5173",
                                 "https://tame-snakes-cheer.loca.lt", "http://192.168.1.15:3000",
-                                "http://192.168.1.128:3000"));
+                                "http://192.168.1.128:3000", "frontend-djnd-music-deloy-eprg.vercel.app", "https://frontend-djnd-music-deloy-eprg.vercel.app"));
                 configuration.setAllowedMethods(Arrays.asList(
                                 "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")); // Allowed methods
                 configuration.setAllowedHeaders(Arrays.asList(
